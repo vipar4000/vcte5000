@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}R Car Rogil ERP - {{ action|title }} Gasto{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'expenses:list' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+            ← Volver a gastos
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-6">
+            {% if action == 'crear' %}➕ Nuevo Gasto de Estructura{% else %}✏️ Editar Gasto{% endif %}
+        </h2>
+
+        {% if messages %}
+        <div class="space-y-2 mb-6">
+            {% for message in messages %}
+            <div class="p-3 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Factura *</label>
+                    {{ form.fecha_factura }}
+                    {% if form.fecha_factura.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.fecha_factura.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+                    {{ form.categoria }}
+                    {% if form.categoria.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.categoria.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor/Acreedor *</label>
+                    {{ form.proveedor_acreedor }}
+                    {% if form.proveedor_acreedor.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.proveedor_acreedor.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">CIF/NIF *</label>
+                    {{ form.cif_nif }}
+                    {% if form.cif_nif.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.cif_nif.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Base Imponible (EUR) *</label>
+                    {{ form.base_imponible }}
+                    {% if form.base_imponible.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.base_imponible.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo IVA (%)</label>
+                    {{ form.tipo_iva }}
+                    {% if form.tipo_iva.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.tipo_iva.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Retención IRPF (%)</label>
+                    {{ form.retencion_irpf }}
+                    {% if form.retencion_irpf.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.retencion_irpf.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Factura PDF</label>
+                    {{ form.documento_pdf }}
+                    {% if form.documento_pdf.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.documento_pdf.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pagado</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        {{ form.pagado }}
+                        <span id="pagadoLabel" class="text-sm text-gray-500">No pagado</span>
+                    </div>
+                </div>
+                <div id="fechaPagoContainer" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Pago</label>
+                    {{ form.fecha_pago }}
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <a href="{% url 'expenses:list' %}" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    {% if action == 'crear' %}Registrar Gasto{% else %}Guardar Cambios{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pagadoCheckbox = document.getElementById('id_pagado');
+    const pagadoLabel = document.getElementById('pagadoLabel');
+    const fechaPagoContainer = document.getElementById('fechaPagoContainer');
+
+    function toggleFechaPago() {
+        if (pagadoCheckbox.checked) {
+            pagadoLabel.textContent = 'Pagado';
+            fechaPagoContainer.classList.remove('hidden');
+        } else {
+            pagadoLabel.textContent = 'No pagado';
+            fechaPagoContainer.classList.add('hidden');
+        }
+    }
+
+    pagadoCheckbox.addEventListener('change', toggleFechaPago);
+    toggleFechaPago();
+});
+</script>
+{% endblock %}

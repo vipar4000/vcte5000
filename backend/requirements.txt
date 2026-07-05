@@ -1,0 +1,41 @@
+# Django Core
+Django==4.2.8
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+django-environ==0.11.2
+
+# Database
+psycopg2-binary==2.9.9
+
+# Celery
+celery==5.3.6
+django-celery-beat==2.5.0
+redis==5.0.1
+
+# PDF Generation
+weasyprint==60.1
+
+# Images
+Pillow==10.1.0
+
+# Accounting
+django-ledger==0.5.4
+
+# Utilities
+django-cleanup==8.0.0
+django-storages==1.14.2
+python-dateutil==2.8.2
+
+# Security
+django-axes==6.3.0
+django-csp==3.7
+
+# HTMX
+django-htmx==1.17.0
+
+# QR Code
+qrcode[pil]==7.4.2
+
+# Production
+whitenoise==6.6.0
+gunicorn==21.2.0

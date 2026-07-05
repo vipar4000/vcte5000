@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Eliminar OT-{{ ot.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'workshop:detail_ot' ot.pk %}" class="text-eurocar-light hover:underline">← Volver a la OT</a>
+        <h1 class="text-2xl font-bold text-red-600">⚠️ Eliminar Orden de Trabajo</h1>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p class="text-red-800 font-medium">
+                ¿Está seguro de que desea eliminar esta orden de trabajo?
+            </p>
+            <p class="text-red-600 text-sm mt-1">
+                Esta acción no se puede deshacer. Se eliminarán también los materiales asociados.
+            </p>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Orden de Trabajo</p>
+                    <p class="font-medium">OT-{{ ot.pk }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Título</p>
+                    <p class="font-medium">{{ ot.titulo }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Vehículo</p>
+                    <p class="font-medium">{{ ot.vehiculo.marca }} {{ ot.vehiculo.modelo }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Operario</p>
+                    <p class="font-medium">{{ ot.operario.get_full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Estado</p>
+                    <p class="font-medium">{{ ot.get_estado_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Coste Total</p>
+                    <p class="font-medium">€{{ ot.coste_total|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex justify-end gap-4">
+                <a href="{% url 'workshop:detail_ot' ot.pk %}" 
+                   class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    🗑️ Eliminar OT
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

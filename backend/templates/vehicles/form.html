@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}R Car Rogil ERP - {{ action|title }} Vehiculo{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'vehicles:list' %}" class="text-eurocar-light hover:underline">&larr; Volver a lista</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if action == 'crear' %}Nuevo Vehiculo{% else %}Editar Vehiculo{% endif %}
+        </h1>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los siguientes errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Datos Tecnicos</legend>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Matricula *</label>
+                    {{ form.matricula }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bastidor/VIN *</label>
+                    {{ form.bastidor }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Marca *</label>
+                    {{ form.marca }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Modelo *</label>
+                    {{ form.modelo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ano *</label>
+                    {{ form.anio }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Combustible *</label>
+                    {{ form.combustible }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Kilometraje *</label>
+                    {{ form.kilometraje }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Dano *</label>
+                    {{ form.tipo_dano }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Etiqueta Ambiental</label>
+                    {{ form.etiqueta_ambiental }}
+                </div>
+            </div>
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Estado</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+                    {{ form.estado }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Adquisicion *</label>
+                    {{ form.fecha_adquisicion }}
+                </div>
+            </div>
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Datos de Adquisicion</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Plataforma de Subasta</label>
+                    {{ form.plataforma_subasta }}
+                </div>
+            </div>
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Costes de Adquisicion</legend>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Adjudicacion *</label>
+                    {{ form.precio_subasta }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tasas de Sala *</label>
+                    {{ form.tasas_sala }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Logistica/Grua *</label>
+                    {{ form.logistica_grua }}
+                </div>
+            </div>
+            <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label class="block text-sm font-semibold text-blue-800 mb-1">Coste Inicial Total</label>
+                <div id="coste-inicial-display" class="text-xl font-bold text-blue-900">&euro;0.00</div>
+            </div>
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Descripcion del Dano</legend>
+            {{ form.descripcion_dano }}
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Imagen Principal</legend>
+            {{ form.imagen_principal }}
+            {% if vehiculo and vehiculo.imagen_principal %}
+            <div class="mt-2">
+                <img src="{{ vehiculo.imagen_principal.url }}" class="h-20 rounded">
+            </div>
+            {% endif %}
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Imágenes Adicionales</legend>
+            {{ imagenes_formset.management_form }}
+            <div class="space-y-3">
+                {% for img_form in imagenes_formset %}
+                <div class="flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg">
+                    {% if img_form.instance.pk %}
+                    <img src="{{ img_form.instance.imagen.url }}" class="h-16 rounded">
+                    {% endif %}
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs text-gray-500 mb-1">Imagen</label>
+                        {{ img_form.imagen }}
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-xs text-gray-500 mb-1">Principal</label>
+                        {{ img_form.es_principal }}
+                    </div>
+                    <div class="w-20">
+                        <label class="block text-xs text-gray-500 mb-1">Orden</label>
+                        {{ img_form.orden }}
+                    </div>
+                    {% if img_form.instance.pk %}
+                    <div class="w-20">
+                        <label class="block text-xs text-gray-500 mb-1">Eliminar</label>
+                        {{ img_form.DELETE }}
+                    </div>
+                    {% endif %}
+                    {{ img_form.id }}
+                </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+        
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% if vehiculo %}{% url 'vehicles:detail' vehiculo.pk %}{% else %}{% url 'vehicles:list' %}{% endif %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                {% if action == 'crear' %}Crear Vehiculo{% else %}Guardar Cambios{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/vehiculo-costes.js' %}"></script>
+{% endblock %}

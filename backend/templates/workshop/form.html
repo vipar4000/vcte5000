@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {% if action == 'crear' %}Nueva OT{% else %}Editar OT-{{ ot.pk }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% url 'workshop:list' %}" class="text-eurocar-light hover:underline">← Volver a lista</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if action == 'crear' %}➕ Nueva Orden de Trabajo{% else %}✏️ Editar OT-{{ ot.pk }}{% endif %}
+        </h1>
+    </div>
+    
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Errores generales -->
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los siguientes errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Información Básica -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">📋 Información Básica</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Vehículo *</label>
+                    {{ form.vehiculo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Operario *</label>
+                    {{ form.operario }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                    {{ form.titulo }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+                    {{ form.descripcion }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tiempo -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">⏱️ Tiempo</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Horas Estimadas</label>
+                    {{ form.horas_estimadas }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Horas Reales</label>
+                    {{ form.horas_reales }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                    {{ form.fecha_inicio }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
+                    {{ form.fecha_fin }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estado -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">📊 Estado</h2>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                {{ form.estado }}
+            </div>
+        </div>
+        
+        <!-- Materiales Usados -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">🔧 Materiales Usados</h2>
+            <p class="text-sm text-gray-500 mb-4">
+                Registre los materiales utilizados en esta orden de trabajo.
+            </p>
+            
+            {{ formset.management_form }}
+            
+            <div id="materiales-container" class="space-y-4">
+                {% for form_material in formset %}
+                <div class="material-row bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
+                            {{ form_material.material }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                            {{ form_material.cantidad }}
+                        </div>
+                        <div class="flex items-end">
+                            {% if form_material.instance.pk %}
+                            <label class="flex items-center text-sm text-red-600">
+                                {{ form_material.DELETE }} Eliminar
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" 
+                    onclick="agregarMaterial()"
+                    class="mt-4 text-eurocar-light hover:underline text-sm">
+                + Agregar otro material
+            </button>
+        </div>
+        
+        <!-- Resumen de Costes -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">💰 Resumen de Costes</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Mano de Obra</p>
+                    <p id="coste-mano-obra" class="text-2xl font-bold text-blue-700">0.00 EUR</p>
+                    <p id="coste-mano-obra-detail" class="text-xs text-gray-400"></p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Materiales</p>
+                    <p id="coste-materiales" class="text-2xl font-bold text-green-700">0.00 EUR</p>
+                    <p id="coste-materiales-detail" class="text-xs text-gray-400"></p>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Total Estimado</p>
+                    <p id="coste-total" class="text-2xl font-bold text-gray-800">0.00 EUR</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Submit -->
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% if ot %}{% url 'workshop:detail_ot' ot.pk %}{% else %}{% url 'workshop:list' %}{% endif %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                {% if action == 'crear' %}Crear OT{% else %}Guardar Cambios{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+var operariosCosteHora = {{ operarios_coste_hora_json|safe }};
+
+// Material prices from select options
+var materialPrecios = {};
+document.querySelectorAll('#materiales-container select[name$="-material"]').forEach(function(sel) {
+    sel.querySelectorAll('option').forEach(function(opt) {
+        if (opt.value && opt.dataset.precio) {
+            materialPrecios[opt.value] = parseFloat(opt.dataset.precio);
+        }
+    });
+});
+
+function agregarMaterial() {
+    var container = document.getElementById('materiales-container');
+    var totalForms = document.getElementById('id_materiales_usados-TOTAL_FORMS');
+    var formNum = totalForms.value;
+    
+    // Get options from existing select
+    var existingSelect = document.querySelector('#materiales-container select[name$="-material"]');
+    var options = existingSelect ? existingSelect.innerHTML : '<option value="">Seleccionar...</option>';
+    
+    var newForm = '<div class="material-row bg-gray-50 p-4 rounded-lg">' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+        '<div>' +
+        '<label class="block text-sm font-medium text-gray-700 mb-1">Material</label>' +
+        '<select name="materiales_usados-' + formNum + '-material" class="w-full px-3 py-2 border rounded-lg" onchange="calcularCostes()">' +
+        options +
+        '</select>' +
+        '</div>' +
+        '<div>' +
+        '<label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>' +
+        '<input type="number" name="materiales_usados-' + formNum + '-cantidad" ' +
+        'step="0.01" min="0.01" onchange="calcularCostes()" oninput="calcularCostes()" ' +
+        'class="w-full px-3 py-2 border rounded-lg">' +
+        '</div>' +
+        '<div class="flex items-end">' +
+        '<button type="button" onclick="eliminarMaterial(this)" ' +
+        'class="text-red-600 hover:underline text-sm">' +
+        'Eliminar</button>' +
+        '</div></div></div>';
+    
+    container.insertAdjacentHTML('beforeend', newForm);
+    totalForms.value = parseInt(formNum) + 1;
+}
+
+function eliminarMaterial(btn) {
+    var row = btn.closest('.material-row');
+    var deleteInput = row.querySelector('input[name$="-DELETE"]');
+    if (deleteInput) {
+        deleteInput.checked = true;
+        row.style.display = 'none';
+    } else {
+        row.remove();
+    }
+    calcularCostes();
+}
+
+function calcularCostes() {
+    // Mano de obra
+    var horasInput = document.getElementById('id_horas_reales');
+    var operarioSelect = document.getElementById('id_operario');
+    var horas = parseFloat(horasInput.value) || 0;
+    var operarioId = operarioSelect.value;
+    var costeHora = operariosCosteHora[operarioId] || 0;
+    var costeManoObra = horas * costeHora;
+    
+    document.getElementById('coste-mano-obra').textContent = costeManoObra.toFixed(2) + ' EUR';
+    if (horas > 0 && costeHora > 0) {
+        document.getElementById('coste-mano-obra-detail').textContent = horas + 'h x ' + costeHora.toFixed(2) + ' EUR/h';
+    } else {
+        document.getElementById('coste-mano-obra-detail').textContent = '';
+    }
+    
+    // Materiales
+    var costeMateriales = 0;
+    var materialesCount = 0;
+    document.querySelectorAll('.material-row').forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var select = row.querySelector('select[name$="-material"]');
+        var cantidadInput = row.querySelector('input[name$="-cantidad"]');
+        if (select && cantidadInput) {
+            var materialId = select.value;
+            var cantidad = parseFloat(cantidadInput.value) || 0;
+            // Try to get price from option dataset
+            var selectedOption = select.options[select.selectedIndex];
+            var precio = 0;
+            if (selectedOption && selectedOption.dataset && selectedOption.dataset.precio) {
+                precio = parseFloat(selectedOption.dataset.precio);
+            }
+            if (materialId && cantidad > 0 && precio > 0) {
+                costeMateriales += cantidad * precio;
+                materialesCount++;
+            }
+        }
+    });
+    
+    document.getElementById('coste-materiales').textContent = costeMateriales.toFixed(2) + ' EUR';
+    if (materialesCount > 0) {
+        document.getElementById('coste-materiales-detail').textContent = materialesCount + ' material(es)';
+    } else {
+        document.getElementById('coste-materiales-detail').textContent = '';
+    }
+    
+    // Total
+    var total = costeManoObra + costeMateriales;
+    document.getElementById('coste-total').textContent = total.toFixed(2) + ' EUR';
+}
+
+// Bind events
+document.addEventListener('DOMContentLoaded', function() {
+    var horasInput = document.getElementById('id_horas_reales');
+    var operarioSelect = document.getElementById('id_operario');
+    if (horasInput) {
+        horasInput.addEventListener('input', calcularCostes);
+        horasInput.addEventListener('change', calcularCostes);
+    }
+    if (operarioSelect) {
+        operarioSelect.addEventListener('change', calcularCostes);
+    }
+    
+    // Add onchange to existing material selects
+    document.querySelectorAll('#materiales-container select[name$="-material"]').forEach(function(sel) {
+        sel.addEventListener('change', calcularCostes);
+    });
+    document.querySelectorAll('#materiales-container input[name$="-cantidad"]').forEach(function(inp) {
+        inp.addEventListener('input', calcularCostes);
+    });
+    
+    calcularCostes();
+});
+</script>
+{% endblock %}

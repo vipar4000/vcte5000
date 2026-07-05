@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Nóminas{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Configuración de Nóminas</h1>
+            <p class="text-gray-500">Convenio del Metal de Madrid</p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'attendance:nomina_create' %}" 
+           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+            ➕ Nueva Configuración
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Lista de configuraciones -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operario</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Salario Base</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">% SS Patronal</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Coste/Hora</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for config in configuraciones %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ config.operario.get_full_name }}</div>
+                            <div class="text-sm text-gray-500">{{ config.operario.username }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            €{{ config.salario_base_mensual|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {{ config.porcentaje_ss_patronal }}%
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium text-eurocar-blue">
+                            €{{ config.coste_hora|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if is_admin %}
+                            <a href="{% url 'attendance:nomina_update' config.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Editar
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            No hay configuraciones de nómina
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Info Convenio -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="font-semibold text-blue-800 mb-2">📋 Convenio del Metal de Madrid</h3>
+        <div class="text-sm text-blue-700 space-y-1">
+            <p><strong>Seguridad Social Patronal:</strong> 31.5% - 33% (según categoría)</p>
+            <p><strong>Cálculo del coste real por hora:</strong></p>
+            <p class="ml-4">Coste Mensual = Salario Base × (1 + % SS Patronal / 100)</p>
+            <p class="ml-4">Coste/Hora = Coste Mensual / (22 días × 8 horas)</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

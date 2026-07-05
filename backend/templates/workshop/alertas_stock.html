@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Alertas de Stock{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'workshop:material_list' %}" class="text-eurocar-light hover:underline">← Volver a inventario</a>
+            <h1 class="text-2xl font-bold text-gray-800">⚠️ Alertas de Stock Bajo</h1>
+            <p class="text-gray-500">Materiales que requieren reposición</p>
+        </div>
+    </div>
+    
+    <!-- Resumen -->
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-800">
+            <strong>{{ total_alertas }}</strong> material(es) con stock por debajo del mínimo de seguridad.
+        </p>
+    </div>
+    
+    <!-- Lista de materiales con alerta -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Material</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock Actual</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock Mínimo</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Déficit</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Coste Reposición</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for material in materiales %}
+                    <tr class="bg-red-50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ material.nombre }}</div>
+                            <div class="text-sm text-gray-500">{{ material.unidad }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right text-red-600 font-bold">
+                            {{ material.stock_actual }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {{ material.stock_minimo }}
+                        </td>
+                        <td class="px-4 py-3 text-right text-red-600 font-medium">
+                            -{{ material.deficit|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            €{{ material.precio_unitario|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium">
+                            €{{ material.coste_reposicion|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'workshop:material_update' material.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Actualizar Stock
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-green-600">
+                            ✅ Todos los materiales tienen stock suficiente
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if materiales %}
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="5" class="px-4 py-3 font-bold">Total Reposición Necesaria</td>
+                        <td class="px-4 py-3 text-right font-bold text-red-600">
+                            €{{ total_reposicion|floatformat:2 }}
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

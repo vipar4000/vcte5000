@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual de Usuario - R Car Rogil ERP</title>
+    <link rel="stylesheet" href="manual_styles.css">
+</head>
+<body>
+
+<!-- ==================== PORTADA ==================== -->
+<div class="cover">
+    <div class="cover-band-top"></div>
+    <div class="cover-content">
+        <div class="cover-logo">R CAR ROGIL</div>
+        <div class="cover-line"></div>
+        <div class="cover-subtitle">Sistema ERP para Vehiculos de Oasion</div>
+        <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
+    </div>
+    <div class="cover-footer">
+        <div class="cover-version">Manual de Usuario v1.0</div>
+        <div class="cover-date">Junio 2026 &mdash; Madrid, Espana</div>
+    </div>
+    <div class="cover-band-bottom"></div>
+</div>
+
+<!-- ==================== INDICE ==================== -->
+<div class="toc">
+    <h2>Indice de Contenidos</h2>
+    <ul>
+        <li><a href="#capitulo-1"><span class="chapter-num">1.</span> Introduccion y Primeros Pasos</a></li>
+        <li><a href="#capitulo-2"><span class="chapter-num">2.</span> Dashboard Principal</a></li>
+        <li><a href="#capitulo-3"><span class="chapter-num">3.</span> Gestion de Vehiculos</a></li>
+        <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a></li>
+        <li><a href="#capitulo-5"><span class="chapter-num">5.</span> Ventas y Documentacion</a></li>
+        <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nomina</a></li>
+        <li><a href="#capitulo-7"><span class="chapter-num">7.</span> Garantias Postventa</a></li>
+        <li><a href="#capitulo-8"><span class="chapter-num">8.</span> Contabilidad</a>
+            <ul>
+                <li><a href="#capitulo-8-1"><span class="chapter-num">8.1</span> Gastos de Estructura</a></li>
+            </ul>
+        </li>
+        <li><a href="#capitulo-9"><span class="chapter-num">9.</span> API Publica</a></li>
+    </ul>
+
+    <h2>Roles de Usuario</h2>
+    <table>
+        <tr>
+            <th>Rol</th>
+            <th>Descripcion</th>
+            <th>Acceso Principal</th>
+        </tr>
+        <tr>
+            <td><span class="role role-admin">ADMIN</span></td>
+            <td>Administrador del sistema</td>
+            <td>Todo el sistema + Django Admin</td>
+        </tr>
+        <tr>
+            <td><span class="role role-operario">OPERARIO</span></td>
+            <td>Mecanico / operario de taller</td>
+            <td>Taller, Inventario, Kiosco de fichaje</td>
+        </tr>
+        <tr>
+            <td><span class="role role-vendedor">VENDEDOR</span></td>
+            <td>Vehiculos y ventas</td>
+            <td>Vehiculos, Ventas, Catalogo</td>
+        </tr>
+        <tr>
+            <td><span class="role role-gestoria">GESTORIA</span></td>
+            <td>Gestoria externa</td>
+            <td>Contabilidad, Gastos (lectura + exportacion)</td>
+        </tr>
+    </table>
+
+    <h2>Credenciales de Prueba</h2>
+    <table>
+        <tr>
+            <th>Usuario</th>
+            <th>Contrasena</th>
+            <th>Rol</th>
+            <th>PIN Kiosco</th>
+        </tr>
+        <tr>
+            <td><code>admin</code></td>
+            <td><code>admin123!</code></td>
+            <td>Administrador</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td><code>mecanico1</code></td>
+            <td><code>mecanico123!</code></td>
+            <td>Operario</td>
+            <td><code>1234</code></td>
+        </tr>
+        <tr>
+            <td><code>mecanico2</code></td>
+            <td><code>mecanico123!</code></td>
+            <td>Operario</td>
+            <td><code>5678</code></td>
+        </tr>
+        <tr>
+            <td><code>vendedor1</code></td>
+            <td><code>vendedor123!</code></td>
+            <td>Vendedor</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td><code>gestoria1</code></td>
+            <td><code>gestoria123!</code></td>
+            <td>Gestoria</td>
+            <td>-</td>
+        </tr>
+    </table>
+</div>
+
+<!-- ==================== CAPITULO 1 ==================== -->
+<h1 id="capitulo-1">1. Introduccion y Primeros Pasos</h1>
+
+<h2>1.1 Arquitectura del Sistema</h2>
+<p>R Car Rogil ERP esta construido con las siguientes tecnologias:</p>
+<table>
+    <tr><th>Componente</th><th>Tecnologia</th></tr>
+    <tr><td>Backend</td><td>Django 4.2 (Python 3.11)</td></tr>
+    <tr><td>Frontend ERP</td><td>Django Templates + HTMX + TailwindCSS</td></tr>
+    <tr><td>Base de datos</td><td>PostgreSQL 15 (produccion) / SQLite (desarrollo)</td></tr>
+    <tr><td>Cache / Colas</td><td>Redis 7 + Celery</td></tr>
+    <tr><td>PDF</td><td>WeasyPrint</td></tr>
+    <tr><td>Contenedorizacion</td><td>Docker Compose (5 servicios)</td></tr>
+</table>
+
+<h2>1.2 Estructura de URLs</h2>
+<table>
+    <tr><th>Ruta</th><th>Modulo</th><th>Descripcion</th></tr>
+    <tr><td><code>/</code></td><td>Dashboard</td><td>Panel principal con KPIs</td></tr>
+    <tr><td><code>/operario/</code></td><td>Operario</td><td>Redirect a kiosco de fichaje</td></tr>
+    <tr><td><code>/vendedor/</code></td><td>Vendedor</td><td>Redirect a catalogo de ventas</td></tr>
+    <tr><td><code>/gestoria/</code></td><td>Gestoria</td><td>Redirect a contabilidad</td></tr>
+    <tr><td><code>/accounts/</code></td><td>Autenticacion</td><td>Login, logout, perfil</td></tr>
+    <tr><td><code>/vehiculos/</code></td><td>Vehiculos</td><td>Gestion de vehiculos</td></tr>
+    <tr><td><code>/taller/</code></td><td>Taller</td><td>Ordenes de trabajo e inventario</td></tr>
+    <tr><td><code>/ventas/</code></td><td>Ventas</td><td>Registro de ventas y PDFs</td></tr>
+    <tr><td><code>/asistencia/</code></td><td>Asistencia</td><td>Marcajes y nomina</td></tr>
+    <tr><td><code>/garantias/</code></td><td>Garantias</td><td>Garantias postventa</td></tr>
+    <tr><td><code>/contabilidad/</code></td><td>Contabilidad</td><td>Asientos y plan contable</td></tr>
+    <tr><td><code>/api/</code></td><td>API</td><td>Endpoints JSON publicos</td></tr>
+    <tr><td><code>/admin/</code></td><td>Django Admin</td><td>Administracion del sistema</td></tr>
+</table>
+
+<h2>1.3 Primer Login</h2>
+<ol class="steps">
+    <li>Acceda a <code>http://localhost</code> (Docker) o <code>http://localhost:8000</code> (desarrollo)</li>
+    <li>Ingrese sus credenciales (usuario y contrasena)</li>
+    <li>Segun su rol, sera redirigido automaticamente:
+        <ul>
+            <li><span class="role role-admin">ADMIN</span> -> <code>/admin/</code> Dashboard</li>
+            <li><span class="role role-operario">OPERARIO</span> -> <code>/operario/</code> Kiosco de fichaje</li>
+            <li><span class="role role-vendedor">VENDEDOR</span> -> <code>/vendedor/</code> Catalogo de ventas</li>
+            <li><span class="role role-gestoria">GESTORIA</span> -> <code>/gestoria/</code> Contabilidad</li>
+        </ul>
+    </li>
+</ol>
+
+<div class="info-box">
+    <strong>Seguridad:</strong> Despues de 5 intentos fallidos, la cuenta se bloquea automaticamente durante 1 hora.
+</div>
+
+<!-- ==================== CAPITULO 2 ==================== -->
+<h1 id="capitulo-2">2. Dashboard Principal</h1>
+
+<h2>2.1 Panel de KPIs</h2>
+<p>El dashboard muestra indicadores clave en tiempo real:</p>
+
+<table>
+    <tr><th>Indicador</th><th>Descripcion</th></tr>
+    <tr><td>Total Vehiculos</td><td>Numero total de vehiculos en el sistema</td></tr>
+    <tr><td>En Taller</td><td>Vehiculos con OTs pendientes</td></tr>
+    <tr><td>En Venta</td><td>Vehiculos listos para vender</td></tr>
+    <tr><td>Vendidos</td><td>Vehiculos con venta registrada</td></tr>
+    <tr><td>OTs Pendientes</td><td>Ordenes de trabajo sin completar</td></tr>
+    <tr><td>Alertas Stock</td><td>Materiales por debajo del minimo</td></tr>
+    <tr><td>Valor Inventario</td><td>Stock x precio unitario total</td></tr>
+</table>
+
+<h2>2.2 Alertas de Stock</h2>
+<p>El panel muestra los materiales que necesitan reposicion con:</p>
+<ul>
+    <li>Nombre del material</li>
+    <li>Stock actual vs. stock minimo</li>
+    <li>Deficit (cantidad faltante)</li>
+    <li>Coste de reposicion</li>
+</ul>
+
+<h2>2.3 Accesos Rapidos</h2>
+<p>Desde el dashboard puede acceder directamente a:</p>
+<ul>
+    <li><strong>Nuevo Vehiculo</strong> -> Formulario de creacion</li>
+    <li><strong>Nueva OT</strong> -> Crear orden de trabajo</li>
+    <li><strong>Nuevo Material</strong> -> Agregar al inventario</li>
+    <li><strong>Registrar Venta</strong> -> Formulario de venta</li>
+</ul>
+
+<!-- ==================== CAPITULO 3 ==================== -->
+<h1 id="capitulo-3">3. Gestion de Vehiculos</h1>
+
+<h2>3.1 Ciclo de Vida del Vehiculo</h2>
+<div class="diagram">
+    <div class="title">Flujo de Estados del Vehiculo</div>
+    <div class="flow">
+ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
+   |            |             |              |
+   |    (se crea primera OT)  |     (se registra venta)
+   |            |             |
+   +-- Coste    +-- Reparacion +-- Listo para
+       Inicial       Activa       la venta
+    </div>
+</div>
+
+<table>
+    <tr><th>Estado</th><th>Descripcion</th><th>Quien cambia</th></tr>
+    <tr><td><code>ADQUIRIDO</code></td><td>Vehiculo recien comprado/subastado</td><td>Admin (manual)</td></tr>
+    <tr><td><code>TALLER</code></td><td>En reparacion activa</td><td>Automatico (al crear primera OT)</td></tr>
+    <tr><td><code>ACONDICIONADO</code></td><td>Reparado y listo para venta</td><td>Admin (manual)</td></tr>
+    <tr><td><code>EN_VENTA</code></td><td>Publicado en catalogo</td><td>Admin (manual)</td></tr>
+    <tr><td><code>VENDIDO</code></td><td>Vendido y entregado</td><td>Automatico (al registrar venta)</td></tr>
+</table>
+
+<h2>3.2 Crear un Vehiculo</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Vehiculos > Nuevo Vehiculo</strong></li>
+    <li>Complete los datos basicos: matricula, bastidor, marca, modelo, anio</li>
+    <li>Seleccione tipo de combustible y etiqueta ambiental</li>
+    <li>Ingrese datos de adquisicion: plataforma, precio subasta, tasas, logistica</li>
+    <li>El <strong>coste inicial</strong> se calcula automaticamente: <code>precio_subasta + tasas_sala + logistica_grua</code></li>
+    <li>Adjunte imagen principal del vehiculo</li>
+    <li>Haga clic en <strong>Crear Vehiculo</strong></li>
+</ol>
+
+<div class="warning-box">
+    <strong>IMPORTANTE:</strong> La matricula y el bastidor deben ser unicos en todo el sistema.
+</div>
+
+<h3>3.2.1 Campos del Formulario</h3>
+<table>
+    <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Ejemplo</th></tr>
+    <tr><td><code>matricula</code></td><td>Texto (7 chars)</td><td>Si</td><td><code>1234ABC</code></td></tr>
+    <tr><td><code>bastidor</code></td><td>Texto (17 chars)</td><td>Si</td><td><code>WVWZZZ3CZWE123456</code></td></tr>
+    <tr><td><code>marca</code></td><td>Texto</td><td>Si</td><td><code>Volkswagen</code></td></tr>
+    <tr><td><code>modelo</code></td><td>Texto</td><td>Si</td><td><code>Golf</code></td></tr>
+    <tr><td><code>anio</code></td><td>Numero</td><td>Si</td><td><code>2019</code></td></tr>
+    <tr><td><code>combustible</code></td><td>Select</td><td>Si</td><td><code>DIESEL</code></td></tr>
+    <tr><td><code>kilometraje</code></td><td>Numero</td><td>Si</td><td><code>85000</code></td></tr>
+    <tr><td><code>tipo_dano</code></td><td>Select</td><td>Si</td><td><code>ACCIDENTAL</code></td></tr>
+    <tr><td><code>etiqueta_ambiental</code></td><td>Select</td><td>Si</td><td><code>ECO</code></td></tr>
+    <tr><td><code>estado</code></td><td>Select</td><td>Si</td><td><code>ADQUIRIDO</code></td></tr>
+    <tr><td><code>fecha_adquisicion</code></td><td>Fecha</td><td>Si</td><td><code>2026-06-15</code></td></tr>
+    <tr><td><code>precio_subasta</code></td><td>Decimal</td><td>Si</td><td><code>8000.00</code></td></tr>
+    <tr><td><code>tasas_sala</code></td><td>Decimal</td><td>Si</td><td><code>500.00</code></td></tr>
+    <tr><td><code>logistica_grua</code></td><td>Decimal</td><td>Si</td><td><code>300.00</code></td></tr>
+    <tr><td><code>precio_venta</code></td><td>Decimal</td><td>No</td><td><code>18500.00</code></td></tr>
+    <tr><td><code>plataforma_subasta</code></td><td>Select</td><td>No</td><td><code>BCA, Copart, ADESA, KBC, Autovias, Subastas Red, Mannheim, Eurodam</code></td></tr>
+    <tr><td><code>descripcion_dano</code></td><td>Texto largo</td><td>No</td><td><code>Golpe en paragolpes</code></td></tr>
+    <tr><td><code>imagen_principal</code></td><td>Archivo</td><td>No</td><td> JPG/PNG</td></tr>
+</table>
+
+<h3>3.2.2 Ejemplo de Creacion</h3>
+<pre><code>POST /vehiculos/nuevo/
+
+matricula=1234ABC
+bastidor=WVWZZZ3CZWE123456
+marca=Volkswagen
+modelo=Golf
+anio=2019
+combustible=DIESEL
+kilometraje=85000
+tipo_dano=ACCIDENTAL
+etiqueta_ambiental=ECO
+estado=ADQUIRIDO
+fecha_adquisicion=2026-06-15
+precio_subasta=8000
+tasas_sala=500
+logistica_grua=300
+descripcion_dano=Golpe en paragolpes trasero</code></pre>
+
+<div class="info-box">
+    <strong>Calculo automatico del coste inicial:</strong><br>
+    coste_inicial = precio_subasta + tasas_sala + logistica_grua<br>
+    coste_inicial = 8.000 + 500 + 300 = <strong>8.800 EUR</strong>
+</div>
+
+<h3>3.2.3 Imagenes del Vehiculo</h3>
+
+<p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
+
+<h4>Subir Imagenes (al crear/editar)</h4>
+<ol class="steps">
+    <li>En el formulario de creacion/edicion, localice el campo <strong>"Imagen Principal"</strong></li>
+    <li>Haga clic en <strong>"Seleccionar archivo"</strong> y elija la imagen (JPG/PNG)</li>
+    <li>En la seccion <strong>"Imagenes Adicionales"</strong>, puede agregar mas imagenes:
+        <ul>
+            <li><strong>Imagen:</strong> Archivo de la foto</li>
+            <li><strong>Principal:</strong> Marque si esta imagen debe ser la principal</li>
+            <li><strong>Orden:</strong> Numero para definir el orden de visualizacion</li>
+        </ul>
+    </li>
+    <li>Puede agregar varias imagenes adicionales usando los formularios disponibles</li>
+    <li>Haga clic en <strong>"Crear Vehiculo"</strong> o <strong>"Guardar Cambios"</strong></li>
+</ol>
+
+<h4>Ver Imagenes en el Detalle</h4>
+<p>Al abrir el detalle de un vehiculo, las imagenes adicionales aparecen como thumbnails debajo de la imagen principal en el panel lateral derecho.</p>
+
+<h4>Gestionar Imagenes Existentes</h4>
+<ol class="steps">
+    <li>Navegue a <strong>Vehiculos > Editar</strong> del vehiculo deseado</li>
+    <li>Las imagenes existentes se muestran con su preview</li>
+    <li>Puede <strong>agregar</strong> nuevas imagenes usando el formulario vacio</li>
+    <li>Puede <strong>eliminar</strong> una imagen marcando la casilla "Eliminar"</li>
+    <li>Puede <strong>cambiar el orden</strong> modificando el numero del campo "Orden"</li>
+    <li>Puede <strong>establecer como principal</strong> marcando "Principal" en la imagen deseada</li>
+    <li>Haga clic en <strong>"Guardar Cambios"</strong></li>
+</ol>
+
+<div class="info-box">
+    <strong>Almacenamiento:</strong> Todas las imagenes (principal y adicionales) se guardan en <code>media/vehiculos/</code>. El sistema gestiona automaticamente los archivos huerfanos al eliminar imagenes.
+</div>
+
+<h4>Visualizacion en el Sitio Web Publico</h4>
+<p>Las imagenes del vehiculo se muestran automaticamente en el catalogo publico y en la ficha de detalle:</p>
+<ul>
+    <li><strong>Catalogo:</strong> Cada tarjeta muestra un carrusel de imagenes con scroll horizontal y flechas al pasar el mouse</li>
+    <li><strong>Ficha de detalle:</strong> Imagen principal mas thumbnails horizontales. Al hacer clic se abre un lightbox con zoom 2.5x por hover, navegacion con flechas y teclado</li>
+    <li><strong>WhatsApp:</strong> Boton verde de contacto que genera un mensaje predefinido con los datos del vehiculo</li>
+</ul>
+
+<div class="info-box">
+    <strong>Formato recomendado:</strong> 1200x800 px (relacion 3:2), formato WebP optimizado, maximo 200 KB por imagen.
+</div>
+
+<h2>3.3 Analisis de Costes</h2>
+<p>El sistema calcula automaticamente la cadena de costes:</p>
+
+<pre><code>Coste Inicial = Precio Subasta + Tasas Sala + Logistica Grua
+
+Coste Reparacion = Suma(Todos los costes de OTs del vehiculo)
+  donde:
+    Coste Mano de Obra = Horas Reales x Coste/Hora Operario
+    Coste Materiales = Suma(Cantidad x Precio Unitario) de materiales usados
+
+Coste Total = Coste Inicial + Coste Reparacion</code></pre>
+
+<div class="info-box">
+    <strong>Ejemplo:</strong><br>
+    Precio subasta: 8.000 EUR | Tasas: 500 EUR | Grua: 300 EUR<br>
+    <strong>Coste Inicial = 8.800 EUR</strong><br><br>
+    OT1 (mecanico): 15h x 12,50 EUR/h = 187,50 EUR mano de obra + 350 EUR materiales<br>
+    OT2 (mecanico): 8h x 12,50 EUR/h = 100 EUR mano de obra + 120 EUR materiales<br>
+    <strong>Coste Reparacion = 757,50 EUR</strong><br><br>
+    <strong>Coste Total = 9.557,50 EUR</strong>
+</div>
+
+<h2>3.4 Cambiar Estado del Vehiculo</h2>
+<p>Existen tres formas de cambiar el estado de un vehiculo:</p>
+
+<h3>Opcion 1: Desde el ERP (detalle del vehiculo)</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Vehiculos</strong> y haga clic en <strong>"Ver detalles"</strong></li>
+    <li>En el panel lateral derecho, localice la seccion <strong>"Cambiar Estado"</strong></li>
+    <li>Seleccione el nuevo estado en el desplegable</li>
+    <li>Haga clic en <strong>"Actualizar Estado"</strong></li>
+</ol>
+
+<div class="warning-box">
+    <strong>Nota:</strong> Esta seccion solo es visible para usuarios con rol <span class="role role-admin">ADMIN</span>.
+</div>
+
+<h3>Opcion 2: Desde el Administrador Django (individual)</h3>
+<ol class="steps">
+    <li>Acceda a <code>/admin/vehicles/vehiculo/</code></li>
+    <li>Haga clic en el vehiculo deseado</li>
+    <li>Modifique el campo <strong>"Estado"</strong> en la seccion "Estado"</li>
+    <li>Haga clic en <strong>"Guardar"</strong></li>
+</ol>
+
+<h3>Opcion 3: Desde el Administrador Django (masiva)</h3>
+<ol class="steps">
+    <li>Acceda a <code>/admin/vehicles/vehiculo/</code></li>
+    <li>Seleccione uno o varios vehiculos con las casillas de la izquierda</li>
+    <li>En el desplegable <strong>"Accion"</strong>, seleccione <strong>"Cambiar estado a: [estado deseado]"</strong></li>
+    <li>Haga clic en <strong>"Ir"</strong></li>
+</ol>
+
+<div class="info-box">
+    <strong>Enlace rapido:</strong> En la lista del Administrador Django, cada vehiculo tiene un enlace <strong>"Ver detalle en ERP"</strong> que abre directamente la pagina de detalle del ERP en una nueva pestana.
+</div>
+
+<div class="warning-box">
+    <strong>Restriccion:</strong> No se pueden eliminar vehiculos con estado <code>VENDIDO</code>.
+</div>
+
+<h2>3.5 Administrador Django</h2>
+<p>El Administrador Django (<code>/admin/</code>) ofrece una vista completa de todos los registros del sistema. Para vehiculos, incluye:</p>
+
+<ul>
+    <li><strong>Tabla con columnas:</strong> Matricula, Marca/Modelo, Anio, Estado, Coste Inicial, Dias en Inventario, Fecha Creacion, Detalle ERP</li>
+    <li><strong>Filtros rapidos:</strong> Por estado, marca, anio, combustible, tipo de dano</li>
+    <li><strong>Busqueda:</strong> Por matricula, bastidor, marca o modelo</li>
+    <li><strong>Acciones masivas:</strong> Cambiar estado de multiples vehiculos a la vez</li>
+    <li><strong>Enlace ERP:</strong> Click en "Ver detalle en ERP" para ir al detalle del vehiculo en el ERP</li>
+    <li><strong>Detalle completo:</strong> Al abrir un vehiculo, se muestran todos los campos organizados en secciones, incluyendo el campo <strong>"Precio de Venta"</strong></li>
+</ul>
+
+<!-- ==================== CAPITULO 4 ==================== -->
+<h1 id="capitulo-4">4. Taller e Inventario</h1>
+
+<h2>4.1 Ordenes de Trabajo (OT)</h2>
+
+<h3>Crear una OT</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Taller > Nueva OT</strong></li>
+    <li>Seleccione el vehiculo (solo aparecen los no vendidos)</li>
+    <li>Asigne el operario (solo operarios activos)</li>
+    <li>Ingrese titulo, descripcion y horas estimadas</li>
+    <li><strong>Agregar materiales:</strong> Seleccione un material del desplegable (muestra el precio unitario) e ingrese la cantidad</li>
+    <li>El <strong>Resumen de Costes</strong> se actualiza en tiempo real mostrando:
+        <ul>
+            <li><strong>Mano de Obra:</strong> Horas reales x Tarifa/hora del operario</li>
+            <li><strong>Materiales:</strong> Suma de (Cantidad x Precio Unitario)</li>
+            <li><strong>Total OT:</strong> Mano de Obra + Materiales</li>
+        </ul>
+    </li>
+    <li>Haga clic en <strong>Crear OT</strong></li>
+</ol>
+
+<div class="success-box">
+    <strong>Automatismo:</strong> Si el vehiculo esta en estado ADQUIRIDO, al crear la primera OT cambia automaticamente a TALLER.
+</div>
+
+<h3>Estados de la OT</h3>
+<div class="diagram">
+    <div class="title">Flujo de Orden de Trabajo</div>
+    <div class="flow">
+PENDIENTE --> EN_PROGRESO --> COMPLETADA
+     |               |
+     +-----> CANCELADA
+    </div>
+</div>
+
+<table>
+    <tr><th>Estado</th><th>Descripcion</th></tr>
+    <tr><td><code>PENDIENTE</code></td><td>OT creada, pendiente de iniciar</td></tr>
+    <tr><td><code>EN_PROGRESO</code></td><td>Trabajo en curso</td></tr>
+    <tr><td><code>COMPLETADA</code></td><td>Trabajo finalizado (se guarda fecha_fin)</td></tr>
+    <tr><td><code>CANCELADA</code></td><td>OT cancelada</td></tr>
+</table>
+
+<h3>Calcular Coste de una OT</h3>
+<pre><code>Coste Mano de Obra = Horas Reales x Coste/Hora del Operario
+
+Coste/Hora = (Salario Base x (1 + % SS Patronal / 100)) / 176 horas
+
+Coste Materiales = Suma(Cantidad x Precio Unitario) de cada material usado
+
+Coste Total OT = Coste Mano de Obra + Coste Materiales</code></pre>
+
+<h2>4.2 Inventario de Materiales</h2>
+
+<h3>Crear un Material</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Inventario > Nuevo Material</strong></li>
+    <li>Ingrese nombre, descripcion y unidad (litros, kg, unidades)</li>
+    <li>Defina stock actual y stock minimo</li>
+    <li>Establezca el precio unitario</li>
+    <li>Haga clic en <strong>Crear Material</strong></li>
+</ol>
+
+<div class="info-box">
+    <strong>Alerta automatica:</strong> Cuando el stock actual es igual o menor al stock minimo, el sistema marca el material con <code>alerta_stock = True</code> y aparece en el panel de alertas del dashboard.
+</div>
+
+<h3>Flujo de Materiales</h3>
+<div class="diagram">
+    <div class="title">Consumo de Material en OT</div>
+    <div class="flow">
+Material (stock: 100)
+    |
+    +-- Se crea MaterialUsado en OT (cantidad: 15)
+    |
+    +-- Stock se decrementa automaticamente: 100 - 15 = 85
+    |
+    +-- Si 85 <= stock_minimo -> alerta_stock = True
+    </div>
+</div>
+
+<h3>Alertas de Stock</h3>
+<p>La vista de alertas muestra:</p>
+<ul>
+    <li>Materiales por debajo del minimo</li>
+    <li>Cantidad faltante (deficit)</li>
+    <li>Coste de reposicion por material</li>
+    <li>Coste total de reposicion</li>
+</ul>
+
+<!-- ==================== CAPITULO 5 ==================== -->
+<h1 id="capitulo-5">5. Ventas y Documentacion</h1>
+
+<h2>5.1 Registrar una Venta</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Ventas > Nueva Venta</strong></li>
+    <li>Seleccione el vehiculo (solo ACONDICIONADO o EN_VENTA)</li>
+    <li>Ingrese datos del cliente: nombre, DNI, direccion, telefono, email</li>
+    <li>Seleccione tipo de cliente: <strong>Particular (B2C)</strong> o <strong>Empresa (B2B)</strong></li>
+    <li>Defina fecha de venta y metodo de pago</li>
+    <li>Ingrese el precio de venta</li>
+    <li>Haga clic en <strong>Registrar Venta</strong></li>
+</ol>
+
+<div class="success-box">
+    <strong>Automatismo:</strong> Al registrar la venta, el vehiculo cambia automaticamente a estado VENDIDO.
+</div>
+
+<h3>5.1.1 Ejemplo de Registro de Venta</h3>
+<table>
+    <tr><th>Campo</th><th>Ejemplo</th></tr>
+    <tr><td>Vehiculo</td><td>VW Golf VII 1.6 TDI (estado ACONDICIONADO o EN_VENTA)</td></tr>
+    <tr><td>Tipo cliente</td><td>PARTICULAR</td></tr>
+    <tr><td>Nombre cliente</td><td>Carlos Garcia Lopez</td></tr>
+    <tr><td>DNI cliente</td><td>54321678K</td></tr>
+    <tr><td>Direccion</td><td>Calle Serrano 45, 3oB</td></tr>
+    <tr><td>Poblacion</td><td>Madrid</td></tr>
+    <tr><td>Provincia</td><td>Madrid</td></tr>
+    <tr><td>Codigo postal</td><td>28006</td></tr>
+    <tr><td>Telefono</td><td>612345678</td></tr>
+    <tr><td>Email</td><td>carlos.garcia@email.com</td></tr>
+    <tr><td>Fecha venta</td><td>2026-07-03</td></tr>
+    <tr><td>Metodo pago</td><td>TRANSFERENCIA</td></tr>
+    <tr><td>Precio venta</td><td>14500,00 EUR</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Calculos automaticos al guardar:</strong><br>
+    coste_total = copiado del vehiculo (ej: 9.557,50 EUR)<br>
+    base_imponible = precio_venta - coste_total = 14.500 - 9.557,50 = <strong>4.942,50 EUR</strong><br>
+    cuota_iva = base_imponible x 21% = 4.942,50 x 0,21 = <strong>1.037,93 EUR</strong><br>
+    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>51,71%</strong><br><br>
+    El cliente paga: <strong>14.500 EUR</strong> (IVA incluido en el precio)
+</div>
+
+<h2>5.2 Logica de IVA REBU</h2>
+<p>El sistema aplica el regimen de <strong>Marginacion del IVA (REBU)</strong> segun la normativa espanola:</p>
+
+<div class="info-box">
+    <strong>Art. 84.Uno.2.1 LIVA:</strong> El IVA (21%) se aplica <strong>unicamente sobre el margen de beneficio</strong>, no sobre el precio de venta completo.
+</div>
+
+<pre><code>Base Imponible = Precio de Venta - Coste Total del Vehiculo
+Cuota IVA = Base Imponible x 21% (si Base Imponible > 0)
+
+NOTA: El desglose de IVA NO se muestra al cliente en la factura.
+El precio que paga el cliente es el precio de venta completo.</code></pre>
+
+<div class="warning-box">
+    <strong>Ejemplo numerico:</strong><br>
+    Coste Total del vehiculo: 9.557,50 EUR<br>
+    Precio de Venta: 12.000 EUR<br><br>
+    Base Imponible = 12.000 - 9.557,50 = <strong>2.442,50 EUR</strong><br>
+    Cuota IVA (21%) = 2.442,50 x 0,21 = <strong>512,93 EUR</strong><br>
+    Beneficio = 2.442,50 EUR<br><br>
+    El cliente paga: <strong>12.000 EUR</strong> (IVA incluido en el precio)
+</div>
+
+<h2>5.3 Generar Documentos PDF</h2>
+
+<h3>Contrato de Compraventa</h3>
+<ol class="steps">
+    <li>Abra el detalle de la venta</li>
+    <li>Haga clic en <strong>"Generar Contrato"</strong></li>
+    <li>El sistema genera un PDF con:
+        <ul>
+            <li>Datos de la empresa (R Car Rogil, CIF, direccion)</li>
+            <li>Datos del cliente comprador</li>
+            <li>Detalles completos del vehiculo</li>
+            <li>Precio y condicion de pago</li>
+            <li>Clusula de garantia (12 meses segun Real Decreto-ley 7/2021)</li>
+            <li>Declaraciones (ITV, sin cargas, etc.)</li>
+            <li>Firmas de ambas partes</li>
+        </ul>
+    </li>
+    <li>El PDF se guarda automaticamente en <code>media/contratos/</code></li>
+</ol>
+
+<h3>Mandato de Gestoria (DGT)</h3>
+<ol class="steps">
+    <li>Abra el detalle de la venta</li>
+    <li>Haga clic en <strong>"Generar Mandato"</strong></li>
+    <li>El sistema genera un PDF con:
+        <ul>
+            <li>Datos del mandante (vendedor)</li>
+            <li>Datos del nuevo propietario (comprador)</li>
+            <li>Detalles del vehiculo</li>
+            <li>Autorizacion para tramites DGT</li>
+            <li>Documentacion requerida</li>
+            <li>Plazo de ejecucion: 10 dias habiles</li>
+        </ul>
+    </li>
+    <li>El PDF se guarda en <code>media/mandatos/</code></li>
+</ol>
+
+<!-- ==================== CAPITULO 6 ==================== -->
+<h1 id="capitulo-6">6. Control de Asistencia y Nomina</h1>
+
+<h2>6.1 Kiosco de Fichaje</h2>
+<p>El kiosco esta disenado para tablets o pantallas tactiles en el galpon.</p>
+
+<h3>Flujo de Fichaje</h3>
+<div class="diagram">
+    <div class="title">Proceso de Marcaje por PIN</div>
+    <div class="flow">
+Operario ingresa PIN de 4 digitos
+         |
+         v
+Verificar geofencing (IP del galpon)
+         |
+    +----+----+
+    |         |
+  OK      Fuera de zona
+    |         |
+    v         v
+Verificar     Mostrar error
+ultimo        "Acceso denegado"
+marcaje
+    |
++---+---+
+|       |
+ENTRADA  SALIDA
+  |        |
+  v        v
+Registrar Registrar
+SALIDA    ENTRADA
+    </div>
+</div>
+
+<h3>Fichar en el Kiosco</h3>
+<ol class="steps">
+    <li>Acceda al kiosco: <code>/asistencia/kiosco/</code></li>
+    <li>Ingrese su PIN de 4 digitos en la pantalla</li>
+    <li>El sistema detecta automaticamente si debe registrar ENTRADA o SALIDA</li>
+    <li>Se muestra un mensaje de confirmacion con su nombre y tipo de marcaje</li>
+</ol>
+
+<div class="info-box">
+    <strong>Geofencing:</strong> El kiosco solo funciona desde la red del galpon (IPs: 192.168.1.* o 10.0.0.*). Intentos desde fuera seran rechazados.
+</div>
+
+<h2>6.2 Marcaje Manual (Admin)</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Asistencia > Nuevo Marcaje</strong></li>
+    <li>Seleccione el operario</li>
+    <li>Seleccione el tipo: ENTRADA, SALIDA, DESCANSO_INICIO, DESCANSO_FIN</li>
+    <li>Confirme el registro</li>
+</ol>
+
+<h2>6.3 Configuracion de Nomina</h2>
+<p>Para calcular el coste real por hora de cada operario:</p>
+
+<pre><code>Coste Mensual Total = Salario Base x (1 + % SS Patronal / 100)
+Coste/Hora = Coste Mensual Total / 176 horas (22 dias x 8 horas)
+
+Ejemplo con Convenio del Metal de Madrid:
+  Salario Base: 1.800 EUR/mes
+  SS Patronal: 31.50%
+  Coste Mensual = 1.800 x 1,315 = 2.367 EUR
+  Coste/Hora = 2.367 / 176 = 13,45 EUR/hora</code></pre>
+
+<h2>6.4 Reporte de Jornada</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Asistencia</strong></li>
+    <li>Haga clic en <strong>"Reporte"</strong> junto al operario deseado</li>
+    <li>El sistema muestra:
+        <ul>
+            <li>Tabla de marcajes del mes actual</li>
+            <li>Horas trabajadas por dia</li>
+            <li>Total de horas del mes</li>
+            <li>Coste total de la jornada</li>
+        </ul>
+    </li>
+</ol>
+
+<!-- ==================== CAPITULO 7 ==================== -->
+<h1 id="capitulo-7">7. Garantias Postventa</h1>
+
+<h2>7.1 Tipos de Garantia</h2>
+<p>Segun el <strong>Real Decreto-ley 7/2021</strong>:</p>
+<table>
+    <tr><th>Tipo de Cliente</th><th>Duracion</th><th>Descripcion</th></tr>
+    <tr>
+        <td><strong>Particular (B2C)</strong></td>
+        <td>12 meses</td>
+        <td>Vehiculos vendidos a personas fisicas</td>
+    </tr>
+    <tr>
+        <td><strong>Empresa (B2B)</strong></td>
+        <td>6 meses</td>
+        <td>Vehiculos vendidos a empresas o autonomos</td>
+    </tr>
+</table>
+
+<h2>7.2 Flujo de Garantia</h2>
+<div class="diagram">
+    <div class="title">Proceso de Garantia</div>
+    <div class="flow">
+Venta registrada
+       |
+       v
+Crear Garantia (B2C: 12m / B2B: 6m)
+       |
+       v
++------------------+
+| Garantia Vigente |
++------------------+
+       |
+  +----+----+
+  |         |
+Sin     Con
+reparacion  reparacion
+  |         |
+  v         v
+Esperar   Registrar
+vencimiento  reparacion
+              |
+              v
+         Evaluar / Reparar / Cerrar
+              |
+              v
+         Resolucion
+         (coste interno)
+</div>
+</div>
+
+<h2>7.3 Registrar Reparacion en Garantia</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Garantias</strong></li>
+    <li>Seleccione la garantia del vehiculo</li>
+    <li>Haga clic en <strong>"Nueva Reparacion"</strong></li>
+    <li>Ingrese fecha de ingreso y descripcion de la averia</li>
+    <li>Defina estado: ESTUDIO, PROCESO o CERRADO</li>
+    <li>Registre costes internos (repuestos y mano de obra)</li>
+    <li>Guarde la reparacion</li>
+</ol>
+
+<div class="warning-box">
+    <strong>IMPORTANTE:</strong> Los costes de reparacion en garantia son <strong>internos</strong> y NO incrementan el valor del vehiculo original (Art. 114 TRLGDCU).
+</div>
+
+<h3>7.3.1 Ejemplo de Reparacion en Garantia</h3>
+<table>
+    <tr><th>Campo</th><th>Ejemplo</th></tr>
+    <tr><td>Fecha ingreso taller</td><td>2026-07-10</td></tr>
+    <tr><td>Descripcion de la avaria</td><td>Ruido anomalo en la transmision al frenar en pendiente. Se detecta desgaste prematuro de pastillas de freno traseras.</td></tr>
+    <tr><td>Estado</td><td>PROCESO (En Reparacion)</td></tr>
+    <tr><td>Coste repuestos (interno)</td><td>180,00 EUR</td></tr>
+    <tr><td>Coste mano de obra (interno)</td><td>120,00 EUR</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Calculo automatico del coste total:</strong><br>
+    total_costo_reparacion = costo_repuestos + costo_mano_obra<br>
+    total_costo_reparacion = 180,00 + 120,00 = <strong>300,00 EUR</strong><br><br>
+    Este coste es <strong>interno</strong> y NO se suma al valor del vehiculo.
+</div>
+
+<h4>Estados de la Reparacion</h4>
+<table>
+    <tr><th>Estado</th><th>Descripcion</th></tr>
+    <tr><td><code>ESTUDIO</code></td><td>En Evaluacion - El vehiculo esta siendo diagnosticado</td></tr>
+    <tr><td><code>PROCESO</code></td><td>En Reparacion - El trabajo esta en curso</td></tr>
+    <tr><td><code>CERRADO</code></td><td>Entregado - La reparacion esta finalizada</td></tr>
+</table>
+
+<!-- ==================== CAPITULO 8 ==================== -->
+<h1 id="capitulo-8">8. Contabilidad</h1>
+
+<h2>8.1 Plan General Contable (PGC)</h2>
+<p>El sistema incluye el plan contable base del PGC espanol:</p>
+
+<table>
+    <tr><th>Grupo</th><th>Descripcion</th><th>Ejemplos</th></tr>
+    <tr><td><strong>1xx</strong></td><td>Financiacion Basica</td><td>Capital social (100), Reservas (102)</td></tr>
+    <tr><td><strong>2xx</strong></td><td>Inmovilizado</td><td>Edificios (210), Maquinaria (230), Transporte (250)</td></tr>
+    <tr><td><strong>3xx</strong></td><td>Existencias</td><td>Compras (300), Mercaderias (310)</td></tr>
+    <tr><td><strong>4xx</strong></td><td>Acreedores y Deudas</td><td>Proveedores (400), Clientes (430)</td></tr>
+    <tr><td><strong>5xx</strong></td><td>Tesoreria</td><td>Caja (570), Banco (572)</td></tr>
+    <tr><td><strong>6xx</strong></td><td>Gastos</td><td>Sueldos (640), Seguridad Social (642)</td></tr>
+    <tr><td><strong>7xx</strong></td><td>Ingresos</td><td>Ventas mercaderias (700)</td></tr>
+</table>
+
+<h3>Inicializar el Plan Contable</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Contabilidad > Cuentas</strong></li>
+    <li>Haga clic en <strong>"Inicializar PGC"</strong></li>
+    <li>Confirme la accion</li>
+    <li>El sistema crea todas las cuentas base usando <code>get_or_create</code> (idempotente)</li>
+</ol>
+
+<h2>8.2 Asientos Contables</h2>
+
+<h3>Crear un Asiento</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Contabilidad > Nuevo Asiento</strong></li>
+    <li>El numero se genera automaticamente (formato: 000001)</li>
+    <li>Ingrese la fecha y el concepto del asiento</li>
+    <li>Agregue los movimientos (lineas de debe/haber):
+        <ul>
+            <li>Seleccione la cuenta contable</li>
+            <li>Ingrese el importe en DEBE o HABER (no ambos)</li>
+            <li>Agregue una descripcion opcional</li>
+        </ul>
+    </li>
+    <li>El sistema valida que <strong>DEBE = HABER</strong> (asiento cuadrado)</li>
+    <li>Haga clic en <strong>Crear Asiento</strong></li>
+</ol>
+
+<h3>Flujo del Asiento</h3>
+<div class="diagram">
+    <div class="title">Ciclo de Vida de un Asiento Contable</div>
+    <div class="flow">
+CREAR (BORRADOR)
+       |
+       v
+EDITAR movimientos
+       |
+       v
+Validar cuadre (DEBE = HABER)
+       |
+       v
+POSTEAR (estado final, no editable)
+       |
+       v
+O bien: ANULAR (si hay error)</div>
+</div>
+
+<div class="info-box">
+    <strong>Validaciones:</strong><br>
+    - Un movimiento no puede tener DEBE y HABER a la vez<br>
+    - Un movimiento debe tener DEBE o HABER (> 0)<br>
+    - Para postear, el asiento debe estar cuadrado<br>
+    - Para postear, debe tener al menos 2 movimientos<br>
+    - No se pueden editar asientos ya posteados
+</div>
+
+<h3>Ejemplo de Asiento</h3>
+<pre><code>Asiento 000001 - "Compra de material de limpieza"
+
+Cuenta 620 (Otros gastos exteriores)  - DEBE:  150,00 EUR
+Cuenta 572 (Banco)                    - HABER: 150,00 EUR
+
+Verificacion: DEBE (150,00) = HABER (150,00) -> CUADRADO</code></pre>
+
+<!-- ==================== CAPITULO 8.1 ==================== -->
+<h1 id="capitulo-8-1">8.1 Gastos de Estructura</h1>
+
+<h2>8.1.1 Concepto</h2>
+<p>Los <strong>gastos de estructura</strong> son los gastos generales del negocio que no estan directamente imputables al inventario de vehiculos (Cuenta 300). Incluyen alquiler, suministros, limpieza, seguridad social patronal, impuestos, etc.</p>
+
+<div class="warning-box">
+    <strong>Regla AEAT:</strong> Estos gastos NUNCA incrementan el valor del inventario de vehiculos. Son gastos del ejercicio que se contabilizan en cuentas de gasto (6xx) directamente.
+</div>
+
+<h2>8.1.2 Categorias de Gasto</h2>
+<table>
+    <tr><th>Categoria</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
+    <tr><td><code>ARRENDAMIENTO</code></td><td>621</td><td>Alquiler del galpon</td></tr>
+    <tr><td><code>SUMINISTROS</code></td><td>628</td><td>Luz, agua, conectividad</td></tr>
+    <tr><td><code>LIMPIEZA_PROD</code></td><td>602</td><td>Productos de limpieza e insumos globales</td></tr>
+    <tr><td><code>LIMPIEZA_SERV</code></td><td>629</td><td>Servicios de limpieza externa</td></tr>
+    <tr><td><code>NOMINAS_ESTR</code></td><td>640</td><td>Salarios personal limpieza/admin</td></tr>
+    <tr><td><code>SEG_SOCIAL_ESTR</code></td><td>642</td><td>Aportes patronales personal estructura</td></tr>
+    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>IBI, tasas municipales, vados</td></tr>
+    <tr><td><code>OTROS</code></td><td>620</td><td>Otros gastos no especificados</td></tr>
+</table>
+
+<h2>8.1.3 Registrar un Gasto</h2>
+<ol class="steps">
+    <li>Navegue a <strong>Gastos</strong> en el menu lateral</li>
+    <li>Haga clic en <strong>"Nuevo Gasto"</strong></li>
+    <li>Complete los campos:
+        <ul>
+            <li><strong>Fecha de factura</strong>: Fecha del documento</li>
+            <li><strong>Proveedor/Acreedor</strong>: Nombre del proveedor</li>
+            <li><strong>CIF/NIF</strong>: Identificador fiscal</li>
+            <li><strong>Categoria</strong>: Tipo de gasto (621, 628, etc.)</li>
+            <li><strong>Base imponible</strong>: Importe sin IVA</li>
+            <li><strong>Tipo IVA</strong>: Por defecto 21%</li>
+            <li><strong>Retencion IRPF</strong>: 19% para alquileres, 0% para suministros</li>
+        </ul>
+    </li>
+    <li>Haga clic en <strong>"Registrar Gasto"</strong></li>
+</ol>
+
+<h3>Ejemplo: Alquiler con Retencion</h3>
+<pre><code>Factura de alquiler del galpon:
+
+Proveedor: Propietario Galpon S.L. (B12345678)
+Categoria: ARRENDAMIENTO (621)
+Base imponible: 2.000,00 EUR
+Tipo IVA: 21%
+Retencion IRPF: 19%
+
+Calculos automaticos:
+- Cuota IVA: 2.000,00 x 21% = 420,00 EUR
+- Cuota IRPF: 2.000,00 x 19% = 380,00 EUR
+- Total factura: 2.000,00 + 420,00 - 380,00 = 2.040,00 EUR
+
+Asiento contable generado automaticamente:
+  Debito  621 (Arrendamientos): 2.000,00 EUR
+  Debito  472 (IVA soportado):    420,00 EUR
+  Credito 4751.115 (Ret. IRPF):              380,00 EUR
+  Credito 410 (Acreedores varios):           2.040,00 EUR
+
+Verificacion: DEBE (2.420,00) = HABER (2.420,00) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Suministro sin Retencion</h3>
+<pre><code>Factura de electricidad:
+
+Proveedor: Endesa Energia S.A.U. (B12345678)
+Categoria: SUMINISTROS (628)
+Base imponible: 350,00 EUR
+Tipo IVA: 21%
+Retencion IRPF: 0%
+
+Calculos automaticos:
+- Cuota IVA: 350,00 x 21% = 73,50 EUR
+- Total factura: 350,00 + 73,50 = 423,50 EUR
+
+Asiento contable generado:
+  Debito  628 (Suministros):    350,00 EUR
+  Debito  472 (IVA soportado):   73,50 EUR
+  Credito 410 (Acreedores):               423,50 EUR
+
+Verificacion: DEBE (423,50) = HABER (423,50) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Productos de Limpieza</h3>
+<pre><code>Factura de productos de limpieza industrial:
+
+Proveedor: Distrilimpia S.L. (B87654321)
+Categoria: LIMPIEZA_PROD (602)
+Base imponible: 180,00 EUR
+Tipo IVA: 21%
+Retencion IRPF: 0%
+
+Calculos automaticos:
+- Cuota IVA: 180,00 x 21% = 37,80 EUR
+- Total factura: 180,00 + 37,80 = 217,80 EUR
+
+Asiento contable generado:
+  Debito  602 (Servicios exteriores): 180,00 EUR
+  Debito  472 (IVA soportado):         37,80 EUR
+  Credito 410 (Acreedores varios):                217,80 EUR
+
+Verificacion: DEBE (217,80) = HABER (217,80) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Servicio de Limpieza Externa</h3>
+<pre><code>Factura mensual de empresa de limpieza:
+
+Proveedor: CleanPro Servicios S.A. (B12345678)
+Categoria: LIMPIEZA_SERV (629)
+Base imponible: 450,00 EUR
+Tipo IVA: 21%
+Retencion IRPF: 0%
+
+Calculos automaticos:
+- Cuota IVA: 450,00 x 21% = 94,50 EUR
+- Total factura: 450,00 + 94,50 = 544,50 EUR
+
+Asiento contable generado:
+  Debito  629 (Otros servicios exteriores): 450,00 EUR
+  Debito  472 (IVA soportado):                94,50 EUR
+  Credito 410 (Acreedores varios):                       544,50 EUR
+
+Verificacion: DEBE (544,50) = HABER (544,50) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Nomina Personal de Estructura</h3>
+<pre><code>Nomina mensual - Personal de limpieza y administracion:
+
+Proveedor: Nomina interna (sin factura externa)
+Categoria: NOMINAS_ESTR (640)
+Base imponible: 1.600,00 EUR (salario bruto)
+Tipo IVA: 0% (servicios personales exentos)
+Retencion IRPF: 0% (se contabiliza el gasto bruto)
+
+Nota: Las nominas se registran como gasto sin factura externa.
+El IVA no aplica a servicios personales.
+
+Asiento contable generado:
+  Debito  640 (Sueldos y salarios): 1.600,00 EUR
+  Credito 410 (Acreedores varios):               1.600,00 EUR
+
+Verificacion: DEBE (1.600,00) = HABER (1.600,00) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Aportes Patronales Seguridad Social</h3>
+<pre><code>Cuota mensual de Seguridad Social - Aportes patronales:
+
+Proveedor: Seguridad Social (TC 00/26)
+Categoria: SEG_SOCIAL_ESTR (642)
+Base imponible: 504,00 EUR (31,5% sobre 1.600,00 EUR)
+Tipo IVA: 0% (exento)
+Retencion IRPF: 0%
+
+Nota: La cuota patronal (31,5%) se calcula automaticamente
+sobre el salario bruto del personal de estructura.
+
+Asiento contable generado:
+  Debito  642 (Seguridad social): 504,00 EUR
+  Credito 410 (Acreedores varios):              504,00 EUR
+
+Verificacion: DEBE (504,00) = HABER (504,00) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: IBI y Tasas Municipales</h3>
+<pre><code>Recibo de IBI (Impuesto sobre Bienes Inmuebles):
+
+Ayuntamiento de Madrid (P00000000)
+Categoria: IMPUESTOS_ESTR (631)
+Base imponible: 320,00 EUR
+Tipo IVA: 0% (tributos publicos exentos)
+Retencion IRPF: 0%
+
+Nota: Los tributos publicos (IBI, vados, tasas municipales)
+estan exentos de IVA y no tienen retencion.
+
+Asiento contable generado:
+  Debito  631 (Perdidas por deterioro y otorg. valore): 320,00 EUR
+  Credito 410 (Acreedores varios):                                   320,00 EUR
+
+Verificacion: DEBE (320,00) = HABER (320,00) -> CUADRADO</code></pre>
+
+<h3>Ejemplo: Otros Gastos No Especificados</h3>
+<pre><code>Factura de mantenimiento de jardin:
+
+Proveedor: Jardines y Paisajismo S.L. (B11223344)
+Categoria: OTROS (620)
+Base imponible: 120,00 EUR
+Tipo IVA: 21%
+Retencion IRPF: 0%
+
+Calculos automaticos:
+- Cuota IVA: 120,00 x 21% = 25,20 EUR
+- Total factura: 120,00 + 25,20 = 145,20 EUR
+
+Asiento contable generado:
+  Debito  620 (Otros gastos exteriores): 120,00 EUR
+  Debito  472 (IVA soportado):             25,20 EUR
+  Credito 410 (Acreedores varios):                    145,20 EUR
+
+Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
+
+<h2>8.1.4 Integracion con Garantias</h2>
+<p>Cuando se registra una reparacion en garantia, los costes se transfieren automaticamente como gasto de estructura:</p>
+<ol class="steps">
+    <li>El mecanico registra la reparacion en <strong>Garantias</strong></li>
+    <li>El sistema crea automaticamente un gasto con categoria <code>LIMPIEZA_SERV</code></li>
+    <li>Se genera el asiento contable asociado</li>
+    <li>El coste NO incrementa el valor del vehiculo (cuenta 300)</li>
+</ol>
+
+<div class="info-box">
+    <strong>Nota:</strong> La integracion con garantias es automatica. No se requiere accion manual adicional.
+</div>
+
+<h2>8.1.5 Alertas de Inventario</h2>
+<p>El listado de gastos muestra una alerta cuando hay materiales por debajo del stock minimo. Esto permite tomar decisiones rapidas sobre reposicion.</p>
+
+<h2>8.1.6 Exportacion CSV</h2>
+<p>Los usuarios con rol <strong>Gestoria</strong> pueden exportar gastos a CSV:</p>
+<ol class="steps">
+    <li>Navegue a <strong>Gastos</strong></li>
+    <li>Haga clic en <strong>"Descargar CSV"</strong></li>
+    <li>El archivo incluye todos los campos y totales al final</li>
+</ol>
+
+<div class="warning-box">
+    <strong>Permisos:</strong> Solo ADMIN (CRUD completo) y GESTORIA (lectura + exportacion) pueden acceder a este modulo. Operarios y vendedores no tienen acceso.
+</div>
+
+<!-- ==================== CAPITULO 9 ==================== -->
+<h1 id="capitulo-9">9. API Publica</h1>
+
+<h2>9.1 Endpoints Disponibles</h2>
+<p>La API publica no requiere autenticacion y expone datos de vehiculos para consumo externo (web, movil).</p>
+
+<table>
+    <tr><th>Metodo</th><th>Endpoint</th><th>Descripcion</th></tr>
+    <tr><td><code>GET</code></td><td><code>/api/health/</code></td><td>Verificacion de estado del servicio</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/vehiculos/</code></td><td>Lista de vehiculos disponibles</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/vehiculos/&lt;id&gt;/</code></td><td>Detalle de un vehiculo</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/marcas/</code></td><td>Lista de marcas disponibles</td></tr>
+</table>
+
+<h2>9.2 Ejemplos de Uso</h2>
+
+<h3>Health Check</h3>
+<pre><code>GET /api/health/
+
+Respuesta:
+{
+    "status": "ok",
+    "service": "eurocar-erp"
+}</code></pre>
+
+<h3>Listar Vehiculos</h3>
+<pre><code>GET /api/vehiculos/?marca=Volkswagen&precio_min=5000&precio_max=25000&etiqueta=ECO&busqueda=golf
+
+Respuesta:
+{
+    "vehiculos": [
+        {
+            "id": 2,
+            "marca": "Volkswagen",
+            "modelo": "Golf",
+            "anio": 2019,
+            "kilometraje": 85000,
+            "combustible": "DIESEL",
+            "etiqueta_ambiental": "ECO",
+            "imagen_principal": "vehiculos/golf.png",
+            "precio_venta": "18500.00",
+            "imagen_url": "/media/vehiculos/golf.png",
+            "imagenes_urls": [
+                "/media/vehiculos/golf-lateral.png",
+                "/media/vehiculos/golf-interior.png"
+            ]
+        }
+    ],
+    "total": 1
+}</code></pre>
+
+<h3>Detalle de Vehiculo</h3>
+<pre><code>GET /api/vehiculos/2/
+
+Respuesta:
+{
+    "id": 2,
+    "marca": "Volkswagen",
+    "modelo": "Golf",
+    "anio": 2019,
+    "kilometraje": 85000,
+    "combustible": "Diesel",
+    "etiqueta_ambiental": "ECO",
+    "imagen": "/media/vehiculos/golf.png",
+    "imagenes": [
+        {"url": "/media/vehiculos/golf-lateral.png", "es_principal": false, "orden": 2},
+        {"url": "/media/vehiculos/golf-interior.png", "es_principal": false, "orden": 3}
+    ],
+    "precio_venta": 18500.0
+}</code></pre>
+
+<h3>Lista de Marcas</h3>
+<pre><code>GET /api/marcas/
+
+Respuesta:
+{
+    "marcas": ["BMW", "Ford", "Mercedes-Benz", "Volkswagen"]
+}</code></pre>
+
+<h2>9.3 Filtros Disponibles</h2>
+<table>
+    <tr><th>Filtro</th><th>Tipo</th><th>Ejemplo</th></tr>
+    <tr><td><code>busqueda</code></td><td>String</td><td><code>?busqueda=golf</code></td></tr>
+    <tr><td><code>marca</code></td><td>String</td><td><code>?marca=BMW</code></td></tr>
+    <tr><td><code>precio_min</code></td><td>Decimal</td><td><code>?precio_min=5000</code></td></tr>
+    <tr><td><code>precio_max</code></td><td>Decimal</td><td><code>?precio_max=15000</code></td></tr>
+    <tr><td><code>etiqueta</code></td><td>String</td><td><code>?etiqueta=ECO</code></td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Nota:</strong> Solo se devuelven vehiculos con estado ACONDICIONADO o EN_VENTA. Los filtros de precio trabajan sobre el campo <code>precio_venta</code>. Maximo 20 resultados por peticion. El listado incluye URLs de imagenes adicionales (<code>imagenes_urls</code>). El detalle incluye el array completo de imagenes (<code>imagenes</code>).
+</div>
+
+</body>
+</html>

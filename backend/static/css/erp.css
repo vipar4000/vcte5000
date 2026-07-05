@@ -1,0 +1,97 @@
+/* R Car Rogil ERP - Custom Styles */
+
+/* Color variables */
+:root {
+    --eurocar-blue: #1B3A5C;
+    --eurocar-light: #5DADE2;
+    --eurocar-green: #2ECC71;
+}
+
+/* HTMX loading indicator */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+
+/* Smooth transitions */
+.htmx-settling {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.htmx-added {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Table styles */
+table {
+    border-collapse: collapse;
+}
+
+table th {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+/* Form inputs */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: var(--eurocar-light);
+    border-color: var(--eurocar-light);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--eurocar-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #152d47;
+}
+
+/* Alert animation */
+.alert-stock {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Sidebar active state */
+nav a.active {
+    background-color: var(--eurocar-light);
+    color: white;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .sidebar {
+        display: none;
+    }
+}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}R Car Rogil ERP - Gastos de Estructura{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">💼 Gastos de Estructura</h1>
+            <p class="text-gray-500">Gestión de gastos del ejercicio no imputables al inventario de vehículos</p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'expenses:create' %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <span>➕</span> Nuevo Gasto
+        </a>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="p-3 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <p class="text-sm text-gray-500">Total Gastos</p>
+            <p class="text-2xl font-bold">{{ stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <p class="text-sm text-gray-500">Importe Total</p>
+            <p class="text-2xl font-bold">{{ stats.total_importe|floatformat:2 }} EUR</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+            <p class="text-sm text-gray-500">Pendientes de Pago</p>
+            <p class="text-2xl font-bold">{{ stats.pendientes|floatformat:2 }} EUR</p>
+        </div>
+        {% if is_admin and is_gestoria %}
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+            <p class="text-sm text-gray-500">Exportar</p>
+            <a href="{% url 'expenses:export_csv' %}" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                📄 Descargar CSV
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if materiales_alerta %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 class="font-medium text-yellow-800 mb-2">⚠️ Alertas de Inventario</h3>
+        <p class="text-sm text-yellow-700">
+            Hay {{ materiales_alerta|length }} material(es) por debajo del stock mínimo.
+            <a href="{% url 'workshop:material_list' %}" class="underline">Ver inventario →</a>
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b">
+            <form method="get" class="flex flex-wrap gap-3">
+                {{ form.busqueda }}
+                {{ form.categoria }}
+                {{ form.pagado }}
+                <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                    🔍 Buscar
+                </button>
+                <a href="{% url 'expenses:list' %}" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg">
+                    Limpiar
+                </a>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Fecha</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Proveedor</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Categoría</th>
+                        <th class="px-4 py-3 text-right text-sm font-medium text-gray-500">Base</th>
+                        <th class="px-4 py-3 text-right text-sm font-medium text-gray-500">Total</th>
+                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-500">Estado</th>
+                        <th class="px-4 py-3 text-center text-sm font-medium text-gray-500">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for gasto in gastos %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">{{ gasto.fecha_factura|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3">
+                            <div class="text-sm font-medium">{{ gasto.proveedor_acreedor }}</div>
+                            <div class="text-xs text-gray-500">{{ gasto.cif_nif }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm">{{ gasto.get_categoria_display }}</td>
+                        <td class="px-4 py-3 text-sm text-right">{{ gasto.base_imponible|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-sm text-right font-medium">{{ gasto.total_factura|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-center">
+                            {% if gasto.pagado %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Pagado
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'expenses:detail' gasto.pk %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            No se encontraron gastos.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

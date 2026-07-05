@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Garantía {{ garantia.venta.vehiculo.matricula }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'warranty:list' %}" class="text-eurocar-light hover:underline">← Volver a garantías</a>
+            <h1 class="text-2xl font-bold text-gray-800">
+                Garantía - {{ garantia.venta.vehiculo.matricula }}
+            </h1>
+        </div>
+        {% if garantia.esta_vigente %}
+        <a href="{% url 'warranty:reparacion_create' garantia.pk %}" 
+           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+            ➕ Nueva Reparación
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Info del vehículo y garantía -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Vehículo -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">🚗 Vehículo</h2>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-sm text-gray-500">Matrícula</p>
+                    <p class="font-medium">{{ garantia.venta.vehiculo.matricula }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Marca / Modelo</p>
+                    <p class="font-medium">{{ garantia.venta.vehiculo.marca }} {{ garantia.venta.vehiculo.modelo }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Fecha Primera Matriculación</p>
+                    <p class="font-medium">{{ garantia.venta.vehiculo.fecha_primera_matriculacion|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Kilómetros</p>
+                    <p class="font-medium">{{ garantia.venta.vehiculo.kilometros }} km</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Garantía -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">📋 Garantía</h2>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-sm text-gray-500">Tipo</p>
+                    <p class="font-medium">{{ garantia.get_tipo_cliente_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Inicio</p>
+                    <p class="font-medium">{{ garantia.fecha_inicio|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Fin</p>
+                    <p class="font-medium">{{ garantia.fecha_fin|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Estado</p>
+                    {% if garantia.esta_vigente %}
+                    <span class="px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">
+                        ✅ VIGENTE ({{ garantia.meses_restantes }} meses restantes)
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium">
+                        ❌ CADUCADA
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cliente -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">👤 Cliente</h2>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-sm text-gray-500">Nombre</p>
+                    <p class="font-medium">{{ garantia.venta.cliente_nombre }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">DNI</p>
+                    <p class="font-medium">{{ garantia.venta.cliente_dni }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Email</p>
+                    <p class="font-medium">{{ garantia.venta.cliente_email }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Teléfono</p>
+                    <p class="font-medium">{{ garantia.venta.cliente_telefono }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Venta -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">💰 Venta</h2>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-sm text-gray-500">Fecha de Venta</p>
+                    <p class="font-medium">{{ garantia.venta.fecha_venta|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Precio de Venta</p>
+                    <p class="font-medium text-eurocar-blue">€{{ garantia.venta.precio_venta|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Coste de Adquisición</p>
+                    <p class="font-medium">€{{ garantia.venta.vehiculo.coste_inicial|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reparaciones -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">🔧 Historial de Reparaciones</h2>
+        
+        {% if reparaciones %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Ingreso</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Coste Total</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for reparacion in reparaciones %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">{{ reparacion.fecha_ingreso_taller|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3">
+                            <div class="text-sm">{{ reparacion.descripcion_averia|truncatewords:20 }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if reparacion.estado == 'ESTUDIO' %}bg-yellow-100 text-yellow-800
+                                {% elif reparacion.estado == 'PROCESO' %}bg-blue-100 text-blue-800
+                                {% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ reparacion.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium">
+                            €{{ reparacion.total_costo_reparacion|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'warranty:reparacion_update' reparacion.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="3" class="px-4 py-3 font-bold">Total Reparaciones</td>
+                        <td class="px-4 py-3 text-right font-bold text-eurocar-blue">
+                            €{{ total_reparaciones_coste|floatformat:2 }}
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+            <p>No hay reparaciones registradas para esta garantía</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {% if asiento %}Editar{% else %}Nuevo{% endif %} Asiento{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'accounting:asientos' %}" class="text-eurocar-light hover:underline">← Volver a asientos</a>
+        <h1 class="text-2xl font-bold text-gray-800">{{ titulo }}</h1>
+    </div>
+    
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.errors or formset.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los errores:</p>
+            {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+            <p class="text-red-600 text-sm">{{ field }}: {{ error }}</p>
+            {% endfor %}
+            {% endfor %}
+            {% for form in formset %}
+            {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+            <p class="text-red-600 text-sm">Movimiento {{ forloop.parentloop.parentloop.counter }}: {{ field }}: {{ error }}</p>
+            {% endfor %}
+            {% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Datos del asiento -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">📝 Datos del Asiento</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+                    {{ form.numero }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+                    {{ form.fecha }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Concepto *</label>
+                    {{ form.concepto }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Documento</label>
+                    {{ form.tipo_documento }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ID Documento</label>
+                    {{ form.documento_id }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Movimientos -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">💰 Movimientos Contables</h2>
+            
+            {{ formset.management_form }}
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Debe (€)</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Haber (€)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for form in formset %}
+                        <tr class="movimiento-row">
+                            <td class="px-4 py-2">
+                                {{ form.cuenta }}
+                                {{ form.id }}
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                {{ form.debe }}
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                {{ form.haber }}
+                            </td>
+                            <td class="px-4 py-2">
+                                {{ form.descripcion }}
+                            </td>
+                            <td class="px-4 py-2 text-center">
+                                {{ form.DELETE }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="formset-empty" style="display: none;">
+                <table>
+                    <tbody>
+                        <tr class="movimiento-row empty-form">
+                            <td>{{ formset.empty_form.cuenta }}</td>
+                            <td>{{ formset.empty_form.debe }}</td>
+                            <td>{{ formset.empty_form.haber }}</td>
+                            <td>{{ formset.empty_form.descripcion }}</td>
+                            <td>{{ formset.empty_form.DELETE }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <button type="button" id="add-movimiento" 
+                    class="mt-4 text-eurocar-light hover:underline text-sm">
+                ➕ Agregar Movimiento
+            </button>
+        </div>
+        
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'accounting:asientos' %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                {% if asiento %}Guardar Cambios{% else %}Crear Asiento{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('add-movimiento').addEventListener('click', function() {
+    const formsetDiv = document.getElementById('formset-empty');
+    const totalForms = document.getElementById('id_movimientos-TOTAL_FORMS');
+    const formNum = parseInt(totalForms.value);
+    
+    // Clone the empty form
+    const newForm = formsetDiv.querySelector('.empty-form').cloneNode(true);
+    newForm.classList.remove('empty-form');
+    newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, formNum);
+    
+    // Append to tbody
+    document.querySelector('.movimiento-row').parentNode.appendChild(newForm);
+    
+    totalForms.value = formNum + 1;
+});
+</script>
+{% endblock %}

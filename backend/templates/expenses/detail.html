@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}R Car Rogil ERP - Detalle Gasto #{{ gasto.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'expenses:list' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                ← Volver a gastos
+            </a>
+            <h1 class="text-2xl font-bold text-gray-800 mt-2">Gasto #{{ gasto.pk }}</h1>
+        </div>
+        {% if is_admin %}
+        <div class="flex gap-2">
+            <a href="{% url 'expenses:update' gasto.pk %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'expenses:delete' gasto.pk %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                🗑️ Eliminar
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="p-3 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">📄 Datos de la Factura</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Fecha de Factura</span>
+                    <span class="font-medium">{{ gasto.fecha_factura|date:"d/m/Y" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Proveedor/Acreedor</span>
+                    <span class="font-medium">{{ gasto.proveedor_acreedor }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">CIF/NIF</span>
+                    <span class="font-medium">{{ gasto.cif_nif }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Categoría</span>
+                    <span class="font-medium">{{ gasto.get_categoria_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">💶 Importes</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Base Imponible</span>
+                    <span class="font-medium">{{ gasto.base_imponible|floatformat:2 }} EUR</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Tipo IVA</span>
+                    <span class="font-medium">{{ gasto.tipo_iva|floatformat:2 }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Cuota IVA</span>
+                    <span class="font-medium">{{ gasto.cuota_iva|floatformat:2 }} EUR</span>
+                </div>
+                {% if gasto.tiene_retencion %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Retención IRPF</span>
+                    <span class="font-medium text-red-600">-{{ gasto.retencion_irpf|floatformat:2 }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Cuota Retención</span>
+                    <span class="font-medium text-red-600">-{{ gasto.cuota_retencion|floatformat:2 }} EUR</span>
+                </div>
+                {% endif %}
+                <div class="border-t pt-3 flex justify-between">
+                    <span class="font-bold text-gray-800">Total Factura</span>
+                    <span class="font-bold text-lg">{{ gasto.total_factura|floatformat:2 }} EUR</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">💳 Estado de Pago</h2>
+        <div class="flex items-center gap-4">
+            {% if gasto.pagado %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                ✅ Pagado
+            </span>
+            {% if gasto.fecha_pago %}
+            <span class="text-gray-500">el {{ gasto.fecha_pago|date:"d/m/Y" }}</span>
+            {% endif %}
+            {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                ❌ Pendiente de pago
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if gasto.documento_pdf %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">📎 Documento</h2>
+        <a href="{{ gasto.documento_pdf.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
+            📄 Ver factura PDF
+        </a>
+    </div>
+    {% endif %}
+
+    {% if asiento %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">📒 Asiento Contable Vinculado</h2>
+        <div class="space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-500">Número de Asiento</span>
+                <span class="font-medium">#{{ asiento.numero }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Fecha</span>
+                <span class="font-medium">{{ asiento.fecha|date:"d/m/Y" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Concepto</span>
+                <span class="font-medium">{{ asiento.concepto }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Estado</span>
+                <span class="font-medium">{{ asiento.get_estado_display }}</span>
+            </div>
+            {% if asiento.movimientos.all %}
+            <div class="mt-4">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">Movimientos Contables</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Cuenta</th>
+                            <th class="px-3 py-2 text-right">Debe</th>
+                            <th class="px-3 py-2 text-right">Haber</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for mov in asiento.movimientos.all %}
+                        <tr>
+                            <td class="px-3 py-2">{{ mov.cuenta.codigo }} - {{ mov.cuenta.nombre }}</td>
+                            <td class="px-3 py-2 text-right">{% if mov.debe %}{{ mov.debe|floatformat:2 }}{% endif %}</td>
+                            <td class="px-3 py-2 text-right">{% if mov.haber %}{{ mov.haber|floatformat:2 }}{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-gray-50 rounded-lg p-4 text-xs text-gray-400">
+        <p>Creado por: {{ gasto.created_by.get_full_name|default:gasto.created_by.username }}</p>
+        <p>Creado el: {{ gasto.created_at|date:"d/m/Y H:i" }}</p>
+        <p>Última actualización: {{ gasto.updated_at|date:"d/m/Y H:i" }}</p>
+    </div>
+</div>
+{% endblock %}

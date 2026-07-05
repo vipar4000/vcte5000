@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {{ vehiculo.marca }} {{ vehiculo.modelo }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'vehicles:list' %}" class="text-eurocar-light hover:underline">← Volver a lista</a>
+            <h1 class="text-2xl font-bold text-gray-800">
+                {{ vehiculo.marca }} {{ vehiculo.modelo }}
+            </h1>
+            <p class="text-gray-500">{{ vehiculo.matricula }} | {{ vehiculo.bastidor }}</p>
+        </div>
+        <div class="flex gap-2">
+            {% if is_admin %}
+            <a href="{% url 'vehicles:update' vehiculo.pk %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'vehicles:delete' vehiculo.pk %}" 
+               class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                🗑️ Eliminar
+            </a>
+            {% endif %}
+            <span class="px-4 py-2 rounded-lg 
+                {% if vehiculo.estado == 'EN_VENTA' %}bg-green-100 text-green-800
+                {% elif vehiculo.estado == 'TALLER' %}bg-yellow-100 text-yellow-800
+                {% elif vehiculo.estado == 'VENDIDO' %}bg-purple-100 text-purple-800
+                {% elif vehiculo.estado == 'ACONDICIONADO' %}bg-blue-100 text-blue-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ vehiculo.get_estado_display }}
+            </span>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Información principal -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Datos técnicos -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">📋 Datos Técnicos</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Matrícula</p>
+                        <p class="font-mono font-medium">{{ vehiculo.matricula }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Bastidor/VIN</p>
+                        <p class="font-mono font-medium">{{ vehiculo.bastidor }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Marca</p>
+                        <p class="font-medium">{{ vehiculo.marca }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Modelo</p>
+                        <p class="font-medium">{{ vehiculo.modelo }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Año</p>
+                        <p class="font-medium">{{ vehiculo.anio }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Combustible</p>
+                        <p class="font-medium">{{ vehiculo.get_combustible_display }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Kilometraje</p>
+                        <p class="font-medium">{{ vehiculo.kilometraje|floatformat:0 }} km</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Tipo de Daño</p>
+                        <p class="font-medium">{{ vehiculo.get_tipo_dano_display }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Etiqueta Ambiental</p>
+                        <p class="font-medium">{{ vehiculo.get_etiqueta_ambiental_display }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Costes -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">💰 Análisis de Costes</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Precio de Adjudicación</span>
+                        <span class="font-medium">€{{ vehiculo.precio_subasta|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Tasas de Sala</span>
+                        <span class="font-medium">€{{ vehiculo.tasas_sala|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Logística/Grúa</span>
+                        <span class="font-medium">€{{ vehiculo.logistica_grua|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b bg-gray-50 font-bold">
+                        <span>Coste Inicial Total</span>
+                        <span>€{{ vehiculo.coste_inicial|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between py-2 border-b">
+                        <span class="text-gray-600">Coste de Reparación</span>
+                        <span class="font-medium">€{{ coste_reparacion|floatformat:2 }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between py-2 bg-eurocar-blue text-white px-3 rounded">
+                        <span class="font-bold">Coste Total Vehículo</span>
+                        <span class="font-bold">€{{ coste_total|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Órdenes de Trabajo -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">🔧 Órdenes de Trabajo</h2>
+                    {% if is_admin or is_operario %}
+                    <a href="{% url 'workshop:create_ot' %}?vehiculo={{ vehiculo.pk }}" 
+                       class="text-sm text-eurocar-light hover:underline">
+                        + Nueva OT
+                    </a>
+                    {% endif %}
+                </div>
+                
+                {% if vehiculo.ordenes_trabajo.all %}
+                <div class="space-y-2">
+                    {% for ot in vehiculo.ordenes_trabajo.all|slice:":5" %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                        <div>
+                            <p class="font-medium">OT-{{ ot.pk }}: {{ ot.titulo }}</p>
+                            <p class="text-sm text-gray-500">{{ ot.operario.get_full_name }} | {{ ot.get_estado_display }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">€{{ ot.coste_total|floatformat:2 }}</p>
+                            <a href="{% url 'workshop:detail_ot' ot.pk %}" class="text-sm text-eurocar-light">Ver</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No hay órdenes de trabajo registradas</p>
+                {% endif %}
+            </div>
+            
+            <!-- Descripción del daño -->
+            {% if vehiculo.descripcion_dano %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">📝 Descripción del Daño</h2>
+                <p class="text-gray-700">{{ vehiculo.descripcion_dano }}</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Imagen -->
+            <div class="bg-white rounded-lg shadow p-6">
+                {% if vehiculo.imagen_principal %}
+                <img src="{{ vehiculo.imagen_principal.url }}" 
+                     alt="{{ vehiculo.marca }} {{ vehiculo.modelo }}"
+                     class="w-full rounded-lg">
+                {% else %}
+                <div class="bg-gray-100 rounded-lg h-48 flex items-center justify-center">
+                    <span class="text-4xl">🚗</span>
+                </div>
+                {% endif %}
+                
+                {% if imagenes %}
+                <div class="mt-3 grid grid-cols-3 gap-2">
+                    {% for img in imagenes %}
+                    <img src="{{ img.imagen.url }}" 
+                         alt="Imagen {{ forloop.counter }}"
+                         class="w-full h-20 object-cover rounded">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Cambiar Estado -->
+            {% if is_admin %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">🔄 Cambiar Estado</h3>
+                <form method="post" action="{% url 'vehicles:change_status' vehiculo.pk %}">
+                    {% csrf_token %}
+                    <select name="estado" class="w-full px-3 py-2 border rounded-lg mb-2">
+                        {% for valor, nombre in vehiculo.ESTADOS %}
+                        <option value="{{ valor }}" {% if vehiculo.estado == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" 
+                            class="w-full bg-eurocar-blue text-white py-2 rounded-lg hover:bg-blue-800 transition">
+                        Actualizar Estado
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            <!-- Información rápida -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">Información Rápida</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Fecha Adquisición</span>
+                        <span>{{ vehiculo.fecha_adquisicion }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Plataforma</span>
+                        <span>{{ vehiculo.plataforma_subasta|default:"-" }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Días en Inventario</span>
+                        <span>{{ vehiculo.dias_en_inventario }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Creado por</span>
+                        <span>{{ vehiculo.created_by }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Documentos de Venta -->
+            {% if vehiculo.estado == 'VENDIDO' and vehiculo.venta %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">📄 Documentos de Venta</h3>
+                
+                <div class="flex items-center justify-between py-2 border-b">
+                    <span class="text-sm">Contrato de Compraventa</span>
+                    {% if vehiculo.venta.contrato_pdf %}
+                        <a href="{{ vehiculo.venta.contrato_pdf.url }}" target="_blank"
+                           class="text-sm text-eurocar-light hover:underline">Descargar</a>
+                    {% else %}
+                        <a href="{% url 'sales:generar_contrato' vehiculo.venta.pk %}"
+                           class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Generar</a>
+                    {% endif %}
+                </div>
+                
+                <div class="flex items-center justify-between py-2">
+                    <span class="text-sm">Mandato Gestoría DGT</span>
+                    {% if vehiculo.venta.mandato_pdf %}
+                        <a href="{{ vehiculo.venta.mandato_pdf.url }}" target="_blank"
+                           class="text-sm text-eurocar-light hover:underline">Descargar</a>
+                    {% else %}
+                        <a href="{% url 'sales:generar_mandato' vehiculo.venta.pk %}"
+                           class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Generar</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acciones -->
+            {% if vehiculo.estado == 'ACONDICIONADO' %}
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h3 class="font-semibold text-green-800 mb-2">✅ Listo para Venta</h3>
+                <p class="text-sm text-green-700 mb-4">
+                    Este vehículo está acondicionado y listo para ser publicado.
+                </p>
+                <a href="{% url 'sales:create' %}?vehiculo={{ vehiculo.pk }}" 
+                   class="block w-full bg-green-600 text-white text-center py-2 rounded-lg hover:bg-green-700 transition">
+                    💰 Registrar Venta
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

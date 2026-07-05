@@ -1,0 +1,38 @@
+# Environment files
+.env.production
+
+# SSL certificates
+docker/nginx/ssl/*.pem
+docker/nginx/ssl/*.key
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+
+# SQLite
+db.sqlite3
+backend/db.sqlite3
+backend/test.db
+
+# Media (user uploads)
+media/
+
+# Static files (generated)
+staticfiles/
+backend/staticfiles/
+backend/static/web/
+
+# Logs
+backend/logs/*.log
+
+# Node
+frontend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

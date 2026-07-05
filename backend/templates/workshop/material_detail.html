@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {{ material.nombre }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'workshop:material_list' %}" class="text-eurocar-light hover:underline">← Volver a inventario</a>
+            <h1 class="text-2xl font-bold text-gray-800">{{ material.nombre }}</h1>
+            {% if material.alerta_stock %}
+            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                ⚠️ Stock Bajo
+            </span>
+            {% endif %}
+        </div>
+        {% if is_admin %}
+        <div class="flex gap-2">
+            <a href="{% url 'workshop:material_update' material.pk %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'workshop:material_delete' material.pk %}" 
+               class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                🗑️ Eliminar
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Información principal -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Datos del material -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">📋 Datos del Material</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Nombre</p>
+                        <p class="font-medium">{{ material.nombre }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Unidad</p>
+                        <p class="font-medium">{{ material.unidad }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Precio Unitario</p>
+                        <p class="font-medium">€{{ material.precio_unitario|floatformat:2 }}</p>
+                    </div>
+                    {% if material.descripcion %}
+                    <div class="md:col-span-3">
+                        <p class="text-sm text-gray-500">Descripción</p>
+                        <p class="font-medium">{{ material.descripcion }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Historial de uso -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">📜 Historial de Uso</h2>
+                
+                {% if usos %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">OT</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Vehículo</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Operario</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">Cantidad</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for uso in usos %}
+                            <tr>
+                                <td class="px-4 py-2">
+                                    <a href="{% url 'workshop:detail_ot' uso.orden_trabajo.pk %}" 
+                                       class="text-eurocar-light hover:underline">
+                                        OT-{{ uso.orden_trabajo.pk }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-2 text-sm">
+                                    {{ uso.orden_trabajo.vehiculo.marca }} {{ uso.orden_trabajo.vehiculo.modelo }}
+                                </td>
+                                <td class="px-4 py-2 text-sm">
+                                    {{ uso.orden_trabajo.operario.get_full_name }}
+                                </td>
+                                <td class="px-4 py-2 text-right">
+                                    {{ uso.cantidad }} {{ material.unidad }}
+                                </td>
+                                <td class="px-4 py-2 text-right font-medium">
+                                    €{{ uso.subtotal|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No hay registros de uso</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Stock -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">📦 Estado del Stock</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm text-gray-500">Stock Actual</span>
+                            <span class="font-bold text-lg {% if material.alerta_stock %}text-red-600{% else %}text-green-600{% endif %}">
+                                {{ material.stock_actual }} {{ material.unidad }}
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="h-3 rounded-full {% if material.alerta_stock %}bg-red-500{% else %}bg-green-500{% endif %}"
+                                 style="width: {% widthratio material.stock_actual material.stock_minimo 100 %}%">
+                            </div>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-xs text-gray-500">Mínimo: {{ material.stock_minimo }}</span>
+                            {% if material.alerta_stock %}
+                            <span class="text-xs text-red-600 font-medium">⚠️ Bajo mínimo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Valoración -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">💰 Valoración</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Precio Unitario</span>
+                        <span>€{{ material.precio_unitario|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Stock Actual</span>
+                        <span>{{ material.stock_actual }}</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t font-bold">
+                        <span>Valor Total</span>
+                        <span class="text-eurocar-blue">€{{ stats.valor_stock|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas de uso -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">📊 Estadísticas de Uso</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Total Utilizado</span>
+                        <span>{{ stats.total_usado }} {{ material.unidad }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Veces Utilizado</span>
+                        <span>{{ stats.veces_usado }} veces</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

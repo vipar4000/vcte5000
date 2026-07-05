@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - OT-{{ ot.pk }} {{ ot.titulo }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'workshop:list' %}" class="text-eurocar-light hover:underline">← Volver a lista</a>
+            <h1 class="text-2xl font-bold text-gray-800">
+                OT-{{ ot.pk }}: {{ ot.titulo }}
+            </h1>
+            <p class="text-gray-500">
+                {{ ot.vehiculo.marca }} {{ ot.vehiculo.modelo }} ({{ ot.vehiculo.matricula }})
+            </p>
+        </div>
+        <div class="flex gap-2">
+            {% if is_admin or user == ot.operario %}
+            <a href="{% url 'workshop:update_ot' ot.pk %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                ✏️ Editar
+            </a>
+            {% endif %}
+            {% if is_admin %}
+            <a href="{% url 'workshop:delete_ot' ot.pk %}" 
+               class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                🗑️ Eliminar
+            </a>
+            {% endif %}
+            <span class="px-4 py-2 rounded-lg 
+                {% if ot.estado == 'PENDIENTE' %}bg-yellow-100 text-yellow-800
+                {% elif ot.estado == 'EN_PROGRESO' %}bg-blue-100 text-blue-800
+                {% elif ot.estado == 'COMPLETADA' %}bg-green-100 text-green-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ ot.get_estado_display }}
+            </span>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Información principal -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Descripción -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">📝 Descripción</h2>
+                <p class="text-gray-700">{{ ot.descripcion }}</p>
+            </div>
+            
+            <!-- Tiempo -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold mb-4">⏱️ Tiempo</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Horas Estimadas</p>
+                        <p class="text-2xl font-bold">{{ ot.horas_estimadas|floatformat:1 }}h</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Horas Reales</p>
+                        <p class="text-2xl font-bold">{{ ot.horas_reales|floatformat:1 }}h</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Fecha Inicio</p>
+                        <p class="font-medium">{{ ot.fecha_inicio|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Fecha Fin</p>
+                        <p class="font-medium">{{ ot.fecha_fin|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Materiales Usados -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">🔧 Materiales Usados</h2>
+                    {% if is_admin or user == ot.operario %}
+                    {% if ot.estado != 'COMPLETADA' %}
+                    <a href="{% url 'workshop:update_ot' ot.pk %}" 
+                       class="text-sm text-eurocar-light hover:underline">
+                        + Agregar material
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                
+                {% if materiales %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Material</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">Cantidad</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">Precio Unit.</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for mu in materiales %}
+                            <tr>
+                                <td class="px-4 py-2">{{ mu.material.nombre }}</td>
+                                <td class="px-4 py-2 text-right">{{ mu.cantidad }} {{ mu.material.unidad }}</td>
+                                <td class="px-4 py-2 text-right">€{{ mu.material.precio_unitario|floatformat:2 }}</td>
+                                <td class="px-4 py-2 text-right font-medium">€{{ mu.subtotal|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="3" class="px-4 py-2 font-bold">Total Materiales</td>
+                                <td class="px-4 py-2 text-right font-bold">€{{ coste_materiales|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No hay materiales registrados</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Operario -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">👷 Operario Asignado</h3>
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-eurocar-light rounded-full flex items-center justify-center text-white font-bold">
+                        {{ ot.operario.first_name.0 }}{{ ot.operario.last_name.0 }}
+                    </div>
+                    <div>
+                        <p class="font-medium">{{ ot.operario.get_full_name }}</p>
+                        <p class="text-sm text-gray-500">{{ ot.operario.get_rol_display }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Costes -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">💰 Desglose de Costes</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-600">Mano de Obra</span>
+                        <span>€{{ coste_mano_obra|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-600">Materiales</span>
+                        <span>€{{ coste_materiales|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-t font-bold">
+                        <span>Total OT</span>
+                        <span class="text-eurocar-blue">€{{ coste_total|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cambiar Estado -->
+            {% if is_admin or user == ot.operario %}
+            {% if ot.estado != 'COMPLETADA' %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">🔄 Cambiar Estado</h3>
+                <form method="post" action="{% url 'workshop:change_status_ot' ot.pk %}">
+                    {% csrf_token %}
+                    <select name="estado" class="w-full px-3 py-2 border rounded-lg mb-2">
+                        {% for valor, nombre in ot.ESTADOS %}
+                        <option value="{{ valor }}" {% if ot.estado == valor %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" 
+                            class="w-full bg-eurocar-blue text-white py-2 rounded-lg hover:bg-blue-800 transition">
+                        Actualizar Estado
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

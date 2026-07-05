@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Nuevo Marcaje{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'attendance:marcajes' %}" class="text-eurocar-light hover:underline">← Volver a asistencia</a>
+        <h1 class="text-2xl font-bold text-gray-800">➕ Marcaje Manual</h1>
+    </div>
+    
+    <form method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Operario *</label>
+            {{ form.operario }}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Marcaje *</label>
+            {{ form.tipo }}
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-700">
+                ℹ️ La fecha y hora se registrarán automáticamente.
+                La IP del cliente se verificará contra la red del galpón.
+            </p>
+        </div>
+        
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'attendance:marcajes' %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                Registrar Marcaje
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Reporte de Jornada - {{ operario.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'attendance:marcajes' %}" class="text-eurocar-light hover:underline">← Volver a asistencia</a>
+            <h1 class="text-2xl font-bold text-gray-800">
+                📊 Reporte de Jornada
+            </h1>
+            <p class="text-gray-500">
+                {{ operario.get_full_name }} | {{ mes_actual }}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Resumen -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-gray-800">{{ horas_totales|floatformat:1 }}h</p>
+            <p class="text-sm text-gray-500">Horas Trabajadas</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-blue-600">{{ jornadas|length }}</p>
+            <p class="text-sm text-gray-500">Días Trabajados</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-green-600">€{{ coste_hora|floatformat:2 }}</p>
+            <p class="text-sm text-gray-500">Coste/Hora</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-eurocar-blue">€{{ coste_total|floatformat:2 }}</p>
+            <p class="text-sm text-gray-500">Coste Total</p>
+        </div>
+    </div>
+    
+    <!-- Detalle por día -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">📅 Detalle por Día</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salida</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Horas</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Coste</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for fecha, datos in jornadas.items|sort %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium">{{ fecha|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-green-600">
+                            {% if datos.entradas %}
+                            {{ datos.entradas.0|time:"H:i" }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-red-600">
+                            {% if datos.salidas %}
+                            {{ datos.salidas.0|time:"H:i" }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {% if datos.entradas and datos.salidas %}
+                            {{ datos.horas|floatformat:1 }}h
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium">
+                            {% if datos.entradas and datos.salidas %}
+                            €{{ datos.coste|floatformat:2 }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            No hay registros de jornada para este mes
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="3" class="px-4 py-3 font-bold">Total</td>
+                        <td class="px-4 py-3 text-right font-bold">{{ horas_totales|floatformat:1 }}h</td>
+                        <td class="px-4 py-3 text-right font-bold text-eurocar-blue">€{{ coste_total|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Configuración de nómina -->
+    {% if config_nomina %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">💰 Configuración de Nómina</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-sm text-gray-500">Salario Base Mensual</p>
+                <p class="font-medium">€{{ config_nomina.salario_base_mensual|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">% SS Patronal</p>
+                <p class="font-medium">{{ config_nomina.porcentaje_ss_patronal }}%</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Coste Mensual Total</p>
+                <p class="font-medium">€{{ config_nomina.coste_mensual_total|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

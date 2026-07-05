@@ -1,0 +1,373 @@
+@page {
+    size: A4;
+    margin: 2cm 2.5cm;
+    @top-center {
+        content: "R Car Rogil ERP - Manual de Usuario";
+        font-size: 9pt;
+        color: #666;
+    }
+    @bottom-center {
+        content: "Pagina " counter(page) " de " counter(pages);
+        font-size: 9pt;
+        color: #666;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.6;
+    color: #333;
+    max-width: 100%;
+}
+
+/* Cover page */
+.cover {
+    page-break-after: always;
+    text-align: center;
+    position: relative;
+}
+
+.cover-band-top {
+    background-color: #1B3A5C;
+    height: 3cm;
+    width: 100%;
+    margin-bottom: 2cm;
+}
+
+.cover-content {
+    padding: 0 2cm;
+}
+
+.cover-logo {
+    font-size: 42pt;
+    font-weight: 700;
+    color: #1B3A5C;
+    letter-spacing: 4px;
+    margin-bottom: 0.5cm;
+}
+
+.cover-line {
+    width: 6cm;
+    height: 3px;
+    background-color: #5DADE2;
+    margin: 0.8cm auto;
+}
+
+.cover-subtitle {
+    font-size: 18pt;
+    color: #2C3E50;
+    margin-bottom: 0.4cm;
+    font-weight: 300;
+}
+
+.cover-desc {
+    font-size: 11pt;
+    color: #777;
+    margin-top: 0.3cm;
+}
+
+.cover-footer {
+    margin-top: 4cm;
+    padding: 0 2cm;
+}
+
+.cover-version {
+    font-size: 12pt;
+    color: #1B3A5C;
+    font-weight: 600;
+    margin-bottom: 0.2cm;
+}
+
+.cover-date {
+    font-size: 10pt;
+    color: #999;
+}
+
+.cover-band-bottom {
+    background-color: #5DADE2;
+    height: 1.5cm;
+    width: 100%;
+    margin-top: 2cm;
+}
+
+/* Table of Contents */
+.toc {
+    page-break-after: always;
+    padding: 1cm 0;
+}
+
+.toc h2 {
+    color: #1B3A5C;
+    border-bottom: 3px solid #5DADE2;
+    padding-bottom: 0.3cm;
+    margin-bottom: 0.5cm;
+}
+
+.toc ul {
+    list-style: none;
+    padding: 0;
+}
+
+.toc li {
+    padding: 0.3cm 0;
+    border-bottom: 1px dotted #ccc;
+}
+
+.toc li a {
+    text-decoration: none;
+    color: #1B3A5C;
+    display: block;
+    padding: 0.15cm 0.3cm;
+}
+
+.toc li .chapter-num {
+    font-weight: bold;
+    color: #5DADE2;
+    margin-right: 0.3cm;
+}
+
+/* Headings */
+h1 {
+    font-size: 22pt;
+    color: #1B3A5C;
+    border-bottom: 3px solid #5DADE2;
+    padding-bottom: 0.3cm;
+    margin-top: 1cm;
+    page-break-before: always;
+}
+
+h1:first-of-type {
+    page-break-before: avoid;
+}
+
+h2 {
+    font-size: 16pt;
+    color: #1B3A5C;
+    margin-top: 0.8cm;
+    border-left: 4px solid #5DADE2;
+    padding-left: 0.3cm;
+}
+
+h3 {
+    font-size: 13pt;
+    color: #2C3E50;
+    margin-top: 0.6cm;
+}
+
+h4 {
+    font-size: 11pt;
+    color: #555;
+    margin-top: 0.4cm;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5cm 0;
+    font-size: 9.5pt;
+}
+
+th {
+    background-color: #1B3A5C;
+    color: white;
+    padding: 0.25cm 0.3cm;
+    text-align: left;
+    font-weight: 600;
+}
+
+td {
+    padding: 0.2cm 0.3cm;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+/* Code blocks */
+pre {
+    background-color: #f0f0f0;
+    color: #333;
+    padding: 0.4cm;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 9pt;
+    overflow-x: auto;
+    margin: 0.3cm 0;
+    line-height: 1.4;
+}
+
+code {
+    background-color: #f4f4f4;
+    padding: 0.05cm 0.15cm;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 9pt;
+    color: #c7254e;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+/* Boxes */
+.info-box {
+    background-color: #e8f4f8;
+    border-left: 4px solid #5DADE2;
+    padding: 0.4cm;
+    margin: 0.4cm 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.warning-box {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.4cm;
+    margin: 0.4cm 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.success-box {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.4cm;
+    margin: 0.4cm 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.danger-box {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 0.4cm;
+    margin: 0.4cm 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Diagram boxes */
+.diagram {
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    padding: 0.5cm;
+    margin: 0.5cm 0;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.diagram .title {
+    font-weight: bold;
+    color: #1B3A5C;
+    margin-bottom: 0.3cm;
+    font-size: 10pt;
+}
+
+.flow {
+    font-family: 'Consolas', monospace;
+    font-size: 9.5pt;
+    line-height: 1.8;
+    color: #2d2d2d;
+}
+
+/* Lists */
+ul, ol {
+    margin: 0.3cm 0;
+    padding-left: 1cm;
+}
+
+li {
+    margin-bottom: 0.15cm;
+}
+
+/* Step lists */
+ol.steps {
+    counter-reset: step-counter;
+    list-style: none;
+    padding-left: 0;
+}
+
+ol.steps li {
+    counter-increment: step-counter;
+    padding: 0.3cm 0.3cm 0.3cm 1.2cm;
+    position: relative;
+    border-left: 2px solid #5DADE2;
+    margin-left: 0.4cm;
+}
+
+ol.steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: -0.45cm;
+    top: 0.25cm;
+    background-color: #5DADE2;
+    color: white;
+    width: 0.7cm;
+    height: 0.7cm;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 0.7cm;
+    font-size: 9pt;
+    font-weight: bold;
+}
+
+/* Role badges */
+.role {
+    display: inline-block;
+    padding: 0.05cm 0.2cm;
+    border-radius: 3px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin-right: 0.1cm;
+}
+
+.role-admin { background-color: #dc3545; color: white; }
+.role-operario { background-color: #28a745; color: white; }
+.role-vendedor { background-color: #007bff; color: white; }
+.role-gestoria { background-color: #6f42c1; color: white; }
+
+/* Page breaks */
+.page-break {
+    page-break-before: always;
+}
+
+/* Images placeholder */
+.img-placeholder {
+    background-color: #e9ecef;
+    border: 2px dashed #adb5bd;
+    padding: 1cm;
+    text-align: center;
+    color: #6c757d;
+    border-radius: 4px;
+    margin: 0.3cm 0;
+}
+
+/* Strong emphasis */
+strong {
+    color: #1B3A5C;
+}
+
+/* Links */
+a {
+    color: #5DADE2;
+    text-decoration: none;
+}
+
+/* Utility */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.mt-1 { margin-top: 0.3cm; }
+.mb-1 { margin-bottom: 0.3cm; }
+.mt-2 { margin-top: 0.6cm; }
+.mb-2 { margin-bottom: 0.6cm; }

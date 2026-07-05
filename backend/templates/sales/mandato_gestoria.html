@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mandato de Gestoría - R Car Rogil</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1B3A5C;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #1B3A5C;
+            font-size: 24pt;
+            margin: 0;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #1B3A5C;
+            font-size: 14pt;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .field {
+            margin-bottom: 10px;
+        }
+        .field label {
+            font-weight: bold;
+            display: inline-block;
+            width: 180px;
+        }
+        .vehicle-info {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        .legal-text {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>R CAR ROGIL</h1>
+        <p>Servicio de Gestoría Vehicular</p>
+    </div>
+    
+    <h2 style="text-align: center; color: #1B3A5C;">MANDATO DE GESTORÍA PARA CAMBIO DE TITULARIDAD</h2>
+    <p style="text-align: center;">Nº M-{{ venta.pk }} | Fecha: {{ venta.fecha_venta }}</p>
+    
+    <div class="section">
+        <h2>1. DATOS DEL MANDANTE (VENDEDOR)</h2>
+        <div class="field"><label>Razón Social:</label> {{ empresa.nombre }}</div>
+        <div class="field"><label>CIF:</label> {{ empresa.cif }}</div>
+        <div class="field"><label>Dirección:</label> {{ empresa.direccion }}, {{ empresa.cp }} {{ empresa.poblacion }}</div>
+    </div>
+    
+    <div class="section">
+        <h2>2. DATOS DEL NUEVO TITULAR (COMPRADOR)</h2>
+        <div class="field"><label>Nombre Completo:</label> {{ cliente.nombre }}</div>
+        <div class="field"><label>DNI/NIE:</label> {{ cliente.dni }}</div>
+        <div class="field"><label>Dirección:</label> {{ cliente.direccion }}</div>
+        <div class="field"><label>Población:</label> {{ cliente.poblacion }}</div>
+        <div class="field"><label>Provincia:</label> {{ cliente.provincia }}</div>
+        <div class="field"><label>Código Postal:</label> {{ cliente.cp }}</div>
+    </div>
+    
+    <div class="section">
+        <h2>3. DATOS DEL VEHÍCULO</h2>
+        <div class="vehicle-info">
+            <div class="field"><label>Marca:</label> {{ vehiculo.marca }}</div>
+            <div class="field"><label>Modelo:</label> {{ vehiculo.modelo }}</div>
+            <div class="field"><label>Año:</label> {{ vehiculo.anio }}</div>
+            <div class="field"><label>Matrícula:</label> {{ vehiculo.matricula }}</div>
+            <div class="field"><label>Bastidor/VIN:</label> {{ vehiculo.bastidor }}</div>
+            <div class="field"><label>Combustible:</label> {{ vehiculo.get_combustible_display }}</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>4. AUTORIZACIÓN</h2>
+        <p>Por medio del presente documento, el MANDANTE autoriza a la empresa <strong>{{ empresa.nombre }}</strong> 
+        para que por su cuenta y en su nombre realice las siguientes gestiones ante la DGT:</p>
+        <ul>
+            <li>Cambio de titularidad del vehículo</li>
+            <li>Emisión de nueva ficha técnica</li>
+            <li>Cualquier trámite administrativo relacionado con el cambio de propietario</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>5. DOCUMENTACIÓN ADJUNTA</h2>
+        <ul>
+            <li>Ficha técnica del vehículo</li>
+            <li>Permiso de circulación</li>
+            <li>ITV en vigor</li>
+            <li>DNI del nuevo titular</li>
+            <li>Justificante de pago del ITP (Impuesto de Transmisiones Patrimoniales)</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>6. PLAZO DE EJECUCIÓN</h2>
+        <p>La gestoría se compromete a realizar el cambio de titularidad en un plazo máximo de 
+        <strong>10 días hábiles</strong> desde la recepción de toda la documentación necesaria.</p>
+    </div>
+    
+    <div class="signature-section">
+        <div class="signature-box">
+            <p>Mandante (Vendedor)</p>
+            <p><strong>{{ empresa.nombre }}</strong></p>
+        </div>
+        <div class="signature-box">
+            <p>Nuevo Titular (Comprador)</p>
+            <p><strong>{{ cliente.nombre }}</strong></p>
+        </div>
+    </div>
+    
+    <div class="legal-text">
+        <p>Este mandato se ha generado automáticamente por el sistema R Car Rogil ERP.</p>
+        <p>Fecha de generación: {% now "d/m/Y H:i" %}</p>
+    </div>
+</body>
+</html>

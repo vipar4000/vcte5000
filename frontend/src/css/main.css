@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for R Car Rogil */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #1B3A5C 0%, #2c5282 100%);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+  @apply bg-eurocar-blue text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-800 transition;
+}
+
+.btn-secondary {
+  @apply bg-eurocar-green text-white px-6 py-3 rounded-lg font-medium hover:bg-green-600 transition;
+}

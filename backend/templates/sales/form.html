@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {% if action == 'crear' %}Nueva Venta{% else %}Editar Venta{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% url 'sales:list' %}" class="text-eurocar-light hover:underline">← Volver a ventas</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if action == 'crear' %}➕ Registrar Nueva Venta{% else %}✏️ Editar Venta{% endif %}
+        </h1>
+    </div>
+    
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Errores generales -->
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los siguientes errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Selección de Vehículo -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">🚗 Vehículo a Vender</h2>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Vehículo *</label>
+                {{ form.vehiculo }}
+                <p class="text-xs text-gray-500 mt-1">
+                    Solo aparecen vehículos con estado ACONDICIONADO o EN VENTA
+                </p>
+            </div>
+        </div>
+        
+        <!-- Datos del Cliente -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">👤 Datos del Cliente</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Cliente *</label>
+                    {{ form.tipo_cliente }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                    {{ form.cliente_nombre }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">DNI/NIE *</label>
+                    {{ form.cliente_dni }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+                    {{ form.cliente_telefono }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    {{ form.cliente_email }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+                    {{ form.cliente_direccion }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Población *</label>
+                    {{ form.cliente_poblacion }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Provincia *</label>
+                    {{ form.cliente_provincia }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Código Postal *</label>
+                    {{ form.cliente_cp }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Datos de la Venta -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">💰 Datos de la Venta</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Venta *</label>
+                    {{ form.fecha_venta }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Método de Pago *</label>
+                    {{ form.metodo_pago }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Venta (€) *</label>
+                    {{ form.precio_venta }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información Fiscal -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4 text-blue-800">📊 Información Fiscal REBU</h2>
+            <div class="text-sm text-blue-700 space-y-2">
+                <p>
+                    <strong>Régimen Especial de Bienes Usados (REBU)</strong>
+                </p>
+                <p>
+                    El IVA (21%) se aplicará exclusivamente sobre el margen de ganancia, 
+                    no sobre el precio total de venta.
+                </p>
+                <p>
+                    <strong>Fórmula:</strong> Base Imponible = Precio de Venta - Coste Total del Vehículo
+                </p>
+                <p>
+                    <strong>Factura:</strong> El desglose del IVA NO se muestra al cliente final.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Submit -->
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'sales:list' %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-green text-white rounded-lg hover:bg-green-600 transition font-medium">
+                💰 Registrar Venta
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

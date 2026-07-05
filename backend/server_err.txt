@@ -1,0 +1,4 @@
+INFO 2026-06-25 17:16:50,070 autoreload Watching for file changes with StatReloader
+INFO 2026-06-25 17:16:54,099 basehttp "GET /accounts/login/ HTTP/1.1" 200 17390
+INFO 2026-06-25 17:16:54,315 basehttp "GET /api/vehiculos/ HTTP/1.1" 200 29
+INFO 2026-06-25 17:16:54,329 basehttp - Broken pipe from ('127.0.0.1', 60077)

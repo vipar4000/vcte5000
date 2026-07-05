@@ -1,0 +1,4 @@
+# Place SSL certificates here after running certbot:
+#   sudo certbot certonly --standalone -d rcarrogil.com -d www.rcarrogil.com
+#   sudo cp /etc/letsencrypt/live/rcarrogil.com/fullchain.pem .
+#   sudo cp /etc/letsencrypt/live/rcarrogil.com/privkey.pem .

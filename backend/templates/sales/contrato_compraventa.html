@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Compraventa - R Car Rogil</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1B3A5C;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #1B3A5C;
+            font-size: 24pt;
+            margin: 0;
+        }
+        .header p {
+            color: #666;
+            font-size: 10pt;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #1B3A5C;
+            font-size: 14pt;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .field {
+            margin-bottom: 10px;
+        }
+        .field label {
+            font-weight: bold;
+            display: inline-block;
+            width: 150px;
+        }
+        .vehicle-info {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .price-box {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .price-box .amount {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        .legal-text {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>R CAR ROGIL</h1>
+        <p>Sistema de Vehículos de Ocasión</p>
+        <p>CIF: {{ empresa.cif }} | {{ empresa.direccion }}, {{ empresa.cp }} {{ empresa.poblacion }}</p>
+    </div>
+    
+    <h2 style="text-align: center; color: #1B3A5C;">CONTRATO DE COMPRAVENTA DE VEHÍCULO DE OCASIÓN</h2>
+    <p style="text-align: center;">Nº V-{{ venta.pk }} | Fecha: {{ venta.fecha_venta }}</p>
+    
+    <div class="section">
+        <h2>1. PARTES CONTRATANTES</h2>
+        <p><strong>VENDEDOR:</strong></p>
+        <p>{{ empresa.nombre }} ({{ empresa.cif }})</p>
+        <p>{{ empresa.direccion }}, {{ empresa.cp }} {{ empresa.poblacion }} ({{ empresa.provincia }})</p>
+        
+        <p style="margin-top: 20px;"><strong>COMPRADOR:</strong></p>
+        <p>{{ cliente.nombre }} (DNI: {{ cliente.dni }})</p>
+        <p>{{ cliente.direccion }}, {{ cliente.cp }} {{ cliente.poblacion }} ({{ cliente.provincia }})</p>
+        <p>Tel: {{ cliente.telefono }} | Email: {{ cliente.email }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>2. OBJETO DEL CONTRATO</h2>
+        <div class="vehicle-info">
+            <div class="field"><label>Marca:</label> {{ vehiculo.marca }}</div>
+            <div class="field"><label>Modelo:</label> {{ vehiculo.modelo }}</div>
+            <div class="field"><label>Año:</label> {{ vehiculo.anio }}</div>
+            <div class="field"><label>Matrícula:</label> {{ vehiculo.matricula }}</div>
+            <div class="field"><label>Bastidor/VIN:</label> {{ vehiculo.bastidor }}</div>
+            <div class="field"><label>Combustible:</label> {{ vehiculo.get_combustible_display }}</div>
+            <div class="field"><label>Kilometraje:</label> {{ vehiculo.kilometraje }} km</div>
+            <div class="field"><label>Etiqueta Ambiental:</label> {{ vehiculo.get_etiqueta_ambiental_display }}</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>3. PRECIO Y FORMA DE PAGO</h2>
+        <div class="price-box">
+            <p>Precio de Venta</p>
+            <p class="amount">€{{ venta.precio_venta|floatformat:2 }}</p>
+            <p>Método de pago: {{ venta.get_metodo_pago_display }}</p>
+        </div>
+        <p><strong>Nota fiscal (Régimen REBU):</strong> El IVA (21%) se aplica exclusivamente sobre el margen de ganancia 
+        (Art. 84.Uno.2.1º LIVA). El desglose del IVA no se refleja en la factura al cliente.</p>
+    </div>
+    
+    <div class="section">
+        <h2>4. GARANTÍA</h2>
+        <p>El VENDEDOR ofrece al COMPRADOR una garantía de <strong>1 (un) año</strong> sobre vicios ocultos, 
+        conforme al Real Decreto-ley 7/2021, de 27 de abril, sobre medidas urgentes para la Defensa de los 
+        Consumidores y Usuarios.</p>
+        <p>La garantía cubre defectos de fabricación y vicios ocultos que hagan impropio al vehículo para el uso 
+        al que está destinado.</p>
+    </div>
+    
+    <div class="section">
+        <h2>5. DECLARACIONES</h2>
+        <p>El VENDEDOR declara que el vehículo:</p>
+        <ul>
+            <li>Cuenta con la ITV en vigor</li>
+            <li>No presenta cargas, embargos ni limitaciones de disponibilidad</li>
+            <li>Ha sido debidamente revisado y se encuentra en condiciones de uso</li>
+            <li>Todos los datos facilitados son veraces</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>6. JURISDICCIÓN APLICABLE</h2>
+        <p>Para cualquier controversia derivada de este contrato, las partes se someten a los Juzgados y Tribunales 
+        de Madrid, renunciando expresamente a cualquier otro fuero que pudiera corresponderles.</p>
+    </div>
+    
+    <div class="signature-section">
+        <div class="signature-box">
+            <p>Por el VENDEDOR</p>
+            <p><strong>{{ empresa.nombre }}</strong></p>
+        </div>
+        <div class="signature-box">
+            <p>Por el COMPRADOR</p>
+            <p><strong>{{ cliente.nombre }}</strong></p>
+        </div>
+    </div>
+    
+    <div class="legal-text">
+        <p>Este contrato se ha generado automáticamente por el sistema R Car Rogil ERP.</p>
+        <p>Fecha de generación: {% now "d/m/Y H:i" %}</p>
+    </div>
+</body>
+</html>

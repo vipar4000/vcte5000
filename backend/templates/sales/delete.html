@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Eliminar Venta V-{{ venta.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'sales:detail' venta.pk %}" class="text-eurocar-light hover:underline">← Volver a la venta</a>
+        <h1 class="text-2xl font-bold text-red-600">⚠️ Eliminar Venta</h1>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p class="text-red-800 font-medium">
+                ¿Está seguro de que desea eliminar esta venta?
+            </p>
+            <p class="text-red-600 text-sm mt-1">
+                El vehículo será restaurado al estado "Acondicionado" y podrá venderse nuevamente.
+            </p>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Venta</p>
+                    <p class="font-medium">V-{{ venta.pk }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Vehículo</p>
+                    <p class="font-medium">{{ venta.vehiculo.marca }} {{ venta.vehiculo.modelo }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Cliente</p>
+                    <p class="font-medium">{{ venta.cliente_nombre }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Precio de Venta</p>
+                    <p class="font-medium">€{{ venta.precio_venta|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex justify-end gap-4">
+                <a href="{% url 'sales:detail' venta.pk %}" 
+                   class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    🗑️ Eliminar Venta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

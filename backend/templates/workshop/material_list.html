@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Inventario de Materiales{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Inventario de Materiales</h1>
+            <p class="text-gray-500">Gestión de insumos del taller</p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'workshop:material_create' %}" 
+           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+            ➕ Nuevo Material
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total }}</p>
+            <p class="text-sm text-gray-500">Total Materiales</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold {% if stats.con_alerta > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                {{ stats.con_alerta }}
+            </p>
+            <p class="text-sm text-gray-500">Con Alerta de Stock</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-blue-600">€{{ stats.valor_total|floatformat:2 }}</p>
+            <p class="text-sm text-gray-500">Valor Total Inventario</p>
+        </div>
+    </div>
+    
+    <!-- Panel de Alertas -->
+    {% if materiales_con_alerta %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold text-red-800">⚠️ Alertas de Stock Bajo</h3>
+            <a href="{% url 'workshop:alertas_stock' %}" class="text-red-600 hover:underline text-sm">
+                Ver todas
+            </a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {% for material in materiales_con_alerta %}
+            <div class="bg-white p-2 rounded flex justify-between items-center">
+                <span class="text-sm">{{ material.nombre }}</span>
+                <span class="text-red-600 font-medium text-sm">
+                    {{ material.stock_actual }} / {{ material.stock_minimo }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="flex flex-wrap gap-4">
+            <input type="text" 
+                   name="busqueda" 
+                   value="{{ busqueda }}"
+                   placeholder="Buscar material..."
+                   class="flex-1 min-w-[200px] px-4 py-2 border rounded-lg">
+            
+            <label class="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer">
+                <input type="checkbox" 
+                       name="alerta" 
+                       value="1"
+                       {% if mostrar_alertas %}checked{% endif %}
+                       class="rounded">
+                <span class="text-sm">Solo con alerta</span>
+            </label>
+            
+            <button type="submit" 
+                    class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                🔍 Buscar
+            </button>
+        </form>
+    </div>
+    
+    <!-- Lista de materiales -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Material</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock Actual</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock Mínimo</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for material in materiales %}
+                    <tr class="hover:bg-gray-50 {% if material.alerta_stock %}bg-red-50{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ material.nombre }}</div>
+                            {% if material.descripcion %}
+                            <div class="text-sm text-gray-500 truncate max-w-[200px]">{{ material.descripcion }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm">{{ material.unidad }}</td>
+                        <td class="px-4 py-3 text-right font-medium
+                            {% if material.alerta_stock %}text-red-600{% endif %}">
+                            {{ material.stock_actual }}
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-500">
+                            {{ material.stock_minimo }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            €{{ material.precio_unitario|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium">
+                            €{{ material.valor_stock|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if material.alerta_stock %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                ⚠️ Stock Bajo
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                ✅ OK
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'workshop:material_detail' material.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                            No se encontraron materiales
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

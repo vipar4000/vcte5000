@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Garantías{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Garantías de Vehículos</h1>
+            <p class="text-gray-500">Real Decreto-ley 7/2021 - B2C: 12 meses | B2B: 6 meses</p>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-green-600">{{ total_vigentes }}</p>
+            <p class="text-sm text-gray-500">Garantías Vigentes</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-blue-600">{{ total_reparaciones }}</p>
+            <p class="text-sm text-gray-500">Reparaciones Totales</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-eurocar-blue">€{{ coste_total_reparaciones|floatformat:2 }}</p>
+            <p class="text-sm text-gray-500">Coste Reparaciones</p>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1">
+                <input type="text" name="buscar" value="{{ form.buscar.value|default:'' }}"
+                       placeholder="Buscar por matrícula o cliente..."
+                       class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <select name="estado" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todos</option>
+                    <option value="vigente" {% if form.estado.value == 'vigente' %}selected{% endif %}>Vigentes</option>
+                    <option value="caducada" {% if form.estado.value == 'caducada' %}selected{% endif %}>Caducadas</option>
+                </select>
+            </div>
+            <button type="submit" 
+                    class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                🔍 Filtrar
+            </button>
+        </form>
+    </div>
+    
+    <!-- Lista de garantías -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehículo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inicio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fin</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for garantia in garantias %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ garantia.venta.vehiculo.matricula }}</div>
+                            <div class="text-sm text-gray-500">{{ garantia.venta.vehiculo.marca }} {{ garantia.venta.vehiculo.modelo }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ garantia.venta.cliente_nombre }}</div>
+                            <div class="text-sm text-gray-500">{{ garantia.venta.cliente_dni }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if garantia.tipo_cliente == 'PARTICULAR' %}bg-blue-100 text-blue-800
+                                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ garantia.get_tipo_cliente_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">{{ garantia.fecha_inicio|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-sm">{{ garantia.fecha_fin|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 text-center">
+                            {% if garantia.esta_vigente %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                ✅ Vigente ({{ garantia.meses_restantes }} meses)
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                ❌ Caducada
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'warranty:detail' garantia.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Ver Detalle
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            No se encontraron garantías
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

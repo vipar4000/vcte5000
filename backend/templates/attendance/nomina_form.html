@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {% if config %}Editar{% else %}Nueva{% endif %} Configuración Nómina{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'attendance:nomina_list' %}" class="text-eurocar-light hover:underline">← Volver a nóminas</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if config %}✏️ Editar{% else %}➕ Nueva{% endif %} Configuración de Nómina
+        </h1>
+    </div>
+    
+    <form method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Operario *</label>
+            {{ form.operario }}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Salario Base Mensual (€) *</label>
+            {{ form.salario_base_mensual }}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">% Seguridad Social Patronal *</label>
+            {{ form.porcentaje_ss_patronal }}
+            <p class="text-xs text-gray-500 mt-1">
+                Rango típico: 31.5% - 33% según categoría del Convenio del Metal
+            </p>
+        </div>
+        
+        <!-- Preview del cálculo -->
+        <div class="bg-gray-50 border rounded-lg p-4">
+            <h4 class="font-medium mb-2">📊 Vista previa del cálculo:</h4>
+            <div id="preview-calculo" class="text-sm text-gray-600 space-y-1">
+                <p>Salario Base: <span id="preview-salario">€0.00</span></p>
+                <p>SS Patronal: <span id="preview-ss">0%</span></p>
+                <p>Coste Mensual: <span id="preview-mensual">€0.00</span></p>
+                <p class="font-bold text-eurocar-blue">Coste/Hora: <span id="preview-hora">€0.00</span></p>
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'attendance:nomina_list' %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                {% if config %}Guardar Cambios{% else %}Crear Configuración{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+const salarioInput = document.getElementById('id_salario_base_mensual');
+const ssInput = document.getElementById('id_porcentaje_ss_patronal');
+
+function actualizarPreview() {
+    const salario = parseFloat(salarioInput?.value) || 0;
+    const ss = parseFloat(ssInput?.value) || 0;
+    
+    const mensual = salario * (1 + ss / 100);
+    const hora = mensual / (22 * 8);
+    
+    document.getElementById('preview-salario').textContent = `€${salario.toFixed(2)}`;
+    document.getElementById('preview-ss').textContent = `${ss}%`;
+    document.getElementById('preview-mensual').textContent = `€${mensual.toFixed(2)}`;
+    document.getElementById('preview-hora').textContent = `€${hora.toFixed(2)}`;
+}
+
+salarioInput?.addEventListener('input', actualizarPreview);
+ssInput?.addEventListener('input', actualizarPreview);
+
+// Initial preview
+actualizarPreview();
+</script>
+{% endblock %}

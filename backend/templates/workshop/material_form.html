@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - {% if action == 'crear' %}Nuevo Material{% else %}Editar {{ material.nombre }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% url 'workshop:material_list' %}" class="text-eurocar-light hover:underline">← Volver a inventario</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if action == 'crear' %}➕ Nuevo Material{% else %}✏️ Editar {{ material.nombre }}{% endif %}
+        </h1>
+    </div>
+    
+    <form method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+        
+        <!-- Errores generales -->
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los siguientes errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Información del material -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+            {{ form.nombre }}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+            {{ form.descripcion }}
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida *</label>
+                {{ form.unidad }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Precio Unitario (€) *</label>
+                {{ form.precio_unitario }}
+            </div>
+        </div>
+        
+        <!-- Stock -->
+        <fieldset class="border-t pt-4">
+            <legend class="text-lg font-semibold mb-4">📦 Gestión de Stock</legend>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stock Actual *</label>
+                    {{ form.stock_actual }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stock Mínimo de Seguridad *</label>
+                    {{ form.stock_minimo }}
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+                Cuando el stock actual sea igual o menor al stock mínimo, se activará una alerta visual.
+            </p>
+        </fieldset>
+        
+        <!-- Submit -->
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'workshop:material_list' %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                {% if action == 'crear' %}Crear Material{% else %}Guardar Cambios{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

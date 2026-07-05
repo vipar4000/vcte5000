@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Control de Asistencia{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Control de Asistencia</h1>
+            <p class="text-gray-500">Registro de jornada laboral</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'attendance:kiosco' %}" 
+               class="bg-eurocar-green text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                🖥️ Abrir Kiosco
+            </a>
+            {% if is_admin %}
+            <a href="{% url 'attendance:nomina_list' %}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                💰 Nóminas
+            </a>
+            <a href="{% url 'attendance:marcaje_create' %}" 
+               class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                ➕ Marcaje Manual
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_hoy }}</p>
+            <p class="text-sm text-gray-500">Marcajes Hoy</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-green-600">{{ stats.entradas_hoy }}</p>
+            <p class="text-sm text-gray-500">Entradas Hoy</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+            <p class="text-2xl font-bold text-blue-600">{{ stats.operarios_presentes }}</p>
+            <p class="text-sm text-gray-500">Operarios Presentes</p>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div>
+                <label class="block text-sm text-gray-500 mb-1">Fecha Desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_desde }}"
+                       class="px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-500 mb-1">Fecha Hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"
+                       class="px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-500 mb-1">Operario</label>
+                <select name="operario" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todos</option>
+                    {% for operario in operarios %}
+                    <option value="{{ operario.pk }}">{{ operario.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" 
+                        class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                    🔍 Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Lista de marcajes -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operario</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha/Hora</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Validado</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for marcaje in marcajes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ marcaje.operario.get_full_name }}</div>
+                            <div class="text-sm text-gray-500">{{ marcaje.operario.get_rol_display }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if marcaje.tipo == 'ENTRADA' %}bg-green-100 text-green-800
+                                {% elif marcaje.tipo == 'SALIDA' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ marcaje.get_tipo_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {{ marcaje.fecha_hora|date:"d/m/Y H:i:s" }}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-mono">
+                            {{ marcaje.ip_address }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if marcaje.validado %}
+                            <span class="text-green-600">✅</span>
+                            {% else %}
+                            <span class="text-red-600">❌</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'attendance:reporte_jornada' marcaje.operario.pk %}" 
+                               class="text-eurocar-light hover:underline text-sm">
+                                Reporte
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            No se encontraron marcajes
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

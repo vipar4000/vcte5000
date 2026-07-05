@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Cuentas Contables{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Cuentas Contables</h1>
+            <p class="text-gray-500">Plan General Contable Español</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'accounting:cuenta_create' %}" 
+               class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                ➕ Nueva Cuenta
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1">
+                <input type="text" name="buscar" value="{{ buscar|default:'' }}"
+                       placeholder="Buscar por código o nombre..."
+                       class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <select name="tipo" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todos los tipos</option>
+                    <option value="A" {% if tipo == 'A' %}selected{% endif %}>Activo</option>
+                    <option value="P" {% if tipo == 'P' %}selected{% endif %}>Pasivo</option>
+                    <option value="NP" {% if tipo == 'NP' %}selected{% endif %}>Neto Patrimonio</option>
+                    <option value="I" {% if tipo == 'I' %}selected{% endif %}>Ingresos</option>
+                    <option value="G" {% if tipo == 'G' %}selected{% endif %}>Gastos</option>
+                </select>
+            </div>
+            <button type="submit" 
+                    class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                🔍 Filtrar
+            </button>
+        </form>
+    </div>
+    
+    <!-- Lista de cuentas -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Saldo</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for cuenta in cuentas %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-mono font-medium">{{ cuenta.codigo }}</td>
+                        <td class="px-4 py-3">{{ cuenta.nombre }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if cuenta.tipo == 'A' %}bg-blue-100 text-blue-800
+                                {% elif cuenta.tipo == 'P' %}bg-red-100 text-red-800
+                                {% elif cuenta.tipo == 'NP' %}bg-purple-100 text-purple-800
+                                {% elif cuenta.tipo == 'I' %}bg-green-100 text-green-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ cuenta.get_tipo_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono">
+                            €{{ cuenta.saldo|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if cuenta.activa %}
+                            <span class="text-green-600">✅</span>
+                            {% else %}
+                            <span class="text-red-600">❌</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            No se encontraron cuentas contables
+                            <br>
+                            <a href="{% url 'accounting:inicializar_plan' %}" 
+                               class="text-eurocar-light hover:underline">
+                                Inicializar Plan Contable Base
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
