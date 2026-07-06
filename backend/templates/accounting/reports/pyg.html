@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Pérdidas y Ganancias {{ anio }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Pérdidas y Ganancias {{ anio }}</h1>
+        <div class="flex gap-2">
+            {% for a in anios_disponibles %}
+            <a href="?anio={{ a }}" 
+               class="px-3 py-1 rounded text-sm {% if a == anio %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                {{ a }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <!-- Cabecera -->
+        <div class="bg-gray-50 px-6 py-3 border-b">
+            <p class="text-xs text-gray-500">Período: 01/01/{{ anio }} — 31/12/{{ anio }}</p>
+        </div>
+        
+        <table class="w-full">
+            <tbody>
+                <!-- INGRESOS -->
+                <tr class="bg-blue-50">
+                    <td class="px-6 py-3 font-bold text-blue-800" colspan="2">INGRESOS</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Ventas de mercaderías</td>
+                    <td class="px-6 py-2 text-right font-mono">€{{ pyg.ingresos.ventas|floatformat:2 }}</td>
+                </tr>
+                
+                <!-- COSTE DE VENTAS -->
+                <tr class="bg-red-50">
+                    <td class="px-6 py-3 font-bold text-red-800" colspan="2">COSTE DE VENTAS</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Compras de mercaderías</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.coste_ventas.compras|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Repuestos</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.coste_ventas.repuestos|floatformat:2 }}</td>
+                </tr>
+                
+                <!-- RESULTADO BRUTO -->
+                <tr class="bg-gray-100 border-t-2 border-gray-300">
+                    <td class="px-6 py-3 font-bold">Resultado Bruto</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold
+                        {% if pyg.resultado_bruto >= 0 %}text-green-700{% else %}text-red-700{% endif %}">
+                        €{{ pyg.resultado_bruto|floatformat:2 }}
+                        <span class="text-xs font-normal ml-2">
+                            ({{ pyg.margen_bruto_pct|floatformat:1 }}%)
+                        </span>
+                    </td>
+                </tr>
+                
+                <!-- GASTOS OPERATIVOS -->
+                <tr class="bg-orange-50">
+                    <td class="px-6 py-3 font-bold text-orange-800" colspan="2">GASTOS OPERATIVOS</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Sueldos y salarios</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.sueldos|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Seguridad social</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.seguridad_social|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Servicios exteriores</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.servicios_exteriores|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Arrendamientos</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.arrendamientos|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Reparaciones</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.reparaciones|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Suministros</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.suministros|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Otros gastos</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_operativos.otros_gastos|floatformat:2 }}</td>
+                </tr>
+                
+                <!-- EBITDA -->
+                <tr class="bg-gray-100 border-t-2 border-gray-300">
+                    <td class="px-6 py-3 font-bold">EBITDA</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold
+                        {% if pyg.ebitda >= 0 %}text-green-700{% else %}text-red-700{% endif %}">
+                        €{{ pyg.ebitda|floatformat:2 }}
+                        <span class="text-xs font-normal ml-2">
+                            ({{ pyg.margen_ebitda_pct|floatformat:1 }}%)
+                        </span>
+                    </td>
+                </tr>
+                
+                <!-- GASTOS FINANCIEROS -->
+                <tr class="bg-yellow-50">
+                    <td class="px-6 py-3 font-bold text-yellow-800" colspan="2">GASTOS FINANCIEROS</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-2 pl-10">Intereses y gastos financieros</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.gastos_financieros|floatformat:2 }}</td>
+                </tr>
+                
+                <!-- RESULTADO ANTES DE IMPUESTOS -->
+                <tr class="bg-gray-100 border-t-2 border-gray-300">
+                    <td class="px-6 py-3 font-bold">Resultado antes de impuestos</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold
+                        {% if pyg.resultado_antes_impuestos >= 0 %}text-green-700{% else %}text-red-700{% endif %}">
+                        €{{ pyg.resultado_antes_impuestos|floatformat:2 }}
+                    </td>
+                </tr>
+                
+                <!-- IMPUESTO SOCIEDADES -->
+                <tr>
+                    <td class="px-6 py-2 pl-10">Impuesto sobre sociedades</td>
+                    <td class="px-6 py-2 text-right font-mono">-€{{ pyg.impuesto_sociedades|floatformat:2 }}</td>
+                </tr>
+                
+                <!-- RESULTADO NETO -->
+                <tr class="bg-blue-600 text-white border-t-2">
+                    <td class="px-6 py-4 font-bold text-lg">RESULTADO NETO</td>
+                    <td class="px-6 py-4 text-right font-mono font-bold text-lg">
+                        €{{ pyg.resultado_neto|floatformat:2 }}
+                        <span class="text-xs font-normal ml-2">
+                            ({{ pyg.margen_neto_pct|floatformat:1 }}%)
+                        </span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Comparativa {{ comparativa.anio_anterior }} vs {{ comparativa.anio_actual }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">
+            Comparativa {{ comparativa.anio_anterior }} → {{ comparativa.anio_actual }}
+        </h1>
+        <div class="flex gap-2">
+            {% for a in anios_disponibles %}
+            <a href="?anio_actual={{ a }}" 
+               class="px-3 py-1 rounded text-sm {% if a == anio_actual %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                {{ a }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concepto</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ comparativa.anio_anterior }}</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ comparativa.anio_actual }}</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Variación</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- VENTAS -->
+                <tr class="border-t">
+                    <td class="px-6 py-3 font-medium">Ventas</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.ventas.anterior|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.ventas.actual|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono
+                        {% if comparativa.ventas.variacion > 0 %}text-green-600{% elif comparativa.ventas.variacion < 0 %}text-red-600{% endif %}">
+                        {{ comparativa.ventas.variacion|floatformat:1 }}%
+                    </td>
+                </tr>
+                
+                <!-- COSTE VENTAS -->
+                <tr>
+                    <td class="px-6 py-3 font-medium">Coste de ventas</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.coste_ventas.anterior|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.coste_ventas.actual|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono
+                        {% if comparativa.coste_ventas.variacion > 0 %}text-red-600{% elif comparativa.coste_ventas.variacion < 0 %}text-green-600{% endif %}">
+                        {{ comparativa.coste_ventas.variacion|floatformat:1 }}%
+                    </td>
+                </tr>
+                
+                <!-- RESULTADO BRUTO -->
+                <tr class="bg-gray-50 border-t-2">
+                    <td class="px-6 py-3 font-bold">Resultado Bruto</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold">€{{ comparativa.resultado_bruto.anterior|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold">€{{ comparativa.resultado_bruto.actual|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold
+                        {% if comparativa.resultado_bruto.variacion > 0 %}text-green-600{% elif comparativa.resultado_bruto.variacion < 0 %}text-red-600{% endif %}">
+                        {{ comparativa.resultado_bruto.variacion|floatformat:1 }}%
+                    </td>
+                </tr>
+                
+                <!-- EBITDA -->
+                <tr class="border-t">
+                    <td class="px-6 py-3 font-medium">EBITDA</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.ebitda.anterior|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ comparativa.ebitda.actual|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono
+                        {% if comparativa.ebitda.variacion > 0 %}text-green-600{% elif comparativa.ebitda.variacion < 0 %}text-red-600{% endif %}">
+                        {{ comparativa.ebitda.variacion|floatformat:1 }}%
+                    </td>
+                </tr>
+                
+                <!-- RESULTADO NETO -->
+                <tr class="bg-blue-50 border-t-2">
+                    <td class="px-6 py-3 font-bold text-blue-800">Resultado Neto</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold">€{{ comparativa.resultado_neto.anterior|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold">€{{ comparativa.resultado_neto.actual|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold
+                        {% if comparativa.resultado_neto.variacion > 0 %}text-green-600{% elif comparativa.resultado_neto.variacion < 0 %}text-red-600{% endif %}">
+                        {{ comparativa.resultado_neto.variacion|floatformat:1 }}%
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}

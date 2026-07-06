@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Balance de Situación{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Balance de Situación</h1>
+        <form method="get" class="flex gap-2 items-center">
+            <label class="text-sm text-gray-600">Fecha corte:</label>
+            <input type="date" name="fecha" value="{{ fecha_corte|date:'Y-m-d' }}" 
+                   class="px-3 py-1 border rounded">
+            <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Ver</button>
+        </form>
+    </div>
+    
+    <p class="text-sm text-gray-500 mb-6">Fecha de corte: {{ fecha_corte|date:"d/m/Y" }}</p>
+    
+    <div class="grid grid-cols-2 gap-6">
+        <!-- ACTIVO -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-green-600 text-white px-6 py-3">
+                <h2 class="font-bold">ACTIVO</h2>
+            </div>
+            
+            <div class="px-6 py-4">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">ACTIVO NO CORRIENTE</h3>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Inmovilizado</span>
+                    <span class="font-mono text-sm">€{{ balance.activo.no_corriente.inmovilizado|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-2 font-bold text-sm">
+                    <span>Total activo no corriente</span>
+                    <span class="font-mono">€{{ balance.activo.no_corriente.total|floatformat:2 }}</span>
+                </div>
+                
+                <h3 class="text-sm font-medium text-gray-500 mb-2 mt-4">ACTIVO CORRIENTE</h3>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Existencias</span>
+                    <span class="font-mono text-sm">€{{ balance.activo.corriente.existencias|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Clientes</span>
+                    <span class="font-mono text-sm">€{{ balance.activo.corriente.clientes|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Deudores varios</span>
+                    <span class="font-mono text-sm">€{{ balance.activo.corriente.deudores|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Tesorería</span>
+                    <span class="font-mono text-sm">€{{ balance.activo.corriente.tesoreria|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-2 font-bold text-sm">
+                    <span>Total activo corriente</span>
+                    <span class="font-mono">€{{ balance.activo.corriente.total|floatformat:2 }}</span>
+                </div>
+                
+                <div class="flex justify-between py-3 mt-2 border-t-2 border-green-600 font-bold">
+                    <span>TOTAL ACTIVO</span>
+                    <span class="font-mono text-green-700">€{{ balance.activo.total|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PASIVO + PATRIMONIO NETO -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-red-600 text-white px-6 py-3">
+                <h2 class="font-bold">PASIVO + PATRIMONIO NETO</h2>
+            </div>
+            
+            <div class="px-6 py-4">
+                <h3 class="text-sm font-medium text-gray-500 mb-2">PASIVO CORRIENTE</h3>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Proveedores</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.corriente.proveedores|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Acreedores varios</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.corriente.acreedores|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">IVA repercutido</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.corriente.iva_repercutido|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-2 font-bold text-sm">
+                    <span>Total pasivo corriente</span>
+                    <span class="font-mono">€{{ balance.pasivo.corriente.total|floatformat:2 }}</span>
+                </div>
+                
+                <h3 class="text-sm font-medium text-gray-500 mb-2 mt-4">PASIVO NO CORRIENTE</h3>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Financiación</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.no_corriente.financiacion|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-2 font-bold text-sm">
+                    <span>Total pasivo no corriente</span>
+                    <span class="font-mono">€{{ balance.pasivo.no_corriente.total|floatformat:2 }}</span>
+                </div>
+                
+                <h3 class="text-sm font-medium text-gray-500 mb-2 mt-4">PATRIMONIO NETO</h3>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Capital social</span>
+                    <span class="font-mono text-sm">€{{ balance.patrimonio_neto.capital|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Reservas legales</span>
+                    <span class="font-mono text-sm">€{{ balance.patrimonio_neto.reservas|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Resultados acumulados</span>
+                    <span class="font-mono text-sm">€{{ balance.patrimonio_neto.resultados_acumulados|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Resultado ejercicio</span>
+                    <span class="font-mono text-sm">€{{ balance.patrimonio_neto.resultado_ejercicio|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-2 font-bold text-sm">
+                    <span>Total patrimonio neto</span>
+                    <span class="font-mono">€{{ balance.patrimonio_neto.total|floatformat:2 }}</span>
+                </div>
+                
+                <div class="flex justify-between py-3 mt-2 border-t-2 border-red-600 font-bold">
+                    <span>TOTAL PASIVO + PN</span>
+                    <span class="font-mono text-red-700">€{{ balance.total_pasivo_patrimonio|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cuadre -->
+    {% if balance.activo.total == balance.total_pasivo_patrimonio %}
+    <div class="mt-4 bg-green-50 border-l-4 border-green-400 p-3">
+        <p class="text-sm text-green-700">✓ Balance cuadrado: Activo (€{{ balance.activo.total|floatformat:2 }}) = Pasivo + PN (€{{ balance.total_pasivo_patrimonio|floatformat:2 }})</p>
+    </div>
+    {% else %}
+    <div class="mt-4 bg-red-50 border-l-4 border-red-400 p-3">
+        <p class="text-sm text-red-700">⚠ Balance NO cuadrado: Activo (€{{ balance.activo.total|floatformat:2 }}) ≠ Pasivo + PN (€{{ balance.total_pasivo_patrimonio|floatformat:2 }})</p>
+    </div>
+    {% endif %}
+    
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}

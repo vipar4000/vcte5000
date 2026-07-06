@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Libro IVA - Modelo 303/390{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Libro IVA / Modelo 303</h1>
+        <div class="flex gap-2">
+            {% for a in anios_disponibles %}
+            <a href="?anio={{ a }}&trimestre={{ trimestre }}" 
+               class="px-3 py-1 rounded text-sm {% if a == anio %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                {{ a }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Selector trimestre -->
+    <div class="flex gap-2 mb-6">
+        {% for t in "1234" %}
+        <a href="?anio={{ anio }}&trimestre={{ t }}" 
+           class="px-4 py-2 rounded text-sm {% if t == trimestre|stringformat:'d' %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+            T{{ t }}
+        </a>
+        {% endfor %}
+    </div>
+    
+    <!-- TRIMESTRAL -->
+    <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+        <div class="bg-blue-600 text-white px-6 py-3">
+            <h2 class="font-bold">Modelo 303 — Trimestre {{ trimestre }}/{{ anio }}</h2>
+        </div>
+        
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concepto</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Base Imponible</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cuota</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="px-6 py-3 font-medium">IVA Repercutido (471)</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ libro_iva.iva_repercutido.base_imponible|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-green-700">€{{ libro_iva.iva_repercutido.total|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-3 font-medium">IVA Soportado (472)</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ libro_iva.iva_soportado.base_imponible|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-red-700">€{{ libro_iva.iva_soportado.total|floatformat:2 }}</td>
+                </tr>
+                <tr class="bg-gray-100 border-t-2">
+                    <td class="px-6 py-3 font-bold">Cuota a liquidar</td>
+                    <td></td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-lg
+                        {% if libro_iva.cuota_liquidar >= 0 %}text-red-700{% else %}text-green-700{% endif %}">
+                        €{{ libro_iva.cuota_liquidar|floatformat:2 }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        {% if libro_iva.a_favor_cliente %}
+        <div class="px-6 py-3 bg-green-50 border-t">
+            <p class="text-sm text-green-700">✓ A favor del contribuyente (compensación trimestre siguiente)</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- ANUAL (Modelo 390) -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-purple-600 text-white px-6 py-3">
+            <h2 class="font-bold">Modelo 390 — Resumen Anual {{ anio }}</h2>
+        </div>
+        
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concepto</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Base Imponible</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cuota</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="px-6 py-3 font-medium">Total IVA Repercutido</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ libro_iva_anual.iva_repercutido.base_imponible|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-green-700">€{{ libro_iva_anual.iva_repercutido.total|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-3 font-medium">Total IVA Soportado</td>
+                    <td class="px-6 py-3 text-right font-mono">€{{ libro_iva_anual.iva_soportado.base_imponible|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-red-700">€{{ libro_iva_anual.iva_soportado.total|floatformat:2 }}</td>
+                </tr>
+                <tr class="bg-gray-100 border-t-2">
+                    <td class="px-6 py-3 font-bold">Total liquidación anual</td>
+                    <td></td>
+                    <td class="px-6 py-3 text-right font-mono font-bold text-lg
+                        {% if libro_iva_anual.cuota_liquidar >= 0 %}text-red-700{% else %}text-green-700{% endif %}">
+                        €{{ libro_iva_anual.cuota_liquidar|floatformat:2 }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}
