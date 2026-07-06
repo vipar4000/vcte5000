@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import report_views
+from . import export_views
 
 app_name = 'accounting'
 
@@ -24,4 +25,13 @@ urlpatterns = [
     path('informes/balance/', report_views.balance_view, name='balance'),
     path('informes/iva/', report_views.iva_view, name='iva'),
     path('informes/comparativa/', report_views.comparativa_view, name='comparativa'),
+    
+    # Exportación fiscal
+    path('exportar/390/', export_views.exportar_modelo_390, name='export_390'),
+    path('exportar/303/', export_views.exportar_csv_303, name='export_303'),
+    path('exportar/sii/', export_views.exportar_sii_xml, name='export_sii'),
+    
+    # Tareas programadas
+    path('tareas/', export_views.tareas_programadas, name='tareas'),
+    path('tareas/crear/', export_views.crear_tareas_por_defecto, name='tareas_crear'),
 ]

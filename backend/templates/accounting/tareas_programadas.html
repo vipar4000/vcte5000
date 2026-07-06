@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Tareas Programadas{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Tareas Programadas</h1>
+        <a href="{% url 'accounting:tareas_crear' %}" 
+           class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            Crear tareas por defecto
+        </a>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarea</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horario</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for tarea in tareas %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium">{{ tarea.name }}</td>
+                    <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ tarea.task }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {% if tarea.crontab %}
+                            {{ tarea.crontab }} 
+                        {% elif tarea.interval %}
+                            Cada {{ tarea.interval.every }} {{ tarea.interval.period }}
+                        {% elif tarea.clocked %}
+                            {{ tarea.clocked.clocked_time }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if tarea.enabled %}
+                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Activa</span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Inactiva</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                        No hay tareas programadas. Haz clic en "Crear tareas por defecto" para configurarlas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Descripción de tareas -->
+    <div class="mt-6 bg-blue-50 rounded-lg p-4">
+        <h2 class="font-bold text-blue-800 mb-2">Tareas disponibles</h2>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li><strong>Liquidación IVA Trimestral</strong> — 20 de enero/abril/julio/octubre a las 8:00</li>
+            <li><strong>Cierre Anual</strong> — 31 de diciembre a las 23:00</li>
+            <li><strong>Archivos Fiscales</strong> — Día 5 de cada mes a las 9:00</li>
+            <li><strong>SII Trimestral</strong> — Día 1 de enero/abril/julio/octubre a las 8:00</li>
+            <li><strong>Cuota Seguridad Social</strong> — Día 1 de cada mes a las 8:00</li>
+        </ul>
+    </div>
+    
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}

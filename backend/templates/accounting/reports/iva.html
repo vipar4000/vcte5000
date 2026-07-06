@@ -7,12 +7,18 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Libro IVA / Modelo 303</h1>
         <div class="flex gap-2">
-            {% for a in anios_disponibles %}
-            <a href="?anio={{ a }}&trimestre={{ trimestre }}" 
-               class="px-3 py-1 rounded text-sm {% if a == anio %}bg-blue-600 text-white{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
-                {{ a }}
+            <a href="{% url 'accounting:export_303' %}?anio={{ anio }}&trimestre={{ trimestre }}" 
+               class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                Descargar CSV 303
             </a>
-            {% endfor %}
+            <a href="{% url 'accounting:export_390' %}?anio={{ anio }}" 
+               class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700">
+                Descargar BOE 390
+            </a>
+            <a href="{% url 'accounting:export_sii' %}?anio={{ anio }}&trimestre={{ trimestre }}" 
+               class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                Descargar SII XML
+            </a>
         </div>
     </div>
     
