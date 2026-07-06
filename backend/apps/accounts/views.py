@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.utils.http import url_has_allowed_host_and_scheme
 from .models import User
 
 
@@ -14,13 +15,14 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        next_url = request.POST.get('next') or request.GET.get('next')
         
         # Verificar si el usuario existe
         try:
             user_obj = User.objects.get(username=username)
         except User.DoesNotExist:
             messages.error(request, 'Usuario no encontrado.')
-            return render(request, 'accounts/login.html')
+            return render(request, 'accounts/login.html', {'next': next_url})
         
         # Verificar si está bloqueado
         if user_obj.is_locked:
@@ -28,7 +30,7 @@ def login_view(request):
                 request, 
                 'Cuenta bloqueada. Intente de nuevo en 1 hora.'
             )
-            return render(request, 'accounts/login.html')
+            return render(request, 'accounts/login.html', {'next': next_url})
         
         # Autenticar
         user = authenticate(request, username=username, password=password)
@@ -38,10 +40,11 @@ def login_view(request):
             login(request, user)
             messages.success(request, f'Bienvenido {user.get_full_name() or user.username}')
             
-            # Redirigir según rol
-            if user.is_admin:
-                return redirect('admin:index')
-            elif user.is_operario:
+            # Redirigir a next si es seguro, sino segun rol
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            
+            if user.is_operario:
                 return redirect('attendance:kiosco')
             elif user.is_vendedor:
                 return redirect('sales:list')
@@ -61,7 +64,8 @@ def login_view(request):
                     'Cuenta bloqueada tras 5 intentos fallidos.'
                 )
     
-    return render(request, 'accounts/login.html')
+    next_url = request.GET.get('next')
+    return render(request, 'accounts/login.html', {'next': next_url})
 
 
 @login_required
