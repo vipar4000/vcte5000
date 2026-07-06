@@ -88,3 +88,9 @@ class VentaVehiculoAdmin(admin.ModelAdmin):
                 tipo_cliente=obj.tipo_cliente,
                 fecha_inicio=obj.fecha_venta,
             )
+            
+            # Crear asiento contable automáticamente
+            try:
+                obj.crear_asiento_contable()
+            except Exception:
+                pass

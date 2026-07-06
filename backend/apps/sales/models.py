@@ -102,6 +102,16 @@ class VentaVehiculo(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # Contabilidad
+    asiento_contable = models.OneToOneField(
+        'accounting.AsientoContable',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='venta',
+        verbose_name='asiento contable'
+    )
+    
     class Meta:
         verbose_name = 'venta de vehículo'
         verbose_name_plural = 'ventas de vehículos'
@@ -111,22 +121,78 @@ class VentaVehiculo(models.Model):
         return f"Venta {self.vehiculo} a {self.cliente_nombre}"
     
     def save(self, *args, **kwargs):
-        # Calcular IVA REBU (solo sobre el margen)
+        # REBU: precio_venta incluye IVA. Base = margen / 1.21
         coste = self.coste_total or Decimal('0')
-        self.base_imponible = self.precio_venta - coste
-        if self.base_imponible > 0:
-            self.cuota_iva = self.base_imponible * Decimal('0.21')
+        margen = self.precio_venta - coste
+        if margen > 0:
+            self.base_imponible = (margen / Decimal('1.21')).quantize(Decimal('0.01'))
+            self.cuota_iva = (self.base_imponible * Decimal('0.21')).quantize(Decimal('0.01'))
         else:
+            self.base_imponible = Decimal('0')
             self.cuota_iva = Decimal('0')
 
         super().save(*args, **kwargs)
     
     @property
     def beneficio(self):
-        """Beneficio de la venta."""
+        """Beneficio de la venta (margen bruto)."""
         return self.precio_venta - self.coste_total
     
     @property
     def precio_final_cliente(self):
         """Precio que paga el cliente (con IVA REBU incluido)."""
         return self.precio_venta
+    
+    def crear_asiento_contable(self):
+        """Genera asiento contable automático para esta venta REBU."""
+        from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+        
+        cuenta_banco = CuentaContable.objects.get(codigo='572')
+        cuenta_ventas = CuentaContable.objects.get(codigo='700')
+        cuenta_iva = CuentaContable.objects.get(codigo='471')
+        cuenta_compras = CuentaContable.objects.get(codigo='600')
+        cuenta_mercancias = CuentaContable.objects.get(codigo='310')
+        
+        asiento = AsientoContable.objects.create(
+            fecha=self.fecha_venta,
+            concepto=f"Venta vehículo {self.vehiculo} a {self.cliente_nombre}",
+            estado='BORRADOR',
+            tipo_documento='VentaVehiculo',
+            documento_id=self.pk,
+            created_by=self.created_by,
+        )
+        
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_banco,
+            debe=self.precio_venta, haber=Decimal('0'),
+            descripcion=f"Cobro cliente {self.cliente_nombre}",
+        )
+        
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_compras,
+            debe=self.coste_total, haber=Decimal('0'),
+            descripcion=f"Coste adquisición {self.vehiculo}",
+        )
+        
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_ventas,
+            debe=Decimal('0'), haber=self.base_imponible,
+            descripcion="Ingresos por venta (margen REBU)",
+        )
+        
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_iva,
+            debe=Decimal('0'), haber=self.cuota_iva,
+            descripcion="IVA REBU 21% sobre margen",
+        )
+        
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_mercancias,
+            debe=Decimal('0'), haber=self.coste_total,
+            descripcion=f"Baja inventario {self.vehiculo}",
+        )
+        
+        self.asiento_contable = asiento
+        self.save(update_fields=['asiento_contable'])
+        
+        return asiento

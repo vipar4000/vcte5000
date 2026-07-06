@@ -102,6 +102,15 @@ def venta_create(request):
                 fecha_inicio=venta.fecha_venta,
             )
             
+            # Crear asiento contable automáticamente
+            try:
+                venta.crear_asiento_contable()
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Venta registrada, pero no se pudo crear el asiento contable: {str(e)}'
+                )
+            
             messages.success(
                 request, 
                 f'Venta registrada correctamente. Beneficio: €{venta.beneficio:.2f}'
@@ -136,6 +145,10 @@ def venta_delete(request, pk):
         vehiculo = venta.vehiculo
         vehiculo.estado = 'ACONDICIONADO'
         vehiculo.save()
+        
+        # Borrar asiento contable asociado
+        if venta.asiento_contable:
+            venta.asiento_contable.delete()
         
         venta.delete()
         messages.success(

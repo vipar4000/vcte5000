@@ -169,6 +169,7 @@ class PlanContableDefault(models.Model):
             ('100', 'Capital social', 'NP'),
             ('102', 'Reservas legales', 'NP'),
             ('110', 'Resultados no asignados', 'NP'),
+            ('129', 'Resultado del ejercicio (pendiente de dotación)', 'NP'),
             
             # Grupo 2 - Inmovilizado
             ('200', 'Terrenos y bienes naturales', 'A'),
@@ -192,7 +193,8 @@ class PlanContableDefault(models.Model):
             ('430', 'Clientes', 'A'),
             ('440', 'Deudores varios', 'A'),
             ('472', 'Hacienda Pública, IVA soportado', 'P'),
-            ('4751.115', 'Retenciones IRPF soportadas', 'P'),
+            ('471', 'Hacienda Pública, IVA repercutido', 'P'),
+            ('4751', 'Retenciones y anticipos IRPF', 'P'),
             
             # Grupo 5 - Tesorería
             ('570', 'Caja', 'A'),
@@ -201,16 +203,19 @@ class PlanContableDefault(models.Model):
             # Grupo 6 - Gastos
             ('600', 'Compras de mercaderías', 'G'),
             ('602', 'Servicios exteriores', 'G'),
+            ('606', 'Repuestos', 'G'),
             ('607', 'Trabajos realizados por otras empresas', 'G'),
             ('610', 'Compras de materias primas', 'G'),
             ('620', 'Otros gastos exteriores', 'G'),
             ('621', 'Arrendamientos y cánones', 'G'),
+            ('623', 'Reparaciones y conservación', 'G'),
             ('628', 'Suministros y otros gastos', 'G'),
             ('629', 'Otros servicios exteriores', 'G'),
             ('630', 'Gastos financieros', 'G'),
             ('631', 'Pérdidas por deterioro y otorg. valore', 'G'),
             ('640', 'Sueldos y salarios', 'G'),
             ('642', 'Seguridad social', 'G'),
+            ('680', 'Impuesto sobre sociedades', 'G'),
             
             # Grupo 7 - Ingresos
             ('700', 'Ventas de mercaderías', 'I'),
