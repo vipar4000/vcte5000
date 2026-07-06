@@ -25,9 +25,8 @@ def garantia_list(request):
     if buscar:
         garantias = garantias.filter(
             Q(venta__vehiculo__matricula__icontains=buscar) |
-            Q(venta__cliente__first_name__icontains=buscar) |
-            Q(venta__cliente__last_name__icontains=buscar) |
-            Q(venta__cliente__nif__icontains=buscar)
+            Q(venta__cliente_nombre__icontains=buscar) |
+            Q(venta__cliente_dni__icontains=buscar)
         )
     
     if estado == 'vigente':
@@ -38,12 +37,16 @@ def garantia_list(request):
     # Estadísticas
     total_vigentes = GarantiaVehiculo.objects.filter(fecha_fin__gte=date.today()).count()
     total_reparaciones = HistorialReparacionGarantia.objects.count()
+    coste_total_reparaciones = HistorialReparacionGarantia.objects.aggregate(
+        total=Sum('total_costo_reparacion')
+    )['total'] or 0
     
     context = {
         'garantias': garantias,
         'form': form,
         'total_vigentes': total_vigentes,
         'total_reparaciones': total_reparaciones,
+        'coste_total_reparaciones': coste_total_reparaciones,
     }
     return render(request, 'warranty/list.html', context)
 
@@ -85,8 +88,8 @@ def reparacion_create(request, garantia_pk):
                 resultado = transferir_coste_garantia(
                     venta=reparacion.garantia.venta,
                     descripcion=reparacion.descripcion_averia,
-                    costo_repuestos=reparacion.coste_repuestos,
-                    costo_mano_obra=reparacion.coste_mano_obra,
+                    costo_repuestos=reparacion.costo_repuestos_interno,
+                    costo_mano_obra=reparacion.costo_mano_obra_interno,
                 )
                 if resultado and resultado.get('asiento'):
                     messages.success(
