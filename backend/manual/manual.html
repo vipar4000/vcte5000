@@ -18,7 +18,7 @@
     </div>
     <div class="cover-footer">
         <div class="cover-version">Manual de Usuario v1.0</div>
-        <div class="cover-date">Junio 2026 &mdash; Madrid, Espana</div>
+        <div class="cover-date">Julio 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
 </div>
@@ -40,6 +40,8 @@
             </ul>
         </li>
         <li><a href="#capitulo-9"><span class="chapter-num">9.</span> API Publica</a></li>
+        <li><a href="#capitulo-10"><span class="chapter-num">10.</span> Despliegue y Produccion</a></li>
+        <li><a href="#capitulo-11"><span class="chapter-num">11.</span> Ejemplo Completo de Prueba</a></li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -121,6 +123,7 @@
     <tr><th>Componente</th><th>Tecnologia</th></tr>
     <tr><td>Backend</td><td>Django 4.2 (Python 3.11)</td></tr>
     <tr><td>Frontend ERP</td><td>Django Templates + HTMX + TailwindCSS</td></tr>
+    <tr><td>Sitio Publico</td><td>Vue 3 + Vite + TailwindCSS (SPA)</td></tr>
     <tr><td>Base de datos</td><td>PostgreSQL 15 (produccion) / SQLite (desarrollo)</td></tr>
     <tr><td>Cache / Colas</td><td>Redis 7 + Celery</td></tr>
     <tr><td>PDF</td><td>WeasyPrint</td></tr>
@@ -147,14 +150,14 @@
 
 <h2>1.3 Primer Login</h2>
 <ol class="steps">
-    <li>Acceda a <code>http://localhost</code> (Docker) o <code>http://localhost:8000</code> (desarrollo)</li>
+    <li>Acceda a <code>https://rcarrogil.com/erp/</code> (produccion) o <code>http://localhost:3000</code> (desarrollo frontend) o <code>http://localhost:8000/erp/</code> (desarrollo backend)</li>
     <li>Ingrese sus credenciales (usuario y contrasena)</li>
     <li>Segun su rol, sera redirigido automaticamente:
         <ul>
-            <li><span class="role role-admin">ADMIN</span> -> <code>/admin/</code> Dashboard</li>
-            <li><span class="role role-operario">OPERARIO</span> -> <code>/operario/</code> Kiosco de fichaje</li>
-            <li><span class="role role-vendedor">VENDEDOR</span> -> <code>/vendedor/</code> Catalogo de ventas</li>
-            <li><span class="role role-gestoria">GESTORIA</span> -> <code>/gestoria/</code> Contabilidad</li>
+            <li><span class="role role-admin">ADMIN</span> -> <code>/erp/</code> Dashboard del ERP</li>
+            <li><span class="role role-operario">OPERARIO</span> -> <code>/erp/asistencia/kiosco/</code> Kiosco de fichaje</li>
+            <li><span class="role role-vendedor">VENDEDOR</span> -> <code>/erp/ventas/</code> Catalogo de ventas</li>
+            <li><span class="role role-gestoria">GESTORIA</span> -> <code>/erp/contabilidad/</code> Contabilidad</li>
         </ul>
     </li>
 </ol>
@@ -1171,6 +1174,382 @@ Respuesta:
 <div class="info-box">
     <strong>Nota:</strong> Solo se devuelven vehiculos con estado ACONDICIONADO o EN_VENTA. Los filtros de precio trabajan sobre el campo <code>precio_venta</code>. Maximo 20 resultados por peticion. El listado incluye URLs de imagenes adicionales (<code>imagenes_urls</code>). El detalle incluye el array completo de imagenes (<code>imagenes</code>).
 </div>
+
+<!-- ==================== CAPITULO 10 ==================== -->
+<h1 id="capitulo-10">10. Despliegue y Produccion</h1>
+
+<h2>10.1 Informacion del Servidor</h2>
+<table>
+    <tr><th>Componente</th><th>Detalle</th></tr>
+    <tr><td>Proveedor</td><td>OVHcloud VPS</td></tr>
+    <tr><td>IP Publica</td><td><code>79.143.89.97</code></td></tr>
+    <tr><td>Sistema Operativo</td><td>Ubuntu 22.04 LTS</td></tr>
+    <tr><td>Recursos</td><td>2 vCores, 8 GB RAM, 80 GB SSD</td></tr>
+    <tr><td>Docker</td><td>Docker Engine + Docker Compose v2</td></tr>
+    <tr><td>Dominio</td><td><code>rcarrogil.com</code></td></tr>
+    <tr><td>SSL</td><td>Let's Encrypt (renovacion automatica)</td></tr>
+</table>
+
+<h2>10.2 URLs de Acceso en Produccion</h2>
+<table>
+    <tr><th>Servicio</th><th>URL</th><th>Descripcion</th></tr>
+    <tr><td>Sitio Publico</td><td><code>https://rcarrogil.com/</code></td><td>Vue SPA - Catalogo de vehiculos</td></tr>
+    <tr><td>ERP Principal</td><td><code>https://rcarrogil.com/erp/</code></td><td>Panel principal del ERP</td></tr>
+    <tr><td>Login</td><td><code>https://rcarrogil.com/erp/accounts/login/</code></td><td>Formulario de acceso</td></tr>
+    <tr><td>Django Admin</td><td><code>https://rcarrogil.com/admin/</code></td><td>Administracion del sistema</td></tr>
+    <tr><td>API Health</td><td><code>https://rcarrogil.com/api/health/</code></td><td>Verificacion de estado</td></tr>
+    <tr><td>API Vehiculos</td><td><code>https://rcarrogil.com/api/vehiculos/</code></td><td>Catalogo publico JSON</td></tr>
+</table>
+
+<h2>10.3 Credenciales de Produccion</h2>
+
+<div class="warning-box">
+    <strong>IMPORTANTE:</strong> Estas son las credenciales reales del sistema en produccion. Cambialas inmediatamente despues del primer acceso.
+</div>
+
+<table>
+    <tr><th>Servicio</th><th>Usuario</th><th>Contrasena</th></tr>
+    <tr><td>ERP / Django Admin</td><td><code>admin</code></td><td><code>RCarRogil2024!</code></td></tr>
+</table>
+
+<h2>10.4 Arquitectura Docker</h2>
+<p>El sistema de produccion esta compuesto por 5 servicios Docker:</p>
+
+<table>
+    <tr><th>Servicio</th><th>Descripcion</th><th>Puerto</th><th>Reinicio</th></tr>
+    <tr><td><code>db</code></td><td>PostgreSQL 15 - Base de datos</td><td>5432 (interno)</td><td>always</td></tr>
+    <tr><td><code>redis</code></td><td>Redis 7 - Cache y colas Celery</td><td>6379 (interno)</td><td>always</td></tr>
+    <tr><td><code>backend</code></td><td>Django 4.2 + Gunicorn - API y ERP</td><td>8000 (interno)</td><td>always</td></tr>
+    <tr><td><code>celery_worker</code></td><td>Celery Worker - Tareas asincronas</td><td>-</td><td>always</td></tr>
+    <tr><td><code>nginx</code></td><td>Nginx - Proxy inverso y SSL</td><td>80, 443 (externos)</td><td>always</td></tr>
+</table>
+
+<h3>Archivos de Configuracion</h3>
+<table>
+    <tr><th>Archivo</th><th>Descripcion</th></tr>
+    <tr><td><code>docker-compose.prod.yml</code></td><td>Definicion de servicios de produccion</td></tr>
+    <tr><td><code>backend/Dockerfile.prod</code></td><td>Build multi-stage (Node + Python)</td></tr>
+    <tr><td><code>.env.production</code></td><td>Variables de entorno de produccion</td></tr>
+    <tr><td><code>docker/nginx/prod.conf</code></td><td>Configuracion Nginx con SSL</td></tr>
+    <tr><td><code>docker/nginx/prod-http.conf</code></td><td>Configuracion Nginx HTTP (sin uso)</td></tr>
+</table>
+
+<h2>10.5 Variables de Entorno</h2>
+<p>Las variables de entorno criticas en <code>.env.production</code>:</p>
+
+<table>
+    <tr><th>Variable</th><th>Descripcion</th><th>Ejemplo</th></tr>
+    <tr><td><code>SECRET_KEY</code></td><td>Clave secreta de Django</td><td>django-insecure-xxxxx</td></tr>
+    <tr><td><code>DEBUG</code></td><td>Modo depuracion (debe ser 0 en prod)</td><td><code>0</code></td></tr>
+    <tr><td><code>ALLOWED_HOSTS</code></td><td>Hosts permitidos</td><td><code>rcarrogil.com,localhost</code></td></tr>
+    <tr><td><code>POSTGRES_DB</code></td><td>Nombre de la base de datos</td><td><code>eurocar</code></td></tr>
+    <tr><td><code>POSTGRES_USER</code></td><td>Usuario de PostgreSQL</td><td><code>eurocar_user</code></td></tr>
+    <tr><td><code>POSTGRES_PASSWORD</code></td><td>Contrasena de PostgreSQL</td><td><code>EurocarSecure2024!</code></td></tr>
+    <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Origenes CORS permitidos</td><td><code>https://rcarrogil.com</code></td></tr>
+    <tr><td><code>CSRF_TRUSTED_ORIGINS</code></td><td>Origenes CSRF de confianza</td><td><code>https://rcarrogil.com</code></td></tr>
+</table>
+
+<h2>10.6 Certificado SSL</h2>
+<table>
+    <tr><th>Parametro</th><th>Valor</th></tr>
+    <tr><td>Proveedor</td><td>Let's Encrypt</td></tr>
+    <tr><td>Dominio</td><td><code>rcarrogil.com</code></td></tr>
+    <tr><td>Fecha Emision</td><td>5 Julio 2026</td></tr>
+    <tr><td>Fecha Expiracion</td><td>3 Octubre 2026</td></tr>
+    <tr><td>Renovacion</td><td>Automatica (cron lunes 3:00 AM)</td></tr>
+    <tr><td>Ubicacion Cert</td><td><code>/etc/letsencrypt/live/rcarrogil.com/</code></td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Nota:</strong> El certificado SSL aplica solo a <code>rcarrogil.com</code>. Si se necesita soporte para <code>www.rcarrogil.com</code>, agregar el registro DNS A y renovar el certificado con <code>certbot --expand -d rcarrogil.com -d www.rcarrogil.com</code>.
+</div>
+
+<h2>10.7 DNS (DonDominio)</h2>
+<table>
+    <tr><th>Tipo</th><th>Nombre</th><th>Valor</th><th>TTL</th></tr>
+    <tr><td><code>A</code></td><td><code>@</code></td><td><code>79.143.89.97</code></td><td>3600</td></tr>
+    <tr><td><code>A</code></td><td><code>www</code></td><td><em>Pendiente de configurar</em></td><td>-</td></tr>
+</table>
+
+<div class="warning-box">
+    <strong>Nota:</strong> El registro <code>www.rcarrogil.com</code> no esta configurado actualmente. Solo funciona el dominio raiz <code>rcarrogil.com</code>.
+</div>
+
+<h2>10.8 Comandos de Mantenimiento</h2>
+
+<h3>Ver estado de servicios</h3>
+<pre><code>docker compose -f docker-compose.prod.yml ps</code></pre>
+
+<h3>Ver logs</h3>
+<pre><code>docker compose -f docker-compose.prod.yml logs -f backend    # Logs del ERP
+docker compose -f docker-compose.prod.yml logs -f nginx       # Logs de nginx
+docker compose -f docker-compose.prod.yml logs -f celery_worker  # Logs de Celery</code></pre>
+
+<h3>Reiniciar servicios</h3>
+<pre><code>docker compose -f docker-compose.prod.yml restart backend     # Reiniciar ERP
+docker compose -f docker-compose.prod.yml restart nginx       # Reiniciar nginx
+docker compose -f docker-compose.prod.yml restart             # Reiniciar todo</code></pre>
+
+<h3>Ejecutar comandos Django</h3>
+<pre><code>docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml exec backend python manage.py migrate</code></pre>
+
+<h3>Actualizar el sistema</h3>
+<pre><code>cd /home/infoaeromar/eurocar
+git pull origin main
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml exec backend python manage.py migrate --noinput
+docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput</code></pre>
+
+<h3>Verificar SSL</h3>
+<pre><code>certbot certificates
+certbot renew --dry-run</code></pre>
+
+<h2>10.9 Estructura del Proyecto en Servidor</h2>
+<pre><code>/home/infoaeromar/eurocar/
+â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ apps/              # Modulos Django
+â”‚   â”œâ”€â”€ config/            # Settings de Django
+â”‚   â”œâ”€â”€ manual/            # Manual de usuario
+â”‚   â”œâ”€â”€ static/            # Archivos estaticos (collectstatic)
+â”‚   â”œâ”€â”€ media/             # Archivos subidos por usuarios
+â”‚   â”œâ”€â”€ templates/         # Templates HTML
+â”‚   â”œâ”€â”€ requirements.txt   # Dependencias Python
+â”‚   â””â”€â”€ Dockerfile.prod    # Build de produccion
+â”œâ”€â”€ docker/
+â”‚   â””â”€â”€ nginx/             # Configuracion Nginx
+â”œâ”€â”€ docker-compose.prod.yml
+â”œâ”€â”€ .env.production
+â”œâ”€â”€ .dockerignore
+â””â”€â”€ .gitignore</code></pre>
+
+<h2>10.10 Credenciales de Prueba (Desarrollo)</h2>
+<p>Estas credenciales son para entorno de desarrollo local (SQLite). No usar en produccion.</p>
+
+<table>
+    <tr><th>Usuario</th><th>Contrasena</th><th>Rol</th><th>PIN Kiosco</th></tr>
+    <tr><td><code>admin</code></td><td><code>admin123!</code></td><td>Administrador</td><td>-</td></tr>
+    <tr><td><code>mecanico1</code></td><td><code>mecanico123!</code></td><td>Operario</td><td><code>1234</code></td></tr>
+    <tr><td><code>mecanico2</code></td><td><code>mecanico123!</code></td><td>Operario</td><td><code>5678</code></td></tr>
+    <tr><td><code>vendedor1</code></td><td><code>vendedor123!</code></td><td>Vendedor</td><td>-</td></tr>
+    <tr><td><code>gestoria1</code></td><td><code>gestoria123!</code></td><td>Gestoria</td><td>-</td></tr>
+</table>
+
+<!-- ==================== CAPITULO 11 ==================== -->
+<h1 id="capitulo-11">11. Ejemplo Completo de Prueba</h1>
+
+<p>Este capitulo describe como generar un conjunto completo de datos de prueba que cubre todos los modulos del sistema. El script <code>create_full_test.py</code> crea vehiculos en todos los estados, materiales con diferentes niveles de stock, ordenes de trabajo, ventas, garantias, asistencia y contabilidad.</p>
+
+<h2>11.1 Datos Creados por el Script</h2>
+
+<h3>11.1.1 Vehiculos (6 unidades)</h3>
+<table>
+    <tr><th>Matricula</th><th>Marca/Modelo</th><th>Estado</th><th>Descripcion</th></tr>
+    <tr><td><code>1234ABC</code></td><td>Volkswagen Golf VII 1.6 TDI</td><td><code>ADQUIRIDO</code></td><td>Recien comprado en subasta BCA</td></tr>
+    <tr><td><code>5678DEF</code></td><td>Seat Leon 2.0 TDI</td><td><code>TALLER</code></td><td>1 OT en progreso (reparacion golpe frontal)</td></tr>
+    <tr><td><code>9012GHI</code></td><td>BMW Serie 3 320d</td><td><code>TALLER</code></td><td>2 OTs: 1 completada, 1 pendiente</td></tr>
+    <tr><td><code>3456JKL</code></td><td>Mercedes Clase A 180</td><td><code>ACONDICIONADO</code></td><td>Reparado, listo para venta</td></tr>
+    <tr><td><code>7890MNO</code></td><td>Ford Focus 1.5 TDCi</td><td><code>EN_VENTA</code></td><td>Publicado en catalogo a 14.500 EUR</td></tr>
+    <tr><td><code>1122PQR</code></td><td>Toyota Yaris Hybrid</td><td><code>VENDIDO</code></td><td>Vendido a particular a 16.500 EUR</td></tr>
+</table>
+
+<div class="diagram">
+    <div class="title">Distribucion de Vehiculos por Estado</div>
+    <div class="flow">
+ADQUIRIDO:  1 vehiculo  [==========]
+TALLER:     2 vehiculos [====================]
+ACONDICIONADO: 1        [==========]
+EN_VENTA:   1 vehiculo  [==========]
+VENDIDO:    1 vehiculo  [==========]
+Total: 6 vehiculos
+    </div>
+</div>
+
+<h3>11.1.2 Materiales (8 tipos)</h3>
+<table>
+    <tr><th>Material</th><th>Stock Actual</th><th>Stock Minimo</th><th>Alerta</th></tr>
+    <tr><td>Aceite motor 5W30</td><td>50 litros</td><td>10</td><td>No</td></tr>
+    <tr><td>Filtros de aire</td><td>5 unidades</td><td>2</td><td>No</td></tr>
+    <tr><td>Pastillas de freno</td><td>8 juegos</td><td>3</td><td>No</td></tr>
+    <tr><td>Bomba de agua</td><td>2 unidades</td><td>2</td><td><strong>Si (stock = minimo)</strong></td></tr>
+    <tr><td>Correa distribucion</td><td>1 unidad</td><td>3</td><td><strong>Si (stock &lt; minimo)</strong></td></tr>
+    <tr><td>Refrigerante</td><td>3 litros</td><td>5</td><td><strong>Si (stock &lt; minimo)</strong></td></tr>
+    <tr><td>Neumaticos 205/55R16</td><td>4 unidades</td><td>4</td><td><strong>Si (stock = minimo)</strong></td></tr>
+    <tr><td>Limpiaparabrisas</td><td>10 unidades</td><td>3</td><td>No</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Alertas de stock:</strong> 4 materiales apareceran en el panel de alertas del dashboard (bomba de agua, correa distribucion, refrigerante, neumaticos).
+</div>
+
+<h3>11.1.3 Ordenes de Trabajo (5 OTs)</h3>
+<table>
+    <tr><th>OT</th><th>Vehiculo</th><th>Operario</th><th>Estado</th><th>Descripcion</th></tr>
+    <tr><td>1</td><td>Seat Leon (5678DEF)</td><td>mecanico1</td><td><code>EN_PROGRESO</code></td><td>Reparacion paragolpes delantero</td></tr>
+    <tr><td>2</td><td>BMW (9012GHI)</td><td>mecanico2</td><td><code>COMPLETADA</code></td><td>Cambio de aceite y filtros</td></tr>
+    <tr><td>3</td><td>BMW (9012GHI)</td><td>mecanico1</td><td><code>PENDIENTE</code></td><td>Reparacion sistema de frenos</td></tr>
+    <tr><td>4</td><td>Mercedes (3456JKL)</td><td>mecanico1</td><td><code>COMPLETADA</code></td><td>Pintura capo y techo</td></tr>
+    <tr><td>5</td><td>Mercedes (3456JKL)</td><td>mecanico2</td><td><code>COMPLETADA</code></td><td>Cambio cristales laterales</td></tr>
+</table>
+
+<h3>11.1.4 Materiales Usados en OTs</h3>
+<table>
+    <tr><th>OT</th><th>Material</th><th>Cantidad</th><th>Coste</th></tr>
+    <tr><td>OT1 Seat</td><td>Pastillas de freno</td><td>1 juego</td><td>35,00 EUR</td></tr>
+    <tr><td>OT2 BMW</td><td>Aceite motor 5W30</td><td>5 litros</td><td>42,50 EUR</td></tr>
+    <tr><td>OT2 BMW</td><td>Filtros de aire</td><td>1 unidad</td><td>12,00 EUR</td></tr>
+    <tr><td>OT4 Mercedes</td><td>Neumaticos 205/55R16</td><td>4 unidades</td><td>300,00 EUR</td></tr>
+    <tr><td>OT5 Mercedes</td><td>Limpiaparabrisas</td><td>2 unidades</td><td>16,00 EUR</td></tr>
+</table>
+
+<h3>11.1.5 Ventas (1 venta B2C)</h3>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Vehiculo</td><td>Toyota Yaris Hybrid (1122PQR)</td></tr>
+    <tr><td>Tipo cliente</td><td>PARTICULAR (B2C)</td></tr>
+    <tr><td>Cliente</td><td>Carlos Garcia Lopez (54321678K)</td></tr>
+    <tr><td>Precio venta</td><td>16.500,00 EUR</td></tr>
+    <tr><td>Metodo pago</td><td>TRANSFERENCIA</td></tr>
+    <tr><td>Fecha</td><td>1 Julio 2026</td></tr>
+</table>
+
+<h3>11.1.6 Garantias y Reparaciones</h3>
+<table>
+    <tr><th>Vehiculo</th><th>Tipo</th><th>Duracion</th><th>Reparaciones</th></tr>
+    <tr><td>Toyota Yaris (VENDIDO)</td><td>B2C (Particular)</td><td>12 meses</td><td>1 en proceso (ruido transmision)</td></tr>
+</table>
+
+<h3>11.1.7 Asistencia y Nomina</h3>
+<table>
+    <tr><th>Operario</th><th>Salario Base</th><th>SS Patronal</th><th>Coste/Hora</th></tr>
+    <tr><td>mecanico1</td><td>1.800 EUR/mes</td><td>31,50%</td><td>13,45 EUR/h</td></tr>
+    <tr><td>mecanico2</td><td>1.800 EUR/mes</td><td>31,50%</td><td>13,45 EUR/h</td></tr>
+</table>
+
+<p><strong>Marcajes creados:</strong></p>
+<ul>
+    <li><strong>mecanico1:</strong> Lunes a Viernes (30 junio - 4 julio), 8:00 - 17:00 (viernes 15:00)</li>
+    <li><strong>mecanico2:</strong> Miercoles a Viernes (2 - 4 julio), 9:00 - 18:00</li>
+</ul>
+
+<h3>11.1.8 Contabilidad</h3>
+<table>
+    <tr><th>Asiento</th><th>Concepto</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>000001</td><td>Compra material de limpieza</td><td>150,00 EUR</td><td>150,00 EUR</td></tr>
+    <tr><td>000002</td><td>Alquiler julio 2026 con retencion IRPF</td><td>2.420,00 EUR</td><td>2.420,00 EUR</td></tr>
+</table>
+
+<h3>11.1.9 Gastos de Estructura (8 categorias)</h3>
+<table>
+    <tr><th>Categoria</th><th>Proveedor</th><th>Base</th><th>Total</th></tr>
+    <tr><td>ARRENDAMIENTO</td><td>Propietario Galpon S.L.</td><td>2.000,00 EUR</td><td>2.040,00 EUR</td></tr>
+    <tr><td>SUMINISTROS</td><td>Endesa Energia S.A.U.</td><td>350,00 EUR</td><td>423,50 EUR</td></tr>
+    <tr><td>LIMPIEZA_PROD</td><td>Distrilimpia S.L.</td><td>180,00 EUR</td><td>217,80 EUR</td></tr>
+    <tr><td>LIMPIEZA_SERV</td><td>CleanPro Servicios S.A.</td><td>450,00 EUR</td><td>544,50 EUR</td></tr>
+    <tr><td>NOMINAS_ESTR</td><td>Nomina interna</td><td>1.600,00 EUR</td><td>1.600,00 EUR</td></tr>
+    <tr><td>SEG_SOCIAL_ESTR</td><td>Seguridad Social</td><td>504,00 EUR</td><td>504,00 EUR</td></tr>
+    <tr><td>IMPUESTOS_ESTR</td><td>Ayuntamiento Alcala</td><td>320,00 EUR</td><td>320,00 EUR</td></tr>
+    <tr><td>OTROS</td><td>Jardines y Paisajismo S.L.</td><td>120,00 EUR</td><td>145,20 EUR</td></tr>
+</table>
+
+<h2>11.2 Ejecutar el Script</h2>
+
+<h3>11.2.1 En Desarrollo (Local)</h3>
+<ol class="steps">
+    <li>Asegurese de que el entorno virtual esta activado</li>
+    <li>Ejecute desde la raiz del proyecto:
+        <pre><code>cd backend
+python create_full_test.py</code></pre>
+    </li>
+    <li>El script creara todos los datos mostrando el progreso</li>
+    <li>Verifique los resultados en <code>http://localhost:8000/erp/</code></li>
+</ol>
+
+<h3>11.2.2 En Produccion (Servidor)</h3>
+<ol class="steps">
+    <li>Acceda al servidor por SSH:
+        <pre><code>ssh root@79.143.89.97</code></pre>
+    </li>
+    <li>Copie el script al servidor (si no esta):
+        <pre><code>scp create_full_test.py root@79.143.89.97:/home/infoaeromar/eurocar/backend/</code></pre>
+    </li>
+    <li>Ejecute dentro del contenedor Docker:
+        <pre><code>cd /home/infoaeromar/eurocar
+docker compose -f docker-compose.prod.yml exec backend python create_full_test.py</code></pre>
+    </li>
+</ol>
+
+<div class="warning-box">
+    <strong>IMPORTANTE:</strong> El script usa <code>get_or_create</code> para todos los registros, por lo que es seguro ejecutarlo multiples veces sin crear duplicados.
+</div>
+
+<h2>11.3 Verificar los KPIs del Dashboard</h2>
+<p>Despues de ejecutar el script, verifique que el dashboard muestra los siguientes valores:</p>
+
+<table>
+    <tr><th>KPI</th><th>Valor Esperado</th></tr>
+    <tr><td>Total Vehiculos</td><td>6</td></tr>
+    <tr><td>En Taller</td><td>2 (Seat, BMW)</td></tr>
+    <tr><td>En Venta</td><td>1 (Ford Focus)</td></tr>
+    <tr><td>Vendidos</td><td>1 (Toyota Yaris)</td></tr>
+    <tr><td>OTs Pendientes</td><td>2 (1 EN_PROGRESO + 1 PENDIENTE)</td></tr>
+    <tr><td>Alertas Stock</td><td>4 (bomba agua, correa, refrigerante, neumaticos)</td></tr>
+</table>
+
+<h2>11.4 Flujo Completo del Ejemplo</h2>
+<div class="diagram">
+    <div class="title">Ciclo de Vida Completo - Toyota Yaris Hybrid</div>
+    <div class="flow">
+1. ADQUIRIDO (10 Ene 2026)
+   Precio subasta: 11.000 + Tasas: 700 + Grua: 320
+   Coste Inicial = 12.020 EUR
+        |
+        v
+2. TALLER (se crea OT)
+   OT: Cambio de aceite y filtros
+   Materiales: Aceite 5W30 (5L x 8,50) + Filtro (1 x 12)
+   Coste Materiales = 54,50 EUR
+        |
+        v
+3. ACONDICIONADO (vehiculo reparado)
+   Coste Total = 12.020 + 54,50 = 12.074,50 EUR
+        |
+        v
+4. EN_VENTA (publicado en catalogo)
+   Precio de venta: 16.500 EUR
+        |
+        v
+5. VENDIDO (1 Jul 2026 - Carlos Garcia Lopez)
+   Base Imponible = 16.500 - 12.074,50 = 4.425,50 EUR
+   Cuota IVA = 4.425,50 x 21% = 929,36 EUR
+   Beneficio bruto = 4.425,50 EUR
+        |
+        v
+6. GARANTIA (12 meses - B2C)
+   Reparacion en curso: Ruido en transmision
+   Coste interno: 300 EUR (180 repuestos + 120 mano de obra)
+   NOTA: Este coste NO incrementa el valor del vehiculo
+    </div>
+</div>
+
+<h2>11.5 Resumen de Datos Creados</h2>
+<table>
+    <tr><th>Modulo</th><th>Registros</th></tr>
+    <tr><td>Usuarios</td><td>5 (admin, 2 mecanicos, vendedor, gestoria)</td></tr>
+    <tr><td>Vehiculos</td><td>6 (todos los estados)</td></tr>
+    <tr><td>Materiales</td><td>8 (4 con alerta de stock)</td></tr>
+    <tr><td>Ordenes de Trabajo</td><td>5 (PENDIENTE, EN_PROGRESO, COMPLETADA)</td></tr>
+    <tr><td>Materiales Usados</td><td>5 (en diferentes OTs)</td></tr>
+    <tr><td>Ventas</td><td>1 (B2C - particular)</td></tr>
+    <tr><td>Garantias</td><td>1 (12 meses - B2C)</td></tr>
+    <tr><td>Reparaciones Garantia</td><td>1 (en proceso)</td></tr>
+    <tr><td>Configuracion Nomina</td><td>2 (mecanico1, mecanico2)</td></tr>
+    <tr><td>Marcajes</td><td>~14 (semana completa)</td></tr>
+    <tr><td>Cuentas Contables</td><td>~33 (plan base PGC)</td></tr>
+    <tr><td>Asientos Contables</td><td>2 (compra + alquiler con IRPF)</td></tr>
+    <tr><td>Gastos de Estructura</td><td>8 (todas las categorias)</td></tr>
+</table>
 
 </body>
 </html>

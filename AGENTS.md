@@ -56,7 +56,7 @@ backend/
   services/      — Business logic services (currently empty)
 ```
 
-URL routing is in `config/urls.py` — each app gets a top-level prefix (`/vehiculos/`, `/taller/`, `/ventas/`, `/asistencia/`, `/contabilidad/`, `/gastos/`, `/garantias/`, `/api/`). No DRF routers.
+URL routing is in `config/urls.py` — all ERP apps are nested under `/erp/` (`/erp/vehiculos/`, `/erp/taller/`, `/erp/ventas/`, `/erp/asistencia/`, `/erp/contabilidad/`, `/erp/gastos/`, `/erp/garantias/`, `/erp/accounts/`). The API is at `/api/`. No DRF routers.
 
 ## Important Conventions
 
@@ -100,8 +100,8 @@ Test user credentials:
 - No linting, typechecking, or CI is configured. There is no `eslint`, `ruff`, `flake8`, `.github/workflows/`, or pre-commit hooks.
 - The frontend is vanilla Vue 3 + Vite (no Nuxt, no SSR). It proxies `/api` and `/media` to the backend in dev (port 3000 → 8000).
 - `README.md` mentions "Nuxt 3" for the frontend — this is incorrect. It is a plain Vue 3 SPA.
-- `whitenoise` is used in `production.py` middleware but **not listed in `requirements.txt`**. The Dockerfile only runs `pip install -r requirements.txt`, so whitenoise would be missing in production Docker builds.
+- `whitenoise` is used in `production.py` middleware and **is listed in `backend/requirements.txt`** (v6.6.0). `gunicorn` is also listed there (v21.2.0).
 - Account locking is implemented twice: once manually in the User model (5 attempts → 1 hour lock) and again via `django-axes`. Both are active.
-- The `Dockerfile` CMD runs `runserver` (dev server), not gunicorn — only suitable for development. The `docker-compose.yml` backend service also runs `runserver` (after `migrate`).
+- The `backend/Dockerfile` CMD runs `runserver` (dev server), not gunicorn — only suitable for development. The `docker-compose.yml` backend service also runs `runserver` (after `migrate`). A production Dockerfile (`backend/Dockerfile.prod`) exists: multi-stage build that compiles the Vue frontend and runs `gunicorn`. Use `docker-compose.prod.yml` for production deploys.
 - Locally runs on Python 3.14 (`debug_toolbar` was removed for compatibility), while Docker uses Python 3.11. A monkey-patch in `config/settings/base.py:6-14` fixes `BaseContext.__copy__` for Python 3.14 + Django 4.2 compatibility — do not remove it.
 - **Docker persistence**: PostgreSQL data is stored in a named volume `eurocar_pgdata`. **Never** use `docker-compose down -v` — the `-v` flag destroys all data. Always use `docker-compose down` (no `-v`) to preserve the database. If containers are rebuilt with `docker-compose up -d --build`, data persists.

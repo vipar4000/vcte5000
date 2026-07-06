@@ -5,6 +5,7 @@ DEBUG = False
 ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=['rcarrogil.com', 'www.rcarrogil.com'])
 
 # Production security settings
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True

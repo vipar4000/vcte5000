@@ -119,9 +119,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Login URLs
-LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/accounts/login/'
+LOGIN_URL = '/erp/accounts/login/'
+LOGIN_REDIRECT_URL = '/erp/'
+LOGOUT_REDIRECT_URL = '/erp/accounts/login/'
 
 # Internationalization
 LANGUAGE_CODE = 'es-es'
