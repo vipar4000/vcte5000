@@ -36,6 +36,10 @@ django-htmx==1.17.0
 # QR Code
 qrcode[pil]==7.4.2
 
+# XML & Crypto (Verifactu/SII)
+lxml>=4.9.0
+cryptography>=41.0.0
+
 # Production
 whitenoise==6.6.0
 gunicorn==21.2.0
