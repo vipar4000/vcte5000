@@ -1,5 +1,5 @@
 from django import forms
-from .models import VentaVehiculo
+from .models import VentaVehiculo, CostoAcondicionamiento
 
 
 class VentaVehiculoForm(forms.ModelForm):
@@ -101,3 +101,52 @@ class VentaBusquedaForm(forms.Form):
             'class': 'px-4 py-2 border rounded-lg',
         })
     )
+
+
+class CostoAcondicionamientoForm(forms.ModelForm):
+    """Formulario para costos de acondicionamiento de vehículo."""
+    
+    class Meta:
+        model = CostoAcondicionamiento
+        fields = [
+            'fecha', 'proveedor', 'cif_nif', 'numero_factura',
+            'categoria', 'descripcion', 'base_imponible', 'tipo_iva',
+        ]
+        widgets = {
+            'fecha': forms.DateInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'type': 'date',
+            }),
+            'proveedor': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'Nombre del proveedor',
+            }),
+            'cif_nif': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'B12345678',
+                'maxlength': '9',
+            }),
+            'numero_factura': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'F-2026-001',
+            }),
+            'categoria': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'rows': '3',
+                'placeholder': 'Descripción del trabajo realizado...',
+            }),
+            'base_imponible': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01',
+                'min': '0',
+            }),
+            'tipo_iva': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01',
+                'min': '0',
+                'max': '21',
+            }),
+        }

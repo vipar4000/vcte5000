@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import VentaVehiculo
+from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from apps.warranty.models import GarantiaVehiculo
 
 
@@ -94,3 +94,69 @@ class VentaVehiculoAdmin(admin.ModelAdmin):
                 obj.crear_asiento_contable()
             except Exception:
                 pass
+
+
+@admin.register(FacturaVenta)
+class FacturaVentaAdmin(admin.ModelAdmin):
+    list_display = [
+        'codigo_factura', 'tipo_factura', 'cliente_nombre',
+        'fecha_operacion', 'precio_venta_total', 'contabilizada'
+    ]
+    list_filter = ['tipo_factura', 'fecha_operacion', 'contabilizada']
+    search_fields = ['codigo_factura', 'cliente_nombre', 'cliente_nif']
+    readonly_fields = [
+        'hash_verifactu', 'created_at', 'fecha_emision'
+    ]
+    
+    fieldsets = (
+        ('Factura', {
+            'fields': ('codigo_factura', 'tipo_factura', 'venta', 'factura_rectificada')
+        }),
+        ('Cliente', {
+            'fields': ('cliente_nif', 'cliente_nombre')
+        }),
+        ('Importes', {
+            'fields': (
+                'fecha_operacion', 'precio_venta_total',
+                'base_imponible_rebu', 'iva_repercutido'
+            )
+        }),
+        ('VeriFactu', {
+            'fields': ('hash_verifactu', 'qr_code', 'contabilizada'),
+            'classes': ('collapse',)
+        }),
+        ('Auditoría', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(CostoAcondicionamiento)
+class CostoAcondicionamientoAdmin(admin.ModelAdmin):
+    list_display = [
+        'vehiculo', 'categoria', 'proveedor', 'fecha',
+        'base_imponible', 'total'
+    ]
+    list_filter = ['categoria', 'fecha']
+    search_fields = ['vehiculo__matricula', 'proveedor', 'numero_factura']
+    readonly_fields = ['cuota_iva', 'total', 'created_at']
+    
+    fieldsets = (
+        ('Vehículo', {
+            'fields': ('vehiculo', 'categoria')
+        }),
+        ('Proveedor', {
+            'fields': ('proveedor', 'cif_nif', 'numero_factura')
+        }),
+        ('Detalles', {
+            'fields': ('fecha', 'descripcion')
+        }),
+        ('Importes', {
+            'fields': ('base_imponible', 'tipo_iva', 'cuota_iva', 'total')
+        }),
+        ('Contabilidad', {
+            'fields': ('asiento_contable', 'created_by', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )

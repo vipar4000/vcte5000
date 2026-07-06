@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura Rectificativa {{ factura.codigo_factura }} - R Car Rogil</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm 2cm;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #1a1a1a;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #c62828;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .header-left h1 {
+            font-size: 22pt;
+            color: #1B3A5C;
+            margin: 0;
+        }
+        .header-left p {
+            font-size: 8pt;
+            color: #666;
+            margin-top: 2px;
+        }
+        .header-right { text-align: right; }
+        .header-right .factura-tipo {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #c62828;
+        }
+        .header-right .factura-codigo {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1B3A5C;
+        }
+        .parties {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .party { width: 48%; }
+        .party-label {
+            font-size: 7pt;
+            text-transform: uppercase;
+            color: #999;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+        .party-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1B3A5C;
+            margin-bottom: 3px;
+        }
+        .party-detail { font-size: 9pt; color: #333; }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            background: #f5f7fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .info-item { text-align: center; }
+        .info-label {
+            font-size: 7pt;
+            text-transform: uppercase;
+            color: #666;
+        }
+        .info-value {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1B3A5C;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th {
+            background: #c62828;
+            color: white;
+            padding: 6px 10px;
+            text-align: left;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 9pt;
+        }
+        .totals {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+        }
+        .totals-table { width: 55%; }
+        .totals-table td {
+            padding: 5px 10px;
+            font-size: 10pt;
+        }
+        .totals-table .total-row td {
+            background: #c62828;
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+        .rebu-notice {
+            background: #fff3e0;
+            border-left: 4px solid #e65100;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            font-size: 8pt;
+        }
+        .rebu-notice strong { color: #e65100; }
+        .rect-ref {
+            background: #fce4ec;
+            border-left: 4px solid #c62828;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            font-size: 9pt;
+        }
+        .footer {
+            position: fixed;
+            bottom: 1.5cm;
+            left: 2cm;
+            right: 2cm;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+            font-size: 7pt;
+            color: #999;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>R CAR ROGIL</h1>
+            <p>{{ empresa.cif }} | {{ empresa.direccion }}, {{ empresa.cp }} {{ empresa.poblacion }}</p>
+        </div>
+        <div class="header-right">
+            <div class="factura-tipo">FACTURA RECTIFICATIVA</div>
+            <div class="factura-codigo">{{ factura.codigo_factura }}</div>
+        </div>
+    </div>
+    
+    <div class="rect-ref">
+        <strong>Referencia a factura original:</strong> {{ factura.factura_rectificada.codigo_factura }} 
+        ({{ factura.factura_rectificada.fecha_operacion|date:"d/m/Y" }})<br>
+        <strong>Motivo:</strong> {% if factura.tipo_factura == 'R1' %}Corrección de error{% else %}Devolución de mercancía{% endif %}
+    </div>
+    
+    <div class="info-row">
+        <div class="info-item">
+            <div class="info-label">Fecha de emisión</div>
+            <div class="info-value">{{ factura.fecha_emision|date:"d/m/Y" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Fecha de operación</div>
+            <div class="info-value">{{ factura.fecha_operacion|date:"d/m/Y" }}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Tipo</div>
+            <div class="info-value">{{ factura.get_tipo_factura_display }}</div>
+        </div>
+    </div>
+    
+    <div class="parties">
+        <div class="party">
+            <div class="party-label">Vendedor</div>
+            <div class="party-name">{{ empresa.nombre }}</div>
+            <div class="party-detail">
+                CIF: {{ empresa.cif }}<br>
+                {{ empresa.direccion }}<br>
+                {{ empresa.cp }} {{ empresa.poblacion }}
+            </div>
+        </div>
+        <div class="party">
+            <div class="party-label">Cliente</div>
+            <div class="party-name">{{ factura.cliente_nombre }}</div>
+            <div class="party-detail">
+                NIF: {{ factura.cliente_nif }}<br>
+                {{ venta.cliente_direccion }}<br>
+                {{ venta.cliente_cp }} {{ venta.cliente_poblacion }}
+            </div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th style="text-align:right;">Importe</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong>{% if factura.tipo_factura == 'R1' %}Corrección{% else %}Devolución{% endif %} — Vehículo</strong><br>
+                    <span style="font-size:8pt; color:#666;">
+                        {{ vehiculo.marca }} {{ vehiculo.modelo }} {{ vehiculo.anio }} — {{ vehiculo.matricula }}
+                    </span>
+                </td>
+                <td style="text-align:right; font-weight:bold;">-€{{ factura.precio_venta_total|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="totals">
+        <table class="totals-table">
+            <tr>
+                <td style="text-align:right;">Total rectificado (IVA incluido):</td>
+                <td style="text-align:right; font-weight:bold; font-size:14pt; color:#c62828;">-€{{ factura.precio_venta_total|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="rebu-notice">
+        <strong>RÉGIMEN ESPECIAL DE BIENES USADOS (REBU)</strong><br>
+        Esta factura rectificativa se emite al amparo del artículo 84.Uno.2.1º LIVA y los artículos 
+        161 y 162 del Reglamento de Ejecución (UE) 282/2011.<br>
+        La rectificación afecta al margen de ganancia sobre el que se aplicó el IVA en la factura original.
+    </div>
+    
+    <div class="footer">
+        R Car Rogil — CIF B26729731 — Calle Brasil 9, 28806 Alcalá de Henares, Madrid<br>
+        {{ factura.codigo_factura }} | Generada electrónicamente
+    </div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Costo de Acondicionamiento{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">Nuevo Costo de Acondicionamiento</h1>
+    <p class="text-gray-600 mb-6">{{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.matricula }})</p>
+    
+    <form method="post" class="bg-white rounded-lg shadow p-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                {{ form.fecha }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                {{ form.categoria }}
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                {{ form.proveedor }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">CIF/NIF</label>
+                {{ form.cif_nif }}
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nº Factura Proveedor</label>
+            {{ form.numero_factura }}
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+            {{ form.descripcion }}
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Base Imponible (€)</label>
+                {{ form.base_imponible }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo IVA (%)</label>
+                {{ form.tipo_iva }}
+            </div>
+        </div>
+        
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-6">
+            <p class="text-xs text-yellow-700">
+                <strong>REBU:</strong> El IVA de acondicionamiento es <strong>no deducible</strong>. 
+                Se contabiliza como gasto (cuenta 623), NO como IVA soportado (472).
+            </p>
+        </div>
+        
+        <div class="flex gap-4">
+            <button type="submit" 
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                Registrar Costo
+            </button>
+            <a href="{% url 'sales:costos_list' vehiculo.pk %}" 
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

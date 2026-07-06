@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load role_tags %}
+
+{% block title %}Factura {{ factura.codigo_factura }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Factura {{ factura.codigo_factura }}</h1>
+        <div class="flex gap-2">
+            <a href="{% url 'sales:factura_pdf' factura.pk %}" 
+               class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                Descargar PDF
+            </a>
+            {% if not factura.factura_rectificada %}
+            <a href="{% url 'sales:factura_rectificativa' factura.pk %}" 
+               class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+                Rectificativa
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <h2 class="text-sm font-medium text-gray-500 mb-2">DATOS DE LA FACTURA</h2>
+                <dl class="space-y-1">
+                    <div class="flex">
+                        <dt class="w-32 text-gray-600">Código:</dt>
+                        <dd class="font-mono font-bold">{{ factura.codigo_factura }}</dd>
+                    </div>
+                    <div class="flex">
+                        <dt class="w-32 text-gray-600">Tipo:</dt>
+                        <dd>{{ factura.get_tipo_factura_display }}</dd>
+                    </div>
+                    <div class="flex">
+                        <dt class="w-32 text-gray-600">Emisión:</dt>
+                        <dd>{{ factura.fecha_emision|date:"d/m/Y H:i" }}</dd>
+                    </div>
+                    <div class="flex">
+                        <dt class="w-32 text-gray-600">Operación:</dt>
+                        <dd>{{ factura.fecha_operacion|date:"d/m/Y" }}</dd>
+                    </div>
+                </dl>
+            </div>
+            <div>
+                <h2 class="text-sm font-medium text-gray-500 mb-2">IMPORTES REBU</h2>
+                <dl class="space-y-1">
+                    <div class="flex">
+                        <dt class="w-40 text-gray-600">Total facturado:</dt>
+                        <dd class="font-bold text-lg">€{{ factura.precio_venta_total|floatformat:2 }}</dd>
+                    </div>
+                    <div class="flex">
+                        <dt class="w-40 text-gray-600">Base imponible (oculta):</dt>
+                        <dd class="text-sm text-gray-500">€{{ factura.base_imponible_rebu|floatformat:2 }}</dd>
+                    </div>
+                    <div class="flex">
+                        <dt class="w-40 text-gray-600">IVA oculto:</dt>
+                        <dd class="text-sm text-gray-500">€{{ factura.iva_repercutido|floatformat:2 }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vehículo -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">VEHÍCULO</h2>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+            <div><span class="text-gray-600">Marca:</span> {{ factura.venta.vehiculo.marca }}</div>
+            <div><span class="text-gray-600">Modelo:</span> {{ factura.venta.vehiculo.modelo }}</div>
+            <div><span class="text-gray-600">Año:</span> {{ factura.venta.vehiculo.anio }}</div>
+            <div><span class="text-gray-600">Matrícula:</span> {{ factura.venta.vehiculo.matricula }}</div>
+            <div><span class="text-gray-600">VIN:</span> {{ factura.venta.vehiculo.bastidor }}</div>
+            <div><span class="text-gray-600">Km:</span> {{ factura.venta.vehiculo.kilometraje|floatformat:0 }}</div>
+        </div>
+    </div>
+    
+    <!-- Detalle REBU -->
+    {% with factura.detalles_rebu.first as detalle %}
+    {% if detalle %}
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">DETALLE REBU</h2>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+            <div><span class="text-gray-600">Coste adquisición:</span> €{{ detalle.precio_adquisicion|floatformat:2 }}</div>
+            <div><span class="text-gray-600">Precio venta:</span> €{{ detalle.precio_venta_final|floatformat:2 }}</div>
+            <div><span class="text-gray-600">Margen bruto:</span> €{{ detalle.margen_bruto|floatformat:2 }}</div>
+            <div><span class="text-gray-600">Base imponible:</span> €{{ detalle.base_imponible_oculta|floatformat:2 }}</div>
+            <div><span class="text-gray-600">IVA oculto:</span> €{{ detalle.iva_repercutido_oculto|floatformat:2 }}</div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- VeriFactu -->
+    <div class="bg-gray-50 rounded-lg p-4">
+        <h2 class="text-sm font-medium text-gray-500 mb-2">VERIFACTU</h2>
+        <p class="text-xs font-mono text-gray-600 break-all">
+            {{ factura.hash_verifactu }}
+        </p>
+    </div>
+    
+    <!-- Rectificadas -->
+    {% with factura.rectificativas.all as rectificativas %}
+    {% if rectificativas %}
+    <div class="bg-orange-50 rounded-lg p-4 mt-4">
+        <h2 class="text-sm font-medium text-orange-700 mb-2">FACTURAS RECTIFICATIVAS</h2>
+        <ul class="space-y-1">
+            {% for rect in rectificativas %}
+            <li>
+                <a href="{% url 'sales:factura_detail' rect.pk %}" class="text-orange-600 hover:underline">
+                    {{ rect.codigo_factura }} ({{ rect.get_tipo_factura_display }}) - €{{ rect.precio_venta_total|floatformat:2 }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <div class="mt-6">
+        <a href="{% url 'sales:factura_list' %}" class="text-blue-600 hover:underline">
+            ← Volver a facturas
+        </a>
+    </div>
+</div>
+{% endblock %}
