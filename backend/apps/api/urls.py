@@ -63,7 +63,7 @@ def api_vehiculos_public(request):
         if vehiculo_data['imagen_principal']:
             vehiculo_data['imagen_url'] = f"{settings.MEDIA_URL}{vehiculo_data['imagen_principal']}"
         elif imagenes_adicionales:
-            vehiculo_data['imagen_url'] = f"/media/{imagenes_adicionales[0]}"
+            vehiculo_data['imagen_url'] = f"{settings.MEDIA_URL}{imagenes_adicionales[0]}"
         else:
             vehiculo_data['imagen_url'] = None
         vehiculos_list.append(vehiculo_data)
