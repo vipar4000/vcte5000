@@ -4,8 +4,6 @@ from django.shortcuts import render
 from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from apps.vehicles.models import Vehiculo, ImagenVehiculo
 from apps.sales.models import VentaVehiculo
 
@@ -176,24 +174,6 @@ def api_vehiculo_detalle(request, pk):
         return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
 
 
-def api_verify_r2(request):
-    """TEMP: verifica conectividad con el storage R2/S3."""
-    import socket as _socket, ssl as _ssl
-    account = settings.AWS_S3_ENDPOINT_URL.replace("https://", "").replace(".r2.cloudflarestorage.com", "")
-    results = {}
-    for suffix in ["r2.cloudflarestorage.com", "eu.r2.cloudflarestorage.com"]:
-        host = f"{account}.{suffix}"
-        try:
-            ip = _socket.getaddrinfo(host, 443, family=_socket.AF_INET, type=_socket.SOCK_STREAM)[0][4][0]
-            _ctx = _ssl.create_default_context()
-            _s = _ctx.wrap_socket(_socket.create_connection((ip, 443), timeout=10), server_hostname=host)
-            results[host] = "TLS_OK " + _s.version() + " " + ip
-            _s.close()
-        except Exception as e:
-            results[host] = f"TLS_FAIL {type(e).__name__}: {str(e)[:100]}"
-    return JsonResponse({"account": account, "results": results})
-
-
 def api_marcas(request):
     """API pública para listar marcas disponibles."""
     marcas = Vehiculo.objects.filter(
@@ -220,5 +200,4 @@ urlpatterns = [
     path('vehiculos/', api_vehiculos_public, name='api_vehiculos'),
     path('vehiculos/<int:pk>/', api_vehiculo_detalle, name='api_vehiculo_detalle'),
     path('marcas/', api_marcas, name='api_marcas'),
-    path('verify_r2/', api_verify_r2, name='verify_r2'),
 ]
