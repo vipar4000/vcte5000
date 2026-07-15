@@ -4,6 +4,8 @@ from django.shortcuts import render
 from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from apps.vehicles.models import Vehiculo, ImagenVehiculo
 from apps.sales.models import VentaVehiculo
 
@@ -174,6 +176,18 @@ def api_vehiculo_detalle(request, pk):
         return JsonResponse({'error': 'Vehículo no encontrado'}, status=404)
 
 
+def api_verify_r2(request):
+    """TEMP: verifica conectividad con el storage R2/S3."""
+    name = "__r2_verify__.txt"
+    try:
+        default_storage.save(name, ContentFile(b"ok"))
+        url = default_storage.url(name)
+        default_storage.delete(name)
+        return JsonResponse({"status": "ok", "url": url})
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": f"{type(e).__name__}: {str(e)[:300]}"}, status=500)
+
+
 def api_marcas(request):
     """API pública para listar marcas disponibles."""
     marcas = Vehiculo.objects.filter(
@@ -200,4 +214,5 @@ urlpatterns = [
     path('vehiculos/', api_vehiculos_public, name='api_vehiculos'),
     path('vehiculos/<int:pk>/', api_vehiculo_detalle, name='api_vehiculo_detalle'),
     path('marcas/', api_marcas, name='api_marcas'),
+    path('verify_r2/', api_verify_r2, name='verify_r2'),
 ]
