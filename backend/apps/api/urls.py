@@ -180,18 +180,28 @@ def api_verify_r2(request):
     """TEMP: verifica conectividad con el storage R2/S3."""
     import socket as _socket, ssl as _ssl
     host = settings.AWS_S3_ENDPOINT_URL.replace("https://", "").replace(".r2.cloudflarestorage.com", "") + ".r2.cloudflarestorage.com"
+    ip = _socket.getaddrinfo(host, 443, family=_socket.AF_INET, type=_socket.SOCK_STREAM)[0][4][0]
     results = {}
-    for fam, label in [(_socket.AF_INET, "ipv4"), (_socket.AF_INET6, "ipv6")]:
+    combos = [
+        ("default", None, None),
+        ("alpn_http1.1", ["http/1.1"], None),
+        ("alpn_h2", ["h2"], None),
+        ("tls1.2", None, _ssl.TLSVersion.TLSv1_2),
+        ("alpn_h2_tls1.2", ["h2"], _ssl.TLSVersion.TLSv1_2),
+    ]
+    for label, alpn, mintls in combos:
         try:
-            addrs = _socket.getaddrinfo(host, 443, family=fam, type=_socket.SOCK_STREAM)
-            ip = addrs[0][4][0]
             _ctx = _ssl.create_default_context()
+            if alpn:
+                _ctx.set_alpn_protocols(alpn)
+            if mintls:
+                _ctx.minimum_version = mintls
             _s = _ctx.wrap_socket(_socket.create_connection((ip, 443), timeout=10), server_hostname=host)
-            results[label] = "TLS_OK " + _s.version() + " " + ip
+            results[label] = "OK " + _s.version() + " alpn=" + str(_s.selected_alpn_protocol())
             _s.close()
         except Exception as e:
-            results[label] = f"TLS_FAIL {type(e).__name__}: {str(e)[:120]}"
-    return JsonResponse({"host": host, "families": results})
+            results[label] = f"FAIL {type(e).__name__}: {str(e)[:100]}"
+    return JsonResponse({"host": host, "ip": ip, "combos": results})
 
 
 def api_marcas(request):
