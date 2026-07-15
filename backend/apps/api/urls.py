@@ -3,6 +3,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.db.models import Q
 from django.utils import timezone
+from django.conf import settings
 from apps.vehicles.models import Vehiculo, ImagenVehiculo
 from apps.sales.models import VentaVehiculo
 
@@ -60,7 +61,7 @@ def api_vehiculos_public(request):
             .values_list('imagen', flat=True)
         )
         if vehiculo_data['imagen_principal']:
-            vehiculo_data['imagen_url'] = f"/media/{vehiculo_data['imagen_principal']}"
+            vehiculo_data['imagen_url'] = f"{settings.MEDIA_URL}{vehiculo_data['imagen_principal']}"
         elif imagenes_adicionales:
             vehiculo_data['imagen_url'] = f"/media/{imagenes_adicionales[0]}"
         else:
@@ -128,16 +129,17 @@ def api_vehiculo_detalle(request, pk):
         vehiculo = Vehiculo.objects.get(pk=pk)
         imagen_url = None
         if vehiculo.imagen_principal:
-            imagen_url = f"/media/{vehiculo.imagen_principal}"
+            imagen_url = vehiculo.imagen_principal.url
         
         # Imágenes adicionales
         imagenes = []
         for img in vehiculo.imagenes.all().order_by('orden'):
-            imagenes.append({
-                'url': f"/media/{img.imagen}",
-                'es_principal': img.es_principal,
-                'orden': img.orden,
-            })
+            if img.imagen:
+                imagenes.append({
+                    'url': img.imagen.url,
+                    'es_principal': img.es_principal,
+                    'orden': img.orden,
+                })
         
         data = {
             'id': vehiculo.pk,

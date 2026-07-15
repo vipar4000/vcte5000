@@ -6,7 +6,7 @@
         <div class="flex justify-between items-center py-4">
           <!-- Logo -->
           <router-link to="/" class="flex items-center gap-3">
-            <img src="/img/logo_rcarrogil.svg" alt="R Car Rogil" class="h-10">
+            <img :src="logoUrl" alt="R Car Rogil" class="h-10">
             <div>
               <h1 class="text-2xl font-bold">R Car Rogil</h1>
               <p class="text-xs text-eurocar-light">Vehículos de Ocasión</p>
@@ -104,4 +104,5 @@ import { ref, computed } from 'vue'
 
 const mobileMenuOpen = ref(false)
 const currentYear = computed(() => new Date().getFullYear())
+const logoUrl = import.meta.env.BASE_URL + 'img/logo_rcarrogil.svg'
 </script>

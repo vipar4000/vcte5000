@@ -1,4 +1,7 @@
+import os
+from django.conf import settings
 from django.shortcuts import render, redirect
+from django.http import HttpResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q, F, ExpressionWrapper, DecimalField
 from apps.vehicles.models import Vehiculo
@@ -86,3 +89,12 @@ def vendedor_redirect(request):
 def gestoria_redirect(request):
     """Redirect /gestoria/ to contabilidad."""
     return redirect('accounting:asientos')
+
+
+def spa_index(request):
+    """Sirve el SPA de la web pública (build de Vite en STATIC_ROOT/web)."""
+    index_path = os.path.join(settings.STATIC_ROOT, 'web', 'index.html')
+    if not os.path.exists(index_path):
+        raise Http404("Web pública no construida")
+    with open(index_path, 'r', encoding='utf-8') as f:
+        return HttpResponse(f.read(), content_type='text/html')
