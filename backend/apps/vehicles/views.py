@@ -149,6 +149,10 @@ def vehiculo_delete(request, pk):
         messages.error(request, 'No tiene permisos para eliminar vehículos.')
         return redirect('vehicles:detail', pk=pk)
     
+    if not request.user.puede_eliminar:
+        messages.error(request, 'No tiene permisos para eliminar registros.')
+        return redirect('vehicles:detail', pk=pk)
+    
     if vehiculo.estado == 'VENDIDO':
         messages.error(request, 'No se puede eliminar un vehículo vendido.')
         return redirect('vehicles:detail', pk=pk)

@@ -211,6 +211,10 @@ def orden_trabajo_delete(request, pk):
         messages.error(request, 'No tiene permisos para eliminar OTs.')
         return redirect('workshop:list')
     
+    if not request.user.puede_eliminar:
+        messages.error(request, 'No tiene permisos para eliminar registros.')
+        return redirect('workshop:list')
+    
     if request.method == 'POST':
         ot.delete()
         messages.success(

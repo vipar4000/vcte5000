@@ -75,7 +75,7 @@
             <h4 class="font-semibold mb-4">Contacto</h4>
             <ul class="space-y-2 text-gray-400 text-sm">
               <li>📞 +34 722 81 7617</li>
-              <li>📧 info@rcarrogil.com</li>
+              <li>info@rcarrogil.com <span class="text-xs text-yellow-300">(por actualizar)</span></li>
               <li>📍 Calle Brasil 9, Alcalá de Henares</li>
             </ul>
           </div>

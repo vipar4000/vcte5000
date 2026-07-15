@@ -11,10 +11,16 @@
             <p class="text-gray-500">Gestión de ventas de vehículos</p>
         </div>
         {% if is_admin or is_vendedor %}
-        <a href="{% url 'sales:create' %}" 
-           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
-            ➕ Registrar Venta
-        </a>
+        <div class="flex gap-2">
+            <a href="{% url 'sales:factura_list' %}" 
+               class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                📄 Facturas
+            </a>
+            <a href="{% url 'sales:create' %}" 
+               class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                ➕ Registrar Venta
+            </a>
+        </div>
         {% endif %}
     </div>
     

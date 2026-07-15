@@ -1,5 +1,6 @@
 # Environment files
 .env.production
+backend/.env
 
 # SSL certificates
 docker/nginx/ssl/*.pem

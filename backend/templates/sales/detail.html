@@ -122,6 +122,24 @@
                         </a>
                         {% endif %}
                     </div>
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium mb-2">Factura REBU</h3>
+                        {% if venta.factura %}
+                        <a href="{% url 'sales:factura_detail' venta.factura.pk %}" 
+                           class="text-eurocar-light hover:underline text-sm">
+                            📥 Ver Factura
+                        </a>
+                        <a href="{% url 'sales:factura_rectificativa' venta.factura.pk %}" 
+                           class="inline-block bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition text-sm ml-2">
+                            🔄 Rectificativa
+                        </a>
+                        {% else %}
+                        <a href="{% url 'sales:factura_generar' venta.pk %}" 
+                           class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm">
+                            🧾 Generar Factura
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

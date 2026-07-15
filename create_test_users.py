@@ -11,7 +11,7 @@ from apps.accounts.models import User
 users = [
     {
         'username': 'admin',
-        'email': 'admin@rcarrogil.com',
+        'email': 'admin@eurocar.local',
         'first_name': 'Admin',
         'last_name': 'Rogil',
         'rol': 'ADMIN',
@@ -19,7 +19,7 @@ users = [
     },
     {
         'username': 'mecanico1',
-        'email': 'mecanico1@rcarrogil.com',
+        'email': 'mecanico1@eurocar.local',
         'first_name': 'Carlos',
         'last_name': 'García',
         'rol': 'OPERARIO',
@@ -29,7 +29,7 @@ users = [
     },
     {
         'username': 'mecanico2',
-        'email': 'mecanico2@rcarrogil.com',
+        'email': 'mecanico2@eurocar.local',
         'first_name': 'Ana',
         'last_name': 'López',
         'rol': 'OPERARIO',
@@ -39,7 +39,7 @@ users = [
     },
     {
         'username': 'vendedor1',
-        'email': 'vendedor1@rcarrogil.com',
+        'email': 'vendedor1@eurocar.local',
         'first_name': 'Pedro',
         'last_name': 'Martínez',
         'rol': 'VENDEDOR',
@@ -47,7 +47,7 @@ users = [
     },
     {
         'username': 'gestoria1',
-        'email': 'gestoria1@rcarrogil.com',
+        'email': 'gestoria1@eurocar.local',
         'first_name': 'Laura',
         'last_name': 'Fernández',
         'rol': 'GESTORIA',

@@ -21,7 +21,7 @@
               <div class="flex items-center gap-3">
                 <span class="text-2xl">📧</span>
                 <div>
-                  <p class="font-medium">info@rcarrogil.com</p>
+                  <p class="font-medium">vipar4000@gmail.com</p>
                   <p class="text-sm text-gray-500">Respuesta en 24h</p>
                 </div>
               </div>

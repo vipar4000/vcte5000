@@ -161,6 +161,10 @@ def gasto_delete(request, pk):
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para eliminar gastos.')
         return redirect('expenses:list')
+    
+    if not request.user.puede_eliminar:
+        messages.error(request, 'No tiene permisos para eliminar registros.')
+        return redirect('expenses:list')
 
     gasto = get_object_or_404(GastoEstructura, pk=pk)
 

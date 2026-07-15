@@ -40,7 +40,7 @@ def generar_contrato_compraventa(venta):
             'provincia': 'Madrid',
             'cp': '28806',
             'telefono': '+34 722 81 7617',
-            'email': 'info@rcarrogil.com',
+            'email': settings.DEFAULT_FROM_EMAIL,
         }
     }
     
@@ -117,7 +117,7 @@ EMPRESA = {
     'provincia': 'Madrid',
     'cp': '28806',
     'telefono': '+34 722 81 7617',
-    'email': 'info@rcarrogil.com',
+    'email': settings.DEFAULT_FROM_EMAIL,
 }
 
 

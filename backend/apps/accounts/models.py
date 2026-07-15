@@ -32,6 +32,10 @@ class User(AbstractUser):
         blank=True, 
         verbose_name='bloqueado hasta'
     )
+    puede_eliminar = models.BooleanField(
+        default=True,
+        verbose_name='puede eliminar registros'
+    )
     
     # Para operarios - coste por hora
     salario_base_mensual = models.DecimalField(

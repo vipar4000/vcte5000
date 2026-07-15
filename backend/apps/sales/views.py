@@ -140,6 +140,10 @@ def venta_delete(request, pk):
         messages.error(request, 'No tiene permisos para eliminar ventas.')
         return redirect('sales:list')
     
+    if not request.user.puede_eliminar:
+        messages.error(request, 'No tiene permisos para eliminar registros.')
+        return redirect('sales:list')
+    
     if request.method == 'POST':
         # Restaurar estado del vehículo
         vehiculo = venta.vehiculo

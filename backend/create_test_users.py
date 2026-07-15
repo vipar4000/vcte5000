@@ -17,7 +17,7 @@ from apps.accounts.models import User
 if not User.objects.filter(username='admin').exists():
     user = User.objects.create_superuser(
         username='admin',
-        email='admin@rcarrogil.com',
+        email='admin@eurocar.local',
         password='admin123!',
         first_name='Administrador',
         last_name='Rogil',
@@ -33,7 +33,7 @@ else:
 test_users = [
     {
         'username': 'mecanico1',
-        'email': 'mecanico1@rcarrogil.com',
+        'email': 'mecanico1@eurocar.local',
         'password': 'mecanico123!',
         'first_name': 'Juan',
         'last_name': 'García',
@@ -42,7 +42,7 @@ test_users = [
     },
     {
         'username': 'vendedor1',
-        'email': 'vendedor1@rcarrogil.com',
+        'email': 'vendedor1@eurocar.local',
         'password': 'vendedor123!',
         'first_name': 'María',
         'last_name': 'López',
@@ -50,7 +50,7 @@ test_users = [
     },
     {
         'username': 'gestoria1',
-        'email': 'gestoria1@rcarrogil.com',
+        'email': 'gestoria1@eurocar.local',
         'password': 'gestoria123!',
         'first_name': 'Carlos',
         'last_name': 'Martínez',

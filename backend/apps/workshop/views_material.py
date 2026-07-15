@@ -145,6 +145,10 @@ def material_delete(request, pk):
         messages.error(request, 'No tiene permisos para eliminar materiales.')
         return redirect('workshop:material_detail', pk=pk)
     
+    if not request.user.puede_eliminar:
+        messages.error(request, 'No tiene permisos para eliminar registros.')
+        return redirect('workshop:material_detail', pk=pk)
+    
     if request.method == 'POST':
         nombre = material.nombre
         material.delete()

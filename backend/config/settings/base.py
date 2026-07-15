@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
     'axes',
     'csp',
     'django_htmx',
+    'django_cleanup',
 ]
 
 LOCAL_APPS = [

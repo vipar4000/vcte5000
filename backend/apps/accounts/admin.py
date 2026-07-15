@@ -19,7 +19,8 @@ class UserAdmin(BaseUserAdmin):
             'fields': (
                 'rol', 'movil', 'pin_kiosco',
                 'salario_base_mensual', 'porcentaje_ss_patronal',
-                'requires_password_change', 'failed_login_attempts', 'locked_until'
+                'requires_password_change', 'failed_login_attempts', 'locked_until',
+                'puede_eliminar'
             )
         }),
     )
@@ -39,3 +40,8 @@ class UserAdmin(BaseUserAdmin):
     def get_rol_display(self, obj):
         return obj.get_rol_display()
     get_rol_display.short_description = 'Rol'
+    
+    def has_delete_permission(self, request, obj=None):
+        if obj and not obj.puede_eliminar:
+            return False
+        return super().has_delete_permission(request, obj)

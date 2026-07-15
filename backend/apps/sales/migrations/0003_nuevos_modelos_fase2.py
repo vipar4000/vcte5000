@@ -7,7 +7,7 @@ from decimal import Decimal
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sales', '0003_trigger_inmutabilidad_facturas'),
+        ('sales', '0002_ventavehiculo_asiento_contable'),
         ('vehicles', '0001_initial'),
         ('accounting', '0001_initial'),
     ]

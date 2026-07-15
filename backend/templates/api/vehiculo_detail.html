@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ vehiculo.marca }} {{ vehiculo.modelo }} - R Car Rogil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'eurocar-blue': '#1B3A5C',
+                        'eurocar-light': '#5DADE2',
+                        'eurocar-green': '#2ECC71',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .etiqueta-0 { background-color: #10B981; color: white; }
+        .etiqueta-ECO { background-color: #3B82F6; color: white; }
+        .etiqueta-B { background-color: #F59E0B; color: white; }
+        .etiqueta-C { background-color: #EF4444; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Back button -->
+        <a href="/api/vehiculos/" class="inline-flex items-center text-eurocar-light hover:underline mb-4">
+            ← Volver al listado
+        </a>
+
+        <!-- Header -->
+        <div class="bg-eurocar-blue text-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">🚗 {{ vehiculo.marca }} {{ vehiculo.modelo }}</h1>
+                    <p class="text-eurocar-light mt-1">{{ vehiculo.anio }} • {{ vehiculo.kilometraje|floatformat:0 }} km</p>
+                </div>
+                <div class="text-right">
+                    <span class="etiqueta-{{ vehiculo.etiqueta_ambiental }} px-3 py-1 rounded text-sm font-bold">
+                        {{ vehiculo.etiqueta_ambiental }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Imagen principal -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                {% if vehiculo.imagen %}
+                <img src="{{ vehiculo.imagen }}" alt="{{ vehiculo.marca }} {{ vehiculo.modelo }}" class="w-full h-80 object-cover">
+                {% else %}
+                <div class="w-full h-80 bg-gray-200 flex items-center justify-center">
+                    <span class="text-8xl text-gray-400">🚗</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Datos del vehículo -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-eurocar-blue mb-4">📋 Datos del Vehículo</h2>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">ID:</span>
+                        <span class="font-medium">{{ vehiculo.id }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Marca:</span>
+                        <span class="font-medium">{{ vehiculo.marca }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Modelo:</span>
+                        <span class="font-medium">{{ vehiculo.modelo }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Año:</span>
+                        <span class="font-medium">{{ vehiculo.anio }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Kilometraje:</span>
+                        <span class="font-medium">{{ vehiculo.kilometraje|floatformat:0 }} km</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Combustible:</span>
+                        <span class="font-medium">{{ vehiculo.combustible }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Etiqueta Ambiental:</span>
+                        <span class="font-medium">{{ vehiculo.etiqueta_ambiental }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-gray-500">Tipo de Daño:</span>
+                        <span class="font-medium">{{ vehiculo.tipo_dano }}</span>
+                    </div>
+                </div>
+
+                {% if vehiculo.descripcion_dano %}
+                <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-yellow-800 mb-1">⚠️ Descripción del Daño</h3>
+                    <p class="text-yellow-700 text-sm">{{ vehiculo.descripcion_dano }}</p>
+                </div>
+                {% endif %}
+
+                <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-green-800 mb-1">💰 Precio de Venta</h3>
+                    <p class="text-3xl font-bold text-green-600">{{ vehiculo.precio_venta }} €</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Galería de imágenes -->
+        {% if vehiculo.imagenes %}
+        <div class="mt-6 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-eurocar-blue mb-4">🖼️ Galería de Imágenes</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {% for img in vehiculo.imagenes %}
+                <div class="relative">
+                    <img src="{{ img.url }}" alt="Imagen {{ forloop.counter }}" class="w-full h-32 object-cover rounded-lg">
+                    {% if img.es_principal %}
+                    <span class="absolute top-1 left-1 bg-eurocar-green text-white text-xs px-2 py-1 rounded">Principal</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="mt-8 text-center text-gray-400 text-sm">
+            <p>R Car Rogil ERP • API Pública • {{ fecha }}</p>
+        </div>
+    </div>
+</body>
+</html>

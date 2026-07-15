@@ -1,0 +1,15 @@
+frontend/node_modules/
+.git/
+__pycache__/
+*.pyc
+backend/db.sqlite3
+backend/test.db
+backend/media/
+backend/staticfiles/
+backend/static/web/
+backend/logs/*.log
+.env.production
+docker/nginx/ssl/*.pem
+docker/nginx/ssl/*.key
+eurocar_deploy.tar.gz
+*.tar.gz

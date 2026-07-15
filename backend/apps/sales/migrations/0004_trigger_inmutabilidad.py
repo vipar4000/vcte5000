@@ -10,18 +10,20 @@ def apply_trigger_sql(apps, schema_editor):
     )
     with open(sql_path, 'r') as f:
         sql = f.read()
-    schema_editor.execute(sql)
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(sql)
 
 
 def reverse_trigger_sql(apps, schema_editor):
-    schema_editor.execute("DROP TRIGGER IF EXISTS trg_factura_inmutabilidad ON sales_facturaventa;")
-    schema_editor.execute("DROP FUNCTION IF EXISTS prevent_factura_modificacion();")
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("DROP TRIGGER IF EXISTS trg_factura_inmutabilidad ON sales_facturaventa;")
+        cursor.execute("DROP FUNCTION IF EXISTS prevent_factura_modificacion();")
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sales', '0002_ventavehiculo_asiento_contable'),
+        ('sales', '0003_nuevos_modelos_fase2'),
     ]
 
     operations = [

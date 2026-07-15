@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Manual de Usuario - R Car Rogil ERP</title>
+    <title>Manual de Usuario - Roger - R Car Rogil ERP</title>
     <link rel="stylesheet" href="manual_styles.css">
 </head>
 <body>
@@ -13,11 +13,11 @@
     <div class="cover-content">
         <div class="cover-logo">R CAR ROGIL</div>
         <div class="cover-line"></div>
-        <div class="cover-subtitle">Sistema ERP para Vehiculos de Oasion</div>
+        <div class="cover-subtitle">Manual de Usuario - Roger</div>
         <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
     </div>
     <div class="cover-footer">
-        <div class="cover-version">Manual de Usuario v2.0</div>
+        <div class="cover-version">Manual de Usuario v2.0 - Personalizado</div>
         <div class="cover-date">Julio 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
@@ -103,6 +103,25 @@
         </tr>
     </table>
 
+    <h2>Tus Permisos</h2>
+    <p>Como administrador con permisos personalizados, tienes acceso completo al sistema ERP con las siguientes restricciones:</p>
+    <div class="warning">
+        <strong>Restriccion importante:</strong> No puedes eliminar registros en ninguna seccion del ERP (Taller, Vehiculos, Ventas, Gastos, Inventario). Esta restriccion protege la integridad de los datos. Puedes crear, editar y consultar registros, pero la funcion de eliminar no esta disponible para tu usuario.
+    </div>
+    <table>
+        <tr><th>Seccion</th><th>Crear</th><th>Editar</th><th>Consultar</th><th>Eliminar</th></tr>
+        <tr><td>Taller (OT)</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+        <tr><td>Vehiculos</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+        <tr><td>Ventas</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+        <tr><td>Inventario</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+        <tr><td>Gastos</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+        <tr><td>Contabilidad</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Asistencia</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Garantias</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+        <tr><td>Django Admin</td><td>Sí</td><td>Sí</td><td>Sí</td><td style="color: #dc2626;">No</td></tr>
+    </table>
+    <p><strong>Tu usuario:</strong> <code>roger</code> / <code>roger123!</code> (Administrador con permisos restringidos)</p>
+
     <h2>Credenciales de Prueba</h2>
     <table>
         <tr>
@@ -110,6 +129,12 @@
             <th>Contrasena</th>
             <th>Rol</th>
             <th>PIN Kiosco</th>
+        </tr>
+        <tr style="background: #dbeafe;">
+            <td><code>roger</code> <span style="color: #2563eb;">(tú)</span></td>
+            <td><code>roger123!</code></td>
+            <td>Administrador</td>
+            <td>-</td>
         </tr>
         <tr>
             <td><code>admin</code></td>
@@ -433,6 +458,10 @@ Coste Total = Coste Inicial + Coste Reparacion</code></pre>
     <strong>Restriccion:</strong> No se pueden eliminar vehiculos con estado <code>VENDIDO</code>.
 </div>
 
+<div class="warning-box">
+    <strong>Tu usuario:</strong> Como tu cuenta tiene permisos restringidos, no puedes eliminar vehiculos. El boton de eliminar no estara disponible en la interfaz.
+</div>
+
 <h2>3.5 Administrador Django</h2>
 <p>El Administrador Django (<code>/admin/</code>) ofrece una vista completa de todos los registros del sistema. Para vehiculos, incluye:</p>
 
@@ -535,6 +564,10 @@ Material (stock: 100)
     <li>Coste de reposicion por material</li>
     <li>Coste total de reposicion</li>
 </ul>
+
+<div class="warning-box">
+    <strong>Tu usuario:</strong> Como tu cuenta tiene permisos restringidos, no puedes eliminar ordenes de trabajo ni materiales del inventario. Los botones de eliminar no estaran disponibles en la interfaz.
+</div>
 
 <!-- ==================== CAPITULO 5 ==================== -->
 <h1 id="capitulo-5">5. Ventas y Documentacion</h1>
@@ -640,6 +673,10 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
     </li>
     <li>El PDF se guarda en <code>media/mandatos/</code></li>
 </ol>
+
+<div class="warning-box">
+    <strong>Tu usuario:</strong> Como tu cuenta tiene permisos restringidos, no puedes eliminar ventas. El boton de eliminar no estara disponible en la interfaz.
+</div>
 
 <!-- ==================== CAPITULO 6 ==================== -->
 <h1 id="capitulo-6">6. Control de Asistencia y Nomina</h1>
@@ -2007,6 +2044,10 @@ Cualquier modificacion rompe la cadena
 
 <div class="danger-box">
     <strong>ADVERTENCIA:</strong> Una factura que ha sido contabilizada (asiento contable asociado) <strong>NO puede ser modificada ni eliminada</strong> bajo ninguna circunstancia. Para corregir un error, se debe emitir una factura rectificativa (R1 o R4).
+</div>
+
+<div class="warning-box">
+    <strong>Tu usuario:</strong> Como tu cuenta tiene permisos restringidos, no puedes eliminar facturas de gastos. El boton de eliminar no estara disponible en la interfaz.
 </div>
 
 <h3>12.5.2 Flujo de Proteccion</h3>

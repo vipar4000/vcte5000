@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sales', '0004_nuevos_modelos_fase2'),
+        ('sales', '0004_trigger_inmutabilidad'),
     ]
 
     operations = [

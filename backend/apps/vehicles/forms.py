@@ -13,6 +13,7 @@ class VehiculoForm(forms.ModelForm):
             'combustible', 'kilometraje', 'tipo_dano', 'etiqueta_ambiental',
             'estado', 'fecha_adquisicion', 'plataforma_subasta',
             'precio_subasta', 'tasas_sala', 'logistica_grua',
+            'precio_venta',
             'descripcion_dano', 'imagen_principal',
         ]
         widgets = {
@@ -76,6 +77,12 @@ class VehiculoForm(forms.ModelForm):
                 'class': 'w-full px-3 py-2 border rounded-lg',
                 'step': '0.01',
                 'min': '0',
+            }),
+            'precio_venta': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'Precio de venta en euros',
             }),
             'descripcion_dano': forms.Textarea(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',

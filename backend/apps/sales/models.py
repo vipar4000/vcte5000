@@ -303,7 +303,7 @@ class FacturaVenta(models.Model):
         """Genera el siguiente código de factura: FACT-YYYY-XXXX"""
         from django.utils import timezone
         year = timezone.now().year
-        ultima = cls.filter(
+        ultima = cls.objects.filter(
             codigo_factura__startswith=f'FACT-{year}'
         ).order_by('-codigo_factura').first()
         
