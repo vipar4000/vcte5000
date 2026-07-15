@@ -179,23 +179,17 @@ def api_vehiculo_detalle(request, pk):
 def api_verify_r2(request):
     """TEMP: verifica conectividad con el storage R2/S3."""
     import socket as _socket, ssl as _ssl
-    account = settings.AWS_S3_ENDPOINT_URL.replace("https://", "").replace(".r2.cloudflarestorage.com", "")
-    candidates = [
-        f"{account}.r2.cloudflarestorage.com",
-        f"{account}.eu.r2.cloudflarestorage.com",
-        f"{account}.fedramp.r2.cloudflarestorage.com",
-        "api.cloudflare.com",
-    ]
+    host = settings.AWS_S3_ENDPOINT_URL.replace("https://", "").replace(".r2.cloudflarestorage.com", "") + ".r2.cloudflarestorage.com"
     results = {}
-    for host in candidates:
+    for fam, label in [(0, "auto"), (_socket.AF_INET, "ipv4"), (_socket.AF_INET6, "ipv6")]:
         try:
             _ctx = _ssl.create_default_context()
-            _s = _ctx.wrap_socket(_socket.create_connection((host, 443), timeout=10), server_hostname=host)
-            results[host] = "TLS_OK " + _s.version()
+            _s = _ctx.wrap_socket(_socket.create_connection((host, 443), timeout=10, family=fam), server_hostname=host)
+            results[label] = "TLS_OK " + _s.version()
             _s.close()
         except Exception as e:
-            results[host] = f"TLS_FAIL {type(e).__name__}: {str(e)[:120]}"
-    return JsonResponse({"candidates": results})
+            results[label] = f"TLS_FAIL {type(e).__name__}: {str(e)[:120]}"
+    return JsonResponse({"host": host, "families": results})
 
 
 def api_marcas(request):
