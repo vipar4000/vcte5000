@@ -181,11 +181,13 @@ def api_verify_r2(request):
     import socket as _socket, ssl as _ssl
     host = settings.AWS_S3_ENDPOINT_URL.replace("https://", "").replace(".r2.cloudflarestorage.com", "") + ".r2.cloudflarestorage.com"
     results = {}
-    for fam, label in [(0, "auto"), (_socket.AF_INET, "ipv4"), (_socket.AF_INET6, "ipv6")]:
+    for fam, label in [(_socket.AF_INET, "ipv4"), (_socket.AF_INET6, "ipv6")]:
         try:
+            addrs = _socket.getaddrinfo(host, 443, family=fam, type=_socket.SOCK_STREAM)
+            ip = addrs[0][4][0]
             _ctx = _ssl.create_default_context()
-            _s = _ctx.wrap_socket(_socket.create_connection((host, 443), timeout=10, family=fam), server_hostname=host)
-            results[label] = "TLS_OK " + _s.version()
+            _s = _ctx.wrap_socket(_socket.create_connection((ip, 443), timeout=10), server_hostname=host)
+            results[label] = "TLS_OK " + _s.version() + " " + ip
             _s.close()
         except Exception as e:
             results[label] = f"TLS_FAIL {type(e).__name__}: {str(e)[:120]}"
