@@ -1701,7 +1701,8 @@ Respuesta:
 
 <h2>10.8 Actualizar el Sistema</h2>
 <ol class="steps">
-    <li>Haga push de los cambios a GitHub (Render redeploya automaticamente en cada push a la rama principal).</li>
+    <li>Haga push de los cambios a GitHub en la rama <code>master</code> (Render redeploya automaticamente SOLO si <strong>Auto-Deploy</strong> esta activado en Settings).</li>
+    <li>Si tras el push la pestana <em>Events</em> no muestra el commit nuevo, fuerce el redeploy con <strong>Manual Deploy &rarr; Clear build cache &amp; deploy</strong>.</li>
     <li>Si necesita aplicar migraciones o comandos manuales, abra la <strong>Shell</strong> del servicio en Render y ejecute:
         <pre><code>python manage.py migrate
 python manage.py collectstatic --no-input</code></pre>

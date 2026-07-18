@@ -1675,11 +1675,15 @@ Respuesta:
 </ul>
 
 <h2>10.8 Actualizar el Sistema</h2>
-<p>Render redespliega automaticamente en cada push a la rama principal de GitHub. El Build Command ejecuta <code>collectstatic</code> y <code>migrate</code> en cada deploy, por lo que no hay pasos manuales:</p>
+<p>Render redespliega automaticamente en cada push a la rama <code>master</code> (la rama principal de este repositorio) SIEMPRE QUE <strong>Auto-Deploy</strong> este activado en Render → Settings. El Build Command ejecuta <code>collectstatic</code> y <code>migrate</code> en cada deploy, por lo que no hay pasos manuales:</p>
 <pre><code>git add -A
 git commit -m "Descripcion del cambio"
-git push origin main
-# Render detecta el push y redespliega automaticamente</code></pre>
+git push origin master
+# Render detecta el push y redespliega automaticamente (si Auto-Deploy esta ON)</code></pre>
+
+<div class="warning-box">
+    <strong>Si el push no se refleja:</strong> si tras hacer push la pestana <em>Events</em> de Render sigue mostrando un commit anterior a <code>git rev-parse HEAD</code>, el deploy esta desactualizado. Pulse <strong>Manual Deploy &rarr; Clear build cache &amp; deploy</strong> para forzar la reconstruccion desde el ultimo commit de <code>master</code>.
+</div>
 
 <div class="info-box">
     <strong>Comandos manuales (Render Shell):</strong> si necesitas ejecutar management commands sobre produccion, usa la consola del Web Service en el panel de Render:<br>

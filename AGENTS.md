@@ -50,6 +50,8 @@ Deployed on **Render** (Python runtime, not Docker). Self-hosted Docker alternat
 
 Render one-time setup: Web Service (Python 3) — build `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`, start `gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120`. Env vars: `DATABASE_URL`, `SECRET_KEY`, `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=.onrender.com,localhost`. Postgres Free plan (90-day trial). UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts. DB backed up daily by `.github/workflows/backup.yml` (needs `DATABASE_URL` GitHub secret).
 
+- **Auto-Deploy**: enable in Render → Web Service → Settings → **Auto-Deploy = ON**, **Branch = `master`** (NOT `main`). On push to `master`, Render rebuilds automatically. If a push does NOT go live (Events shows an older commit than `git rev-parse HEAD`), the deploy is stale — click **Manual Deploy → Clear build cache & deploy** to force it. This happened in practice: the running instance stayed on `8725630` while `HEAD` was `4036fc8`, hiding the "🛒 Compras" feature until a manual redeploy.
+
 **Render free tier has an ephemeral filesystem** — uploaded media (vehicle images, invoice PDFs) is lost on redeploy. Persist via R2 (below).
 
 ## Media Storage (R2)
