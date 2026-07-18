@@ -37,6 +37,10 @@ def login_view(request):
         
         if user is not None:
             user.reset_failed_attempts()
+            # Auto-reparar rol vacio en cuentas de personal (creadas via createsuperuser)
+            if user.is_staff and not user.rol:
+                user.rol = 'ADMIN'
+                user.save(update_fields=['rol'])
             login(request, user)
             messages.success(request, f'Bienvenido {user.get_full_name() or user.username}')
             
