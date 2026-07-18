@@ -46,6 +46,58 @@ def exportar_csv_303(request):
 
 
 @login_required
+def exportar_facturas_compra_csv(request):
+    """Genera y descarga el CSV del reporte Facturas de Compra (filtros aplicados)."""
+    import csv
+    from decimal import Decimal
+    from django.utils.encoding import smart_str
+
+    from .report_views import _filtrar_compras
+
+    compras = _filtrar_compras(request).select_related('material').order_by(
+        'fecha_compra', 'proveedor', 'numero_factura'
+    )
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="facturas_compra.csv"'
+    # Evita BOM para máxima compatibilidad; el charset utf-8 va en el content-type.
+    writer = csv.writer(response, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+
+    writer.writerow([
+        'Numero Factura', 'Proveedor', 'CIF/NIF', 'Fecha',
+        'Material', 'Cantidad', 'Precio Unitario', 'Base Imponible',
+        'Tipo IVA %', 'Cuota IVA', 'Total Linea', 'Asiento',
+    ])
+
+    total_base = Decimal('0')
+    total_iva = Decimal('0')
+    for c in compras:
+        total_linea = c.base_imponible + c.cuota_iva
+        total_base += c.base_imponible
+        total_iva += c.cuota_iva
+        writer.writerow([
+            smart_str(c.numero_factura or '(sin nº)'),
+            smart_str(c.proveedor),
+            smart_str(c.cif_nif),
+            c.fecha_compra.isoformat() if c.fecha_compra else '',
+            smart_str(c.material.nombre if c.material else ''),
+            c.cantidad,
+            c.precio_unitario,
+            c.base_imponible,
+            c.tipo_iva,
+            c.cuota_iva,
+            total_linea,
+            c.asiento_contable.numero if c.asiento_contable else '',
+        ])
+
+    writer.writerow([])
+    writer.writerow(['TOTALES', '', '', '', '', '', '', total_base, '', total_iva,
+                     total_base + total_iva, ''])
+
+    return response
+
+
+@login_required
 def exportar_sii_xml(request):
     """Genera y descarga el XML del SII."""
     anio = int(request.GET.get('anio', date.today().year))

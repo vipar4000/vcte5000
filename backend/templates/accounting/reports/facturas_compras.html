@@ -7,6 +7,10 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">🧾 Facturas de Compra</h1>
         <div class="flex gap-2">
+            <a href="{% url 'accounting:export_facturas_compra_csv' %}?fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}&proveedor={{ proveedor|urlencode }}"
+               class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                Descargar CSV
+            </a>
             <a href="{% url 'accounting:informes' %}"
                class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-200">
                 ← Informes

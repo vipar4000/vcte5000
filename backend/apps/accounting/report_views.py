@@ -98,21 +98,9 @@ def informes_list(request):
 def facturas_compra_view(request):
     """Reporte de Facturas de Compra: agrupa CompraMaterial por numero_factura."""
     from decimal import Decimal
-    from django.db.models import Sum
     from apps.workshop.models import CompraMaterial
 
-    fecha_desde = request.GET.get('fecha_desde', '').strip()
-    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
-    proveedor = request.GET.get('proveedor', '').strip()
-
-    compras = CompraMaterial.objects.all()
-    if fecha_desde:
-        compras = compras.filter(fecha_compra__gte=fecha_desde)
-    if fecha_hasta:
-        compras = compras.filter(fecha_compra__lte=fecha_hasta)
-    if proveedor:
-        compras = compras.filter(proveedor__icontains=proveedor)
-
+    compras = _filtrar_compras(request)
     compras = compras.select_related('material', 'asiento_contable').order_by(
         'fecha_compra', 'proveedor', 'numero_factura'
     )
@@ -142,12 +130,30 @@ def facturas_compra_view(request):
 
     context = {
         'facturas': facturas,
-        'fecha_desde': fecha_desde,
-        'fecha_hasta': fecha_hasta,
-        'proveedor': proveedor,
+        'fecha_desde': request.GET.get('fecha_desde', '').strip(),
+        'fecha_hasta': request.GET.get('fecha_hasta', '').strip(),
+        'proveedor': request.GET.get('proveedor', '').strip(),
         'total_base': sum(f['base'] for f in facturas),
         'total_iva': sum(f['iva'] for f in facturas),
         'total_total': sum(f['total'] for f in facturas),
         'n_facturas': len(facturas),
     }
     return render(request, 'accounting/reports/facturas_compras.html', context)
+
+
+def _filtrar_compras(request):
+    """Aplica los filtros de fecha/proveedor a CompraMaterial (reutilizable)."""
+    from apps.workshop.models import CompraMaterial
+
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+    proveedor = request.GET.get('proveedor', '').strip()
+
+    compras = CompraMaterial.objects.all()
+    if fecha_desde:
+        compras = compras.filter(fecha_compra__gte=fecha_desde)
+    if fecha_hasta:
+        compras = compras.filter(fecha_compra__lte=fecha_hasta)
+    if proveedor:
+        compras = compras.filter(proveedor__icontains=proveedor)
+    return compras
