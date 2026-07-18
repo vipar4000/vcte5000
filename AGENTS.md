@@ -68,6 +68,7 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
 - **`User.puede_eliminar`** (default True) gates delete permission.
+- **`rol` has `default='ADMIN'`** and `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` all fall back to `is_superuser`. But a user created via `createsuperuser` (README's path) stores `rol=''` in the DB, so it is NOT automatically admin until its `rol` is set — fix existing rows with `User.objects.filter(username='admin').update(rol='ADMIN')`.
 - **No lint/typecheck/format/CI test gates** exist (eslint, ruff, flake8, pre-commit all absent). Only CI is `.github/workflows/backup.yml`.
 - **Keep the `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat) even though we run 3.11.
 - **`.env` split**: root `.env` is read by Django (`base.py:23`) for DB/Redis/secret keys — not just docker-compose. There is no `backend/.env` loading path.

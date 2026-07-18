@@ -15,7 +15,7 @@ class User(AbstractUser):
     ]
     
     email = models.EmailField(unique=True, verbose_name='correo electrónico')
-    rol = models.CharField(max_length=20, choices=ROLES, verbose_name='rol')
+    rol = models.CharField(max_length=20, choices=ROLES, default='ADMIN', verbose_name='rol')
     movil = models.CharField(max_length=15, blank=True, verbose_name='móvil')
     pin_kiosco = models.CharField(max_length=4, blank=True, verbose_name='PIN kiosco')
     qr_code = models.ImageField(upload_to='qr/', blank=True, verbose_name='código QR')
@@ -62,19 +62,19 @@ class User(AbstractUser):
     
     @property
     def is_admin(self):
-        return self.rol == 'ADMIN'
+        return self.rol == 'ADMIN' or self.is_superuser
     
     @property
     def is_operario(self):
-        return self.rol == 'OPERARIO'
+        return self.rol == 'OPERARIO' or self.is_superuser
     
     @property
     def is_vendedor(self):
-        return self.rol == 'VENDEDOR'
+        return self.rol == 'VENDEDOR' or self.is_superuser
     
     @property
     def is_gestoria(self):
-        return self.rol == 'GESTORIA'
+        return self.rol == 'GESTORIA' or self.is_superuser
     
     @property
     def coste_hora(self):
