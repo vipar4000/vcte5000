@@ -160,55 +160,48 @@ MaterialUsadoFormSet = forms.inlineformset_factory(
 
 
 class CompraMaterialForm(forms.ModelForm):
-    """Formulario para registrar la compra de material de inventario."""
+    """Formulario para registrar la compra de material de inventario.
 
-    nombre_material_nuevo = forms.CharField(
-        required=False, max_length=100, label='Nombre del nuevo material',
+    El campo "Material" es de texto libre: al guardar se resuelve contra un
+    Material existente (match insensible a mayusculas/minusculas) o se crea
+    uno nuevo. Se mantiene la FK a Material y la integridad del inventario.
+    """
+
+    material_nombre = forms.CharField(
+        required=True, max_length=100, label='Material *',
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border rounded-lg',
-            'placeholder': 'Ej: Filtro de aceite',
+            'placeholder': 'Escriba el nombre (p. ej. Aceite motor 5W30)',
+            'autocomplete': 'off',
         }),
     )
     unidad_material_nuevo = forms.CharField(
-        required=False, max_length=20, label='Unidad de medida',
+        required=False, max_length=20,
+        label='Unidad de medida (solo si es material nuevo)',
         widget=forms.TextInput(attrs={
             'class': 'w-full px-3 py-2 border rounded-lg',
             'placeholder': 'Ej: ud, L, kg',
         }),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['material'].required = False
-        self.fields['material'].empty_label = (
-            '— Seleccione un material o cree uno nuevo —'
-        )
-
     def clean(self):
         cleaned_data = super().clean()
-        material = cleaned_data.get('material')
-        nombre_nuevo = cleaned_data.get('nombre_material_nuevo')
-        if material and nombre_nuevo:
+        nombre = (cleaned_data.get('material_nombre') or '').strip()
+        if not nombre:
             raise forms.ValidationError(
-                'Indique un material existente o cree uno nuevo, pero no ambos.'
+                'Indique el nombre del material.'
             )
-        if not material and not nombre_nuevo:
-            raise forms.ValidationError(
-                'Seleccione un material existente o indique el nombre de uno nuevo.'
-            )
+        cleaned_data['material_nombre'] = nombre
         return cleaned_data
 
     class Meta:
         model = CompraMaterial
         fields = [
-            'material', 'cantidad', 'precio_unitario',
+            'cantidad', 'precio_unitario',
             'fecha_compra', 'proveedor', 'cif_nif',
             'tipo_inventario', 'tipo_iva', 'documento_pdf',
         ]
         widgets = {
-            'material': forms.Select(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-            }),
             'cantidad': forms.NumberInput(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
                 'step': '0.01', 'min': '0.01',

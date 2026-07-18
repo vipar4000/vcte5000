@@ -120,19 +120,18 @@ def compra_material_create(request):
     if request.method == 'POST':
         form = CompraMaterialForm(request.POST, request.FILES)
         if form.is_valid():
-            nombre_nuevo = form.cleaned_data.get('nombre_material_nuevo')
-            unidad_nueva = form.cleaned_data.get('unidad_material_nuevo')
+            nombre = form.cleaned_data['material_nombre']
+            unidad = (form.cleaned_data.get('unidad_material_nuevo') or '').strip() or 'ud'
             with transaction.atomic():
-                if nombre_nuevo:
+                material = Material.objects.filter(nombre__iexact=nombre).first()
+                if material is None:
                     material = Material.objects.create(
-                        nombre=nombre_nuevo,
-                        unidad=unidad_nueva or 'ud',
+                        nombre=nombre,
+                        unidad=unidad,
                         precio_unitario=form.cleaned_data['precio_unitario'],
                     )
-                    compra = form.save(commit=False)
-                    compra.material = material
-                else:
-                    compra = form.save(commit=False)
+                compra = form.save(commit=False)
+                compra.material = material
                 compra.created_by = request.user
                 # El save() del modelo ya incrementa el stock del material
                 compra.save()
