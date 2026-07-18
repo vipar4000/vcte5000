@@ -25,6 +25,7 @@ urlpatterns = [
     path('informes/balance/', report_views.balance_view, name='balance'),
     path('informes/iva/', report_views.iva_view, name='iva'),
     path('informes/comparativa/', report_views.comparativa_view, name='comparativa'),
+    path('informes/facturas-compras/', report_views.facturas_compra_view, name='facturas_compras'),
     
     # Exportación fiscal
     path('exportar/390/', export_views.exportar_modelo_390, name='export_390'),

@@ -92,3 +92,62 @@ def informes_list(request):
         'anio': anio,
     }
     return render(request, 'accounting/reports/list.html', context)
+
+
+@login_required
+def facturas_compra_view(request):
+    """Reporte de Facturas de Compra: agrupa CompraMaterial por numero_factura."""
+    from decimal import Decimal
+    from django.db.models import Sum
+    from apps.workshop.models import CompraMaterial
+
+    fecha_desde = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta = request.GET.get('fecha_hasta', '').strip()
+    proveedor = request.GET.get('proveedor', '').strip()
+
+    compras = CompraMaterial.objects.all()
+    if fecha_desde:
+        compras = compras.filter(fecha_compra__gte=fecha_desde)
+    if fecha_hasta:
+        compras = compras.filter(fecha_compra__lte=fecha_hasta)
+    if proveedor:
+        compras = compras.filter(proveedor__icontains=proveedor)
+
+    compras = compras.select_related('material', 'asiento_contable').order_by(
+        'fecha_compra', 'proveedor', 'numero_factura'
+    )
+
+    grupos = {}
+    for c in compras:
+        # Las lineas sin numero de factura se agrupan de forma unica por compra
+        key = c.numero_factura or f'__sin__{c.pk}'
+        grupos.setdefault(key, []).append(c)
+
+    facturas = []
+    for lineas in grupos.values():
+        base = sum((l.base_imponible for l in lineas), Decimal('0'))
+        iva = sum((l.cuota_iva for l in lineas), Decimal('0'))
+        primera = lineas[0]
+        facturas.append({
+            'numero': primera.numero_factura or '(sin nº de factura)',
+            'proveedor': primera.proveedor,
+            'cif_nif': primera.cif_nif,
+            'fecha': primera.fecha_compra,
+            'lineas': lineas,
+            'base': base,
+            'iva': iva,
+            'total': base + iva,
+            'pdf': primera.documento_pdf,
+        })
+
+    context = {
+        'facturas': facturas,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'proveedor': proveedor,
+        'total_base': sum(f['base'] for f in facturas),
+        'total_iva': sum(f['iva'] for f in facturas),
+        'total_total': sum(f['total'] for f in facturas),
+        'n_facturas': len(facturas),
+    }
+    return render(request, 'accounting/reports/facturas_compras.html', context)

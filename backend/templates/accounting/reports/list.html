@@ -51,6 +51,18 @@
             <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
         </a>
         
+        <!-- Facturas de Compra -->
+        <a href="{% url 'accounting:facturas_compras' %}" 
+           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <div class="text-3xl mb-3">🧾</div>
+            <h2 class="text-lg font-bold text-gray-800">Facturas de Compra</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Agrupa las compras de material por nº de factura y proveedor, con base, IVA y totales.
+            </p>
+            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+        </a>
+        
+
         <!-- Tareas programadas -->
         <a href="{% url 'accounting:tareas' %}" 
            class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
