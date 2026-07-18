@@ -214,6 +214,10 @@ class CompraMaterial(models.Model):
     fecha_compra = models.DateField(verbose_name='fecha de compra')
     proveedor = models.CharField(max_length=150, verbose_name='proveedor')
     cif_nif = models.CharField(max_length=15, verbose_name='CIF/NIF')
+    numero_factura = models.CharField(
+        max_length=50, blank=True, verbose_name='número de factura',
+        help_text='Permite agrupar varias compras (materiales) de la misma factura de proveedor.',
+    )
     tipo_inventario = models.CharField(
         max_length=3, choices=TIPOS_INVENTARIO, default='300',
         verbose_name='cuenta de inventario',

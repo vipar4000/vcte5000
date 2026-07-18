@@ -198,7 +198,7 @@ class CompraMaterialForm(forms.ModelForm):
         model = CompraMaterial
         fields = [
             'cantidad', 'precio_unitario',
-            'fecha_compra', 'proveedor', 'cif_nif',
+            'fecha_compra', 'proveedor', 'cif_nif', 'numero_factura',
             'tipo_inventario', 'tipo_iva', 'documento_pdf',
         ]
         widgets = {
@@ -221,6 +221,10 @@ class CompraMaterialForm(forms.ModelForm):
             'cif_nif': forms.TextInput(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
                 'placeholder': 'B12345678', 'maxlength': '15',
+            }),
+            'numero_factura': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'Ej: FAC-2026-0011',
             }),
             'tipo_inventario': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',

@@ -82,6 +82,13 @@
                 </div>
             </div>
             <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Número de factura</label>
+                {{ form.numero_factura }}
+                <p class="text-sm text-gray-500 mt-1">
+                    Opcional. Use el mismo número en cada material de la misma factura para agruparlos (p. ej. varias líneas de una sola factura de proveedor).
+                </p>
+            </div>
+            <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Factura PDF</label>
                 {{ form.documento_pdf }}
                 <p class="text-sm text-gray-500 mt-1">
