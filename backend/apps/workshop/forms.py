@@ -180,6 +180,9 @@ class CompraMaterialForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['material'].required = False
+        self.fields['material'].empty_label = (
+            '— Seleccione un material o cree uno nuevo —'
+        )
 
     def clean(self):
         cleaned_data = super().clean()
