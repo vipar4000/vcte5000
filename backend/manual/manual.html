@@ -163,24 +163,30 @@
 <h2>1.2 Estructura de URLs</h2>
 <table>
     <tr><th>Ruta</th><th>Modulo</th><th>Descripcion</th></tr>
-    <tr><td><code>/</code></td><td>Dashboard</td><td>Panel principal con KPIs</td></tr>
-    <tr><td><code>/operario/</code></td><td>Operario</td><td>Redirect a kiosco de fichaje</td></tr>
-    <tr><td><code>/vendedor/</code></td><td>Vendedor</td><td>Redirect a catalogo de ventas</td></tr>
-    <tr><td><code>/gestoria/</code></td><td>Gestoria</td><td>Redirect a contabilidad</td></tr>
-    <tr><td><code>/accounts/</code></td><td>Autenticacion</td><td>Login, logout, perfil</td></tr>
-    <tr><td><code>/vehiculos/</code></td><td>Vehiculos</td><td>Gestion de vehiculos</td></tr>
-    <tr><td><code>/taller/</code></td><td>Taller</td><td>Ordenes de trabajo e inventario</td></tr>
-    <tr><td><code>/ventas/</code></td><td>Ventas</td><td>Registro de ventas y PDFs</td></tr>
-    <tr><td><code>/asistencia/</code></td><td>Asistencia</td><td>Marcajes y nomina</td></tr>
-    <tr><td><code>/garantias/</code></td><td>Garantias</td><td>Garantias postventa</td></tr>
-    <tr><td><code>/contabilidad/</code></td><td>Contabilidad</td><td>Asientos y plan contable</td></tr>
-    <tr><td><code>/api/</code></td><td>API</td><td>Endpoints JSON publicos</td></tr>
-    <tr><td><code>/admin/</code></td><td>Django Admin</td><td>Administracion del sistema</td></tr>
+    <tr><td><code>/</code></td><td>Web Publica</td><td>Catalogo publico (SPA Vue)</td></tr>
+    <tr><td><code>/erp/</code></td><td>Dashboard</td><td>Panel principal con KPIs</td></tr>
+    <tr><td><code>/erp/operario/</code></td><td>Operario</td><td>Redirect a kiosco de fichaje</td></tr>
+    <tr><td><code>/erp/vendedor/</code></td><td>Vendedor</td><td>Redirect a catalogo de ventas</td></tr>
+    <tr><td><code>/erp/gestoria/</code></td><td>Gestoria</td><td>Redirect a contabilidad</td></tr>
+    <tr><td><code>/erp/accounts/</code></td><td>Autenticacion</td><td>Login, logout, perfil</td></tr>
+    <tr><td><code>/erp/vehiculos/</code></td><td>Vehiculos</td><td>Gestion de vehiculos</td></tr>
+    <tr><td><code>/erp/taller/</code></td><td>Taller</td><td>Ordenes de trabajo e inventario</td></tr>
+    <tr><td><code>/erp/ventas/</code></td><td>Ventas</td><td>Registro de ventas, facturas y PDFs</td></tr>
+    <tr><td><code>/erp/asistencia/</code></td><td>Asistencia</td><td>Marcajes y nomina</td></tr>
+    <tr><td><code>/erp/garantias/</code></td><td>Garantias</td><td>Garantias postventa</td></tr>
+    <tr><td><code>/erp/contabilidad/</code></td><td>Contabilidad</td><td>Asientos, plan contable, informes y exportacion fiscal</td></tr>
+    <tr><td><code>/erp/gastos/</code></td><td>Gastos</td><td>Gastos de estructura</td></tr>
+    <tr><td><code>/api/</code></td><td>API</td><td>Endpoints JSON publicos (sin prefijo /erp/)</td></tr>
+    <tr><td><code>/admin/</code></td><td>Django Admin</td><td>Administracion del sistema (sin prefijo /erp/)</td></tr>
 </table>
+
+<div class="info-box">
+    <strong>Importante:</strong> Todos los modulos del ERP se sirven bajo el prefijo <code>/erp/</code>. Solo <code>/api/</code> y <code>/admin/</code> se acceden desde la raiz. La ruta raiz <code>/</code> muestra la web publica (catalogo Vue).
+</div>
 
 <h2>1.3 Primer Login</h2>
 <ol class="steps">
-    <li>Acceda a <code>https://rcarrogil.com/erp/</code> (produccion) o <code>http://localhost:3000</code> (desarrollo frontend) o <code>http://localhost:8000/erp/</code> (desarrollo backend)</li>
+    <li>Acceda a <code>https://&lt;app&gt;.onrender.com/erp/</code> (produccion) o <code>http://localhost:3000</code> (desarrollo frontend) o <code>http://localhost:8000/erp/</code> (desarrollo backend)</li>
     <li>Ingrese sus credenciales (usuario y contrasena)</li>
     <li>Segun su rol, sera redirigido automaticamente:
         <ul>
@@ -295,7 +301,7 @@ ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
 </table>
 
 <h3>3.2.2 Ejemplo de Creacion</h3>
-<pre><code>POST /vehiculos/nuevo/
+<pre><code>POST /erp/vehiculos/nuevo/
 
 matricula=1234ABC
 bastidor=WVWZZZ3CZWE123456
@@ -323,10 +329,25 @@ descripcion_dano=Golpe en paragolpes trasero</code></pre>
 
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
-<h4>Subir Imagenes (al crear/editar)</h4>
+<div class="warning-box">
+    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. En cualquier otro estado (ADQUIRIDO, TALLER, ACONDICIONADO, VENDIDO) los campos de imagen no aparecen en el formulario. Si un vehiculo deja de estar EN_VENTA, sus imagenes se eliminan automaticamente.
+</div>
+
+<h4>Subir Imagenes (procedimiento)</h4>
 <ol class="steps">
-    <li>En el formulario de creacion/edicion, localice el campo <strong>"Imagen Principal"</strong></li>
-    <li>Haga clic en <strong>"Seleccionar archivo"</strong> y elija la imagen (JPG/PNG)</li>
+    <li>Registre el vehiculo (estado inicial ADQUIRIDO u otro).</li>
+    <li>Cambie el estado a <strong>EN_VENTA</strong> desde la ficha del vehiculo (seccion "Cambiar Estado").</li>
+    <li>Vuelva a <strong>Editar</strong> el vehiculo: ahora apareceran los campos <strong>"Imagen Principal"</strong> y <strong>"Imagenes Adicionales"</strong>.</li>
+    <li>En "Imagen Principal", haga clic en <strong>"Seleccionar archivo"</strong> y elija la imagen (JPG/PNG).</li>
+    <li>En "Imagenes Adicionales" puede anadir mas fotos, marcar la principal y ordenarlas.</li>
+    <li>Haga clic en <strong>"Guardar Cambios"</strong>.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Como funciona el selector:</strong> El boton "Seleccionar archivo" es un control nativo del navegador. Por seguridad, el ERP <strong>no puede controlar</strong> que carpeta abre el explorador de Windows: este muestra la ultima carpeta usada o su ubicacion por defecto (puede aparecer, por ejemplo, <code>C:\eurocar\backend\manual</code>). Solo debe <strong>navegar</strong> hasta la imagen que desee; el archivo NO se guarda en esa carpeta de origen, sino en <code>media/vehiculos/</code> (o en R2 en produccion). Para probar, puede usar la imagen de ejemplo en <code>backend/manual/ejemplos/vehiculo_ejemplo.jpg</code>.
+</div>
+
+<ol class="steps">
     <li>En la seccion <strong>"Imagenes Adicionales"</strong>, puede agregar mas imagenes:
         <ul>
             <li><strong>Imagen:</strong> Archivo de la foto</li>
@@ -353,7 +374,7 @@ descripcion_dano=Golpe en paragolpes trasero</code></pre>
 </ol>
 
 <div class="info-box">
-    <strong>Almacenamiento:</strong> Todas las imagenes (principal y adicionales) se guardan en <code>media/vehiculos/</code>. El sistema gestiona automaticamente los archivos huerfanos al eliminar imagenes.
+    <strong>Almacenamiento:</strong> En desarrollo local todas las imagenes (principal y adicionales) se guardan en <code>media/vehiculos/</code>. El sistema gestiona automaticamente los archivos huerfanos al eliminar imagenes (django-cleanup).
 </div>
 
 <h4>Visualizacion en el Sitio Web Publico</h4>
@@ -369,7 +390,37 @@ descripcion_dano=Golpe en paragolpes trasero</code></pre>
 </div>
 
 <div class="info-box">
-    <strong>Produccion:</strong> En produccion, las imagenes se almacenan en el volumen Docker <code>media_data</code> y son servidas por Nginx. Limite de subida: <strong>20 MB</strong> por archivo. Los archivos persisten al reconstruir contenedores (<code>docker compose up -d --build</code>), pero se pierden si se elimina el volumen con <code>docker compose down -v</code>.
+    <strong>Produccion (Render):</strong> En produccion las imagenes <strong>no</strong> se guardan en el disco de Render (es efimero y se borra en cada redeploy). Se almacenan en <strong>Cloudflare R2</strong> (almacenamiento S3-compatible, bucket <code>eurocar</code>) cuando la variable <code>AWS_STORAGE_BUCKET_NAME</code> esta configurada (ver seccion 10.6). Limite de subida: <strong>20 MB</strong> por archivo. El bucket debe ser publico para que las URLs de imagen funcionen.
+</div>
+
+<h4>Metodo alternativo: subir imagenes por linea de comandos (manage.py)</h4>
+<p>Ademas del formulario web, puede subir imagenes masivamente o de forma automatica usando el comando de Django <code>subir_imagen_vehiculo</code>. Es util para importaciones por lotes o scripts.</p>
+
+<div class="warning-box">
+    <strong>Requisito EN_VENTA:</strong> El comando falla si el vehiculo no esta en estado <code>EN_VENTA</code>. Cambie el estado antes de ejecutarlo.
+</div>
+
+<ol class="steps">
+    <li>Abra una terminal en la carpeta <code>backend/</code> del proyecto.</li>
+    <li>Ejecute (ruta del archivo en su disco local, no en el repo):
+        <pre><code>python manage.py subir_imagen_vehiculo ^
+    --matricula 1234ABC ^
+    --imagen "C:/fotos/golf_frontal.jpg" ^
+    --imagen "C:/fotos/golf_lateral.jpg" ^
+    --principal</code></pre>
+    </li>
+    <li>Opciones:
+        <ul>
+            <li><code>--matricula</code> o <code>--pk</code> (uno u otro, obligatorio): identifica el vehiculo.</li>
+            <li><code>--imagen RUTA</code> (repetible): ruta local del archivo. La primera con <code>--principal</code> se guarda como imagen principal; las demas van a la galeria.</li>
+            <li><code>--principal</code>: marca la primera imagen como imagen principal del vehiculo.</li>
+        </ul>
+    </li>
+    <li>El comando imprime la URL final de cada imagen (apunta a <code>media/vehiculos/</code> en local o a Cloudflare R2 en produccion).</li>
+</ol>
+
+<div class="info-box">
+    <strong>Donde colocar la imagen:</strong> El archivo origen puede estar en <strong>cualquier carpeta de su disco</strong> (p. ej. <code>C:/fotos/</code>). Solo indique su ruta en <code>--imagen</code>. El archivo NO se copia al repo; Django lo sube directamente al destino (local <code>media/vehiculos/</code> o R2 en produccion).
 </div>
 
 <h2>3.3 Analisis de Costes</h2>
@@ -536,6 +587,32 @@ Material (stock: 100)
     <li>Coste total de reposicion</li>
 </ul>
 
+<h3>Registrar Compra de Material (entrada a inventario)</h3>
+<p>Para que un material forme parte del inventario de taller y se contabilice correctamente, su <strong>alta debe hacerse mediante una compra con factura</strong>, no mediante el alta manual suelta. El sistema registra la entrada a inventario y genera el asiento contable automatico.</p>
+<ol class="steps">
+    <li>Acceda al registro desde el menu lateral <strong>"🛒 Compras"</strong> (solo admin) o desde <strong>Inventario</strong> &gt; boton verde <strong>"Registrar Compra"</strong>.</li>
+    <li>Seleccione el <strong>Material</strong> y la <strong>Cantidad</strong> adquirida.</li>
+    <li>Si el material no existe, despliegue <strong>"¿El material no existe? Crear uno nuevo"</strong> e indique nombre y unidad; se dara de alta al guardar con stock 0.</li>
+    <li>Indique <strong>Precio Unitario</strong>, <strong>Fecha de Compra</strong>, <strong>Proveedor</strong> y <strong>CIF/NIF</strong>.</li>
+    <li>En "Datos de la Factura", adjunte el <strong>PDF de la factura</strong> del proveedor (opcional, maximo 20 MB).</li>
+    <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos) y el <strong>Tipo IVA</strong>%.</li>
+    <li>Haga clic en <strong>"Registrar Compra"</strong>.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Que ocurre al guardar:</strong><br>
+    1. El <strong>stock actual</strong> del material se incrementa en la cantidad comprada.<br>
+    2. Se genera y <strong>postea automaticamente</strong> el <strong>asiento contable</strong> (cuadrado, estado POSTEADO) de entrada a inventario, por lo que aparece de inmediato en el libro diario, balance, PyG e informes de IVA:<br>
+    &nbsp;&nbsp;&bull; <strong>DEBE</strong> cuenta de inventario (300/310/320/330) = Base imponible<br>
+    &nbsp;&nbsp;&bull; <strong>DEBE</strong> 472 (IVA soportado) = Cuota IVA<br>
+    &nbsp;&nbsp;&bull; <strong>HABER</strong> 410 (Acreedores) = Total (Base + IVA)<br>
+    3. El PDF de la factura se guarda en <code>media/facturas_gastos/</code> (o R2 en produccion).
+</div>
+
+<div class="warning-box">
+    <strong>Consumo posterior:</strong> Cuando el material se usa en una OT (MaterialUsado), su importe (<code>cantidad x precio_unitario</code>) se resta del stock y suma al <strong>coste de la OT</strong>, que luego forma el coste de reparacion del vehiculo. En REBU, ese coste se contabiliza en la cuenta <strong>623 (Reparaciones, IVA no deducible)</strong>.
+</div>
+
 <!-- ==================== CAPITULO 5 ==================== -->
 <h1 id="capitulo-5">5. Ventas y Documentacion</h1>
 
@@ -677,7 +754,7 @@ SALIDA    ENTRADA
 
 <h3>Fichar en el Kiosco</h3>
 <ol class="steps">
-    <li>Acceda al kiosco: <code>/asistencia/kiosco/</code></li>
+    <li>Acceda al kiosco: <code>/erp/asistencia/kiosco/</code></li>
     <li>Ingrese su PIN de 4 digitos en la pantalla</li>
     <li>El sistema detecta automaticamente si debe registrar ENTRADA o SALIDA</li>
     <li>Se muestra un mensaje de confirmacion con su nombre y tipo de marcaje</li>
@@ -837,7 +914,7 @@ vencimiento  reparacion
     <tr><td><code>472</code></td><td>IVA Soportado</td><td>IVA pagado a proveedores</td></tr>
     <tr><td><code>600</code></td><td>Compras</td><td>Coste de adquisicion del vehiculo</td></tr>
     <tr><td><code>623</code></td><td>Reparaciones</td><td>Costes de acondicionamiento (IVA no deducible)</td></tr>
-    <tr><td><code>700</strong></td><td>Ventas mercancias</td><td>Ingresos por venta (margen REBU)</td></tr>
+    <tr><td><code>700</code></td><td>Ventas mercancias</td><td>Ingresos por venta (margen REBU)</td></tr>
 </table>
 
 <h3>Inicializar el Plan Contable</h3>
@@ -1175,8 +1252,44 @@ Siguiente ano comienza con balances limpios
     <li>Haga clic en <strong>"Registrar Gasto"</strong></li>
 </ol>
 
+<h4>Adjuntar Factura PDF</h4>
+<p>El campo <strong>"Factura PDF"</strong> del formulario de gasto es opcional y permite subir el documento escaneado de la factura asociada. El procedimiento es el mismo al crear o al editar un gasto:</p>
+<ol class="steps">
+    <li>En el formulario <strong>Gastos &gt; Nuevo Gasto</strong> (o al editar), localice el campo <strong>"Factura PDF"</strong>.</li>
+    <li>Haga clic en <strong>"Seleccionar archivo"</strong> y elija el PDF de la factura (maximo 20 MB).</li>
+    <li>Complete el resto de campos del gasto y haga clic en <strong>"Registrar Gasto"</strong> (o "Guardar Cambios").</li>
+    <li>Una vez guardado, abra el <strong>detalle del gasto</strong>: el PDF aparece como enlace <strong>"Ver factura PDF"</strong> que se abre en una nueva pestaña.</li>
+</ol>
+
 <div class="info-box">
-    <strong>Almacenamiento:</strong> Las facturas PDF se guardan en <code>media/facturas_gastos/</code>. Maximo 20MB por archivo. Las facturas contabilizadas no pueden ser modificadas ni eliminadas.
+    <strong>Como funciona el selector:</strong> Al igual que con las imagenes, el boton "Seleccionar archivo" abre el explorador de Windows en su carpeta por defecto (no la controla el ERP); solo debe navegar hasta el PDF. El archivo se guarda en <code>media/facturas_gastos/</code> (o R2 en produccion), no en la carpeta de origen. Para probar, puede usar el PDF de ejemplo en <code>backend/manual/ejemplos/factura_ejemplo.pdf</code>.
+</div>
+
+<div class="info-box">
+    <strong>Almacenamiento:</strong> En desarrollo local el PDF se guarda en <code>media/facturas_gastos/</code>. En produccion (Render) se guarda en <strong>Cloudflare R2</strong> junto con las imagenes de vehiculos (ver seccion 10.6), por lo que no se pierde en los redeploys. Maximo 20 MB por archivo. Nota: los gastos ya contabilizados no pueden modificarse ni eliminarse.
+</div>
+
+<h4>Metodo alternativo: subir la factura PDF por linea de comandos (manage.py)</h4>
+<p>Igual que con las imagenes de vehiculo, puede adjuntar el PDF de una factura de gasto de forma masiva o automatica usando el comando de Django <code>subir_factura_gasto</code>. Es util para importar facturas escaneadas por lotes o desde scripts.</p>
+
+<ol class="steps">
+    <li>Abra una terminal en la carpeta <code>backend/</code> del proyecto.</li>
+    <li>Ejecute (ruta del PDF en su disco local, no en el repo):
+        <pre><code>python manage.py subir_factura_gasto ^
+    --pk 12 ^
+    --pdf "C:/facturas/alquiler_galpon_julio.pdf"</code></pre>
+    </li>
+    <li>Opciones:
+        <ul>
+            <li><code>--pk</code> (obligatorio): ID del gasto de estructura ya creado.</li>
+            <li><code>--pdf RUTA</code> (obligatorio): ruta local del archivo PDF a adjuntar.</li>
+        </ul>
+    </li>
+    <li>El comando asigna el PDF al gasto y lo sube al destino (local <code>media/facturas_gastos/</code> o R2 en produccion). Imprime la URL final.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Donde colocar el PDF:</strong> El archivo origen puede estar en <strong>cualquier carpeta de su disco</strong> (p. ej. <code>C:/facturas/</code>). Solo indique su ruta en <code>--pdf</code>. El archivo NO se copia al repo; Django lo sube directamente al destino. Nota: requiere que el gasto exista previamente (el PDF se adjunta, no crea el gasto).
 </div>
 
 <h3>Ejemplo: Alquiler con Retencion</h3>
@@ -1371,13 +1484,24 @@ Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
 
 <table>
     <tr><th>Metodo</th><th>Endpoint</th><th>Descripcion</th></tr>
-    <tr><td><code>GET</code></td><td><code>/api/health/</code></td><td>Verificacion de estado del servicio</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/ping/</code></td><td>Health check ligero (texto plano "OK") para monitoreo de uptime (UptimeRobot)</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/health/</code></td><td>Verificacion de estado del servicio (JSON)</td></tr>
     <tr><td><code>GET</code></td><td><code>/api/vehiculos/</code></td><td>Lista de vehiculos disponibles</td></tr>
     <tr><td><code>GET</code></td><td><code>/api/vehiculos/&lt;id&gt;/</code></td><td>Detalle de un vehiculo</td></tr>
     <tr><td><code>GET</code></td><td><code>/api/marcas/</code></td><td>Lista de marcas disponibles</td></tr>
 </table>
 
 <h2>9.2 Ejemplos de Uso</h2>
+
+<h3>Ping (monitoreo de uptime)</h3>
+<pre><code>GET /api/ping/
+
+Respuesta (texto plano):
+OK</code></pre>
+
+<div class="info-box">
+    <strong>Uso:</strong> Endpoint ultraligero pensado para servicios de monitoreo (UptimeRobot). Devuelve <code>OK</code> con estado 200 sin consultar la base de datos, ideal para evitar cold starts en Render.
+</div>
 
 <h3>Health Check</h3>
 <pre><code>GET /api/health/
@@ -1459,151 +1583,123 @@ Respuesta:
 <!-- ==================== CAPITULO 10 ==================== -->
 <h1 id="capitulo-10">10. Despliegue y Produccion</h1>
 
-<h2>10.1 Informacion del Servidor</h2>
+<p>El sistema se despliega en <strong>Render</strong> usando el runtime nativo de Python (no Docker). El sitio publico Vue, el ERP Django y la API se sirven desde un unico Web Service; los archivos de media (imagenes de vehiculos, PDFs de facturas) se guardan en <strong>Cloudflare R2</strong> porque el disco de Render es efimero.</p>
+
+<h2>10.1 Plataforma de Despliegue (Render)</h2>
 <table>
     <tr><th>Componente</th><th>Detalle</th></tr>
-    <tr><td>Proveedor</td><td>OVHcloud VPS</td></tr>
-    <tr><td>IP Publica</td><td><code>79.143.89.97</code></td></tr>
-    <tr><td>Sistema Operativo</td><td>Ubuntu 22.04 LTS</td></tr>
-    <tr><td>Recursos</td><td>2 vCores, 8 GB RAM, 80 GB SSD</td></tr>
-    <tr><td>Docker</td><td>Docker Engine + Docker Compose v2</td></tr>
-    <tr><td>Dominio</td><td><code>rcarrogil.com</code></td></tr>
-    <tr><td>SSL</td><td>Let's Encrypt (renovacion automatica)</td></tr>
+    <tr><td>Proveedor</td><td>Render (runtime Python 3, no Docker)</td></tr>
+    <tr><td>Runtime</td><td>Python 3.11.9 (fijado en <code>.python-version</code>)</td></tr>
+    <tr><td>Servidor de aplicacion</td><td>Gunicorn (definido en <code>Procfile</code>)</td></tr>
+    <tr><td>Base de datos</td><td>PostgreSQL gestionado por Render (via <code>DATABASE_URL</code>)</td></tr>
+    <tr><td>Archivos estaticos</td><td>WhiteNoise (<code>CompressedManifestStaticFilesStorage</code>)</td></tr>
+    <tr><td>Media (imagenes/PDFs)</td><td>Cloudflare R2 (S3-compatible) - ver 10.6</td></tr>
+    <tr><td>Host</td><td><code>&lt;app&gt;.onrender.com</code></td></tr>
 </table>
+
+<div class="warning-box">
+    <strong>Filesystem efimero:</strong> Render borra el disco en cada redeploy. Sin R2 configurado, las imagenes de vehiculos y los PDFs subidos se pierden. La configuracion de media en R2 es obligatoria en produccion (ver 10.6).
+</div>
 
 <h2>10.2 URLs de Acceso en Produccion</h2>
 <table>
     <tr><th>Servicio</th><th>URL</th><th>Descripcion</th></tr>
-    <tr><td>Sitio Publico</td><td><code>https://rcarrogil.com/</code></td><td>Vue SPA - Catalogo de vehiculos</td></tr>
-    <tr><td>ERP Principal</td><td><code>https://rcarrogil.com/erp/</code></td><td>Panel principal del ERP</td></tr>
-    <tr><td>Login</td><td><code>https://rcarrogil.com/erp/accounts/login/</code></td><td>Formulario de acceso</td></tr>
-    <tr><td>Django Admin</td><td><code>https://rcarrogil.com/admin/</code></td><td>Administracion del sistema</td></tr>
-    <tr><td>API Health</td><td><code>https://rcarrogil.com/api/health/</code></td><td>Verificacion de estado</td></tr>
-    <tr><td>API Vehiculos</td><td><code>https://rcarrogil.com/api/vehiculos/</code></td><td>Catalogo publico JSON</td></tr>
+    <tr><td>Sitio Publico</td><td><code>https://&lt;app&gt;.onrender.com/</code></td><td>Vue SPA - Catalogo de vehiculos</td></tr>
+    <tr><td>ERP Principal</td><td><code>https://&lt;app&gt;.onrender.com/erp/</code></td><td>Panel principal del ERP</td></tr>
+    <tr><td>Login</td><td><code>https://&lt;app&gt;.onrender.com/erp/accounts/login/</code></td><td>Formulario de acceso</td></tr>
+    <tr><td>Django Admin</td><td><code>https://&lt;app&gt;.onrender.com/admin/</code></td><td>Administracion del sistema</td></tr>
+    <tr><td>API Ping</td><td><code>https://&lt;app&gt;.onrender.com/api/ping/</code></td><td>Health check ligero (monitoreo)</td></tr>
+    <tr><td>API Vehiculos</td><td><code>https://&lt;app&gt;.onrender.com/api/vehiculos/</code></td><td>Catalogo publico JSON</td></tr>
 </table>
 
 <h2>10.3 Credenciales de Produccion</h2>
 
 <div class="warning-box">
-    <strong>IMPORTANTE:</strong> Estas son las credenciales reales del sistema en produccion. Cambialas inmediatamente despues del primer acceso.
+    <strong>IMPORTANTE:</strong> Cambia las contrasenas inmediatamente despues del primer acceso. Los usuarios de produccion se crean con <code>python create_users_prod.py</code> (usa <code>config.settings.production</code>).
 </div>
 
 <table>
-    <tr><th>Servicio</th><th>Usuario</th><th>Contrasena</th></tr>
-    <tr><td>ERP / Django Admin</td><td><code>admin</code></td><td><code>RCarRogil2024!</code></td></tr>
+    <tr><th>Usuario</th><th>Contrasena</th><th>Rol</th><th>Notas</th></tr>
+    <tr><td><code>admin</code></td><td><code>admin123!</code></td><td>ADMIN (superuser)</td><td>Acceso total + Django Admin</td></tr>
+    <tr><td><code>roger</code></td><td><code>roger123!</code></td><td>ADMIN</td><td><code>puede_eliminar=False</code> (no puede eliminar registros)</td></tr>
 </table>
 
-<h2>10.4 Arquitectura Docker</h2>
-<p>El sistema de produccion esta compuesto por 5 servicios Docker:</p>
+<h2>10.4 Configuracion del Web Service</h2>
+<p>Ajustes que se configuran una sola vez en el panel de Render:</p>
 
-<table>
-    <tr><th>Servicio</th><th>Descripcion</th><th>Puerto</th><th>Reinicio</th></tr>
-    <tr><td><code>db</code></td><td>PostgreSQL 15 - Base de datos</td><td>5432 (interno)</td><td>always</td></tr>
-    <tr><td><code>redis</code></td><td>Redis 7 - Cache y colas Celery</td><td>6379 (interno)</td><td>always</td></tr>
-    <tr><td><code>backend</code></td><td>Django 4.2 + Gunicorn - API y ERP</td><td>8000 (interno)</td><td>always</td></tr>
-    <tr><td><code>celery_worker</code></td><td>Celery Worker - Tareas asincronas</td><td>-</td><td>always</td></tr>
-    <tr><td><code>nginx</code></td><td>Nginx - Proxy inverso y SSL</td><td>80, 443 (externos)</td><td>always</td></tr>
-</table>
+<h3>Build Command</h3>
+<pre><code>pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate</code></pre>
 
-<h3>Archivos de Configuracion</h3>
-<table>
-    <tr><th>Archivo</th><th>Descripcion</th></tr>
-    <tr><td><code>docker-compose.prod.yml</code></td><td>Definicion de servicios de produccion</td></tr>
-    <tr><td><code>backend/Dockerfile.prod</code></td><td>Build multi-stage (Node + Python)</td></tr>
-    <tr><td><code>.env.production</code></td><td>Variables de entorno de produccion</td></tr>
-    <tr><td><code>docker/nginx/prod.conf</code></td><td>Configuracion Nginx con SSL</td></tr>
-    <tr><td><code>docker/nginx/prod-http.conf</code></td><td>Configuracion Nginx HTTP (sin uso)</td></tr>
-</table>
+<h3>Start Command</h3>
+<pre><code>gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120</code></pre>
+
+<div class="info-box">
+    <strong>Requisitos del repo antes de desplegar:</strong><br>
+    - <code>Procfile</code> en la raiz (entrypoint de gunicorn)<br>
+    - <code>dj-database-url</code> en <code>requirements.txt</code> (lee <code>DATABASE_URL</code>)<br>
+    - <code>SECRET_KEY</code> y <code>DATABASE_URL</code> se definen como env vars en Render, NUNCA se commitean
+</div>
 
 <h2>10.5 Variables de Entorno</h2>
-<p>Las variables de entorno criticas en <code>.env.production</code>:</p>
+<p>Variables criticas (definidas en el panel de Render, no en un archivo):</p>
 
 <table>
     <tr><th>Variable</th><th>Descripcion</th><th>Ejemplo</th></tr>
-    <tr><td><code>SECRET_KEY</code></td><td>Clave secreta de Django</td><td>django-insecure-xxxxx</td></tr>
-    <tr><td><code>DEBUG</code></td><td>Modo depuracion (debe ser 0 en prod)</td><td><code>0</code></td></tr>
-    <tr><td><code>ALLOWED_HOSTS</code></td><td>Hosts permitidos</td><td><code>rcarrogil.com,localhost</code></td></tr>
-    <tr><td><code>POSTGRES_DB</code></td><td>Nombre de la base de datos</td><td><code>eurocar</code></td></tr>
-    <tr><td><code>POSTGRES_USER</code></td><td>Usuario de PostgreSQL</td><td><code>eurocar_user</code></td></tr>
-    <tr><td><code>POSTGRES_PASSWORD</code></td><td>Contrasena de PostgreSQL</td><td><code>EurocarSecure2024!</code></td></tr>
-    <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Origenes CORS permitidos</td><td><code>https://rcarrogil.com</code></td></tr>
-    <tr><td><code>CSRF_TRUSTED_ORIGINS</code></td><td>Origenes CSRF de confianza</td><td><code>https://rcarrogil.com</code></td></tr>
+    <tr><td><code>DJANGO_SETTINGS_MODULE</code></td><td>Modulo de settings</td><td><code>config.settings.production</code></td></tr>
+    <tr><td><code>SECRET_KEY</code></td><td>Clave secreta de Django</td><td><em>(secreto)</em></td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>Cadena de conexion PostgreSQL</td><td><code>postgres://...</code></td></tr>
+    <tr><td><code>DEBUG</code></td><td>Modo depuracion (debe ser False en prod)</td><td><code>False</code></td></tr>
+    <tr><td><code>ALLOWED_HOSTS</code></td><td>Hosts permitidos</td><td><code>.onrender.com,localhost</code></td></tr>
 </table>
 
-<h2>10.6 Certificado SSL</h2>
-<table>
-    <tr><th>Parametro</th><th>Valor</th></tr>
-    <tr><td>Proveedor</td><td>Let's Encrypt</td></tr>
-    <tr><td>Dominio</td><td><code>rcarrogil.com</code></td></tr>
-    <tr><td>Fecha Emision</td><td>5 Julio 2026</td></tr>
-    <tr><td>Fecha Expiracion</td><td>3 Octubre 2026</td></tr>
-    <tr><td>Renovacion</td><td>Automatica (cron lunes 3:00 AM)</td></tr>
-    <tr><td>Ubicacion Cert</td><td><code>/etc/letsencrypt/live/rcarrogil.com/</code></td></tr>
-</table>
+<h2>10.6 Almacenamiento de Media (Cloudflare R2)</h2>
+<p>El disco de Render es efimero, por lo que la media se guarda en <strong>Cloudflare R2</strong> (S3-compatible, capa gratuita de 10 GB/mes con egress gratis). El backend ya soporta almacenamiento S3: <code>production.py</code> activa <code>storages.backends.s3.S3Storage</code> automaticamente cuando existe la variable <code>AWS_STORAGE_BUCKET_NAME</code> (no requiere cambios de codigo; <code>django-storages</code> + <code>boto3</code> ya estan en <code>requirements.txt</code>).</p>
 
-<div class="info-box">
-    <strong>Nota:</strong> El certificado SSL aplica solo a <code>rcarrogil.com</code>. Si se necesita soporte para <code>www.rcarrogil.com</code>, agregar el registro DNS A y renovar el certificado con <code>certbot --expand -d rcarrogil.com -d www.rcarrogil.com</code>.
-</div>
-
-<h2>10.7 DNS (DonDominio)</h2>
 <table>
-    <tr><th>Tipo</th><th>Nombre</th><th>Valor</th><th>TTL</th></tr>
-    <tr><td><code>A</code></td><td><code>@</code></td><td><code>79.143.89.97</code></td><td>3600</td></tr>
-    <tr><td><code>A</code></td><td><code>www</code></td><td><em>Pendiente de configurar</em></td><td>-</td></tr>
+    <tr><th>Variable</th><th>Valor</th></tr>
+    <tr><td><code>AWS_STORAGE_BUCKET_NAME</code></td><td><code>eurocar</code></td></tr>
+    <tr><td><code>AWS_S3_ACCESS_KEY_ID</code> / <code>AWS_S3_SECRET_ACCESS_KEY</code></td><td>Token HMAC de R2</td></tr>
+    <tr><td><code>AWS_S3_ENDPOINT_URL</code></td><td><code>https://987c5b0d48c2071fcb9c5533c7153a7d.r2.cloudflarestorage.com</code></td></tr>
+    <tr><td><code>AWS_S3_REGION_NAME</code></td><td><code>auto</code></td></tr>
+    <tr><td><code>AWS_S3_CUSTOM_DOMAIN</code></td><td><code>pub-&lt;hash&gt;.r2.dev</code> (define <code>MEDIA_URL</code>)</td></tr>
 </table>
 
 <div class="warning-box">
-    <strong>Nota:</strong> El registro <code>www.rcarrogil.com</code> no esta configurado actualmente. Solo funciona el dominio raiz <code>rcarrogil.com</code>.
+    <strong>Bucket publico obligatorio:</strong> <code>AWS_QUERYSTRING_AUTH=False</code> esta fijado en el codigo, por lo que el bucket R2 debe permanecer con acceso <strong>publico</strong> o la media devolvera 403. Estas variables deben definirse tanto en el <strong>Web Service</strong> como en el <strong>worker de Celery</strong>. Vigila el limite de 10 GB.
 </div>
 
-<h2>10.8 Comandos de Mantenimiento</h2>
+<h2>10.7 Monitoreo y Backups</h2>
+<ul>
+    <li><strong>UptimeRobot:</strong> monitorea <code>https://&lt;app&gt;.onrender.com/api/ping/</code> cada 10 minutos para evitar el "cold start" del plan gratuito de Render.</li>
+    <li><strong>Backups de BD:</strong> el workflow de GitHub Actions <code>.github/workflows/backup.yml</code> hace un dump diario de la base de datos. Requiere el secreto <code>DATABASE_URL</code> configurado en el repositorio de GitHub.</li>
+</ul>
 
-<h3>Ver estado de servicios</h3>
-<pre><code>docker compose -f docker-compose.prod.yml ps</code></pre>
+<h2>10.8 Actualizar el Sistema</h2>
+<p>Render redespliega automaticamente en cada push a la rama principal de GitHub. El Build Command ejecuta <code>collectstatic</code> y <code>migrate</code> en cada deploy, por lo que no hay pasos manuales:</p>
+<pre><code>git add -A
+git commit -m "Descripcion del cambio"
+git push origin main
+# Render detecta el push y redespliega automaticamente</code></pre>
 
-<h3>Ver logs</h3>
-<pre><code>docker compose -f docker-compose.prod.yml logs -f backend    # Logs del ERP
-docker compose -f docker-compose.prod.yml logs -f nginx       # Logs de nginx
-docker compose -f docker-compose.prod.yml logs -f celery_worker  # Logs de Celery</code></pre>
+<div class="info-box">
+    <strong>Comandos manuales (Render Shell):</strong> si necesitas ejecutar management commands sobre produccion, usa la consola del Web Service en el panel de Render:<br>
+    <code>python manage.py createsuperuser</code><br>
+    <code>python create_users_prod.py</code>
+</div>
 
-<h3>Reiniciar servicios</h3>
-<pre><code>docker compose -f docker-compose.prod.yml restart backend     # Reiniciar ERP
-docker compose -f docker-compose.prod.yml restart nginx       # Reiniciar nginx
-docker compose -f docker-compose.prod.yml restart             # Reiniciar todo</code></pre>
-
-<h3>Ejecutar comandos Django</h3>
-<pre><code>docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
-docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
-docker compose -f docker-compose.prod.yml exec backend python manage.py migrate</code></pre>
-
-<h3>Actualizar el sistema</h3>
-<pre><code>cd /home/infoaeromar/eurocar
-git pull origin main
+<h2>10.9 Despliegue Alternativo (Docker Autohospedado)</h2>
+<p>Existe una segunda ruta de despliegue autohospedada mediante Docker Compose, util si se migra a un VPS propio. No es la usada en produccion actualmente, pero los archivos se mantienen en el repositorio:</p>
+<table>
+    <tr><th>Archivo</th><th>Descripcion</th></tr>
+    <tr><td><code>docker-compose.prod.yml</code></td><td>Definicion de servicios (db, redis, backend, celery_worker, nginx)</td></tr>
+    <tr><td><code>backend/Dockerfile.prod</code></td><td>Build multi-stage (Node + Python)</td></tr>
+    <tr><td><code>.env.production</code></td><td>Variables de entorno para Docker</td></tr>
+    <tr><td><code>docker/nginx/prod.conf</code></td><td>Configuracion Nginx con SSL (Let's Encrypt)</td></tr>
+</table>
+<pre><code># Arranque autohospedado
 docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml exec backend python manage.py migrate --noinput
 docker compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput</code></pre>
-
-<h3>Verificar SSL</h3>
-<pre><code>certbot certificates
-certbot renew --dry-run</code></pre>
-
-<h2>10.9 Estructura del Proyecto en Servidor</h2>
-<pre><code>/home/infoaeromar/eurocar/
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ apps/              # Modulos Django
-â”‚   â”œâ”€â”€ config/            # Settings de Django
-â”‚   â”œâ”€â”€ manual/            # Manual de usuario
-â”‚   â”œâ”€â”€ static/            # Archivos estaticos (collectstatic)
-â”‚   â”œâ”€â”€ media/             # Archivos subidos por usuarios
-â”‚   â”œâ”€â”€ templates/         # Templates HTML
-â”‚   â”œâ”€â”€ requirements.txt   # Dependencias Python
-â”‚   â””â”€â”€ Dockerfile.prod    # Build de produccion
-â”œâ”€â”€ docker/
-â”‚   â””â”€â”€ nginx/             # Configuracion Nginx
-â”œâ”€â”€ docker-compose.prod.yml
-â”œâ”€â”€ .env.production
-â”œâ”€â”€ .dockerignore
-â””â”€â”€ .gitignore</code></pre>
 
 <h2>10.10 Credenciales de Prueba (Desarrollo)</h2>
 <p>Estas credenciales son para entorno de desarrollo local (SQLite). No usar en produccion.</p>
@@ -1625,15 +1721,49 @@ certbot renew --dry-run</code></pre>
 <h2>11.1 Datos Creados por el Script</h2>
 
 <h3>11.1.1 Vehiculos (6 unidades)</h3>
+
+<p>Para crearlos manualmente vaya a <strong>Vehiculos &gt; Nuevo Vehiculo</strong> (<code>/erp/vehiculos/nuevo/</code>). A continuacion se muestra el formulario <strong>completo</strong> relleno con los datos del primer vehiculo (todos los campos del <code>VehiculoForm</code>), seguido de la tabla con los 6 vehiculos del ejemplo.</p>
+
+<h4>Formulario completo de ejemplo (Vehiculo 1 - Volkswagen Golf)</h4>
 <table>
-    <tr><th>Matricula</th><th>Marca/Modelo</th><th>Estado</th><th>Descripcion</th></tr>
-    <tr><td><code>1234ABC</code></td><td>Volkswagen Golf VII 1.6 TDI</td><td><code>ADQUIRIDO</code></td><td>Recien comprado en subasta BCA</td></tr>
-    <tr><td><code>5678DEF</code></td><td>Seat Leon 2.0 TDI</td><td><code>TALLER</code></td><td>1 OT en progreso (reparacion golpe frontal)</td></tr>
-    <tr><td><code>9012GHI</code></td><td>BMW Serie 3 320d</td><td><code>TALLER</code></td><td>2 OTs: 1 completada, 1 pendiente</td></tr>
-    <tr><td><code>3456JKL</code></td><td>Mercedes Clase A 180</td><td><code>ACONDICIONADO</code></td><td>Reparado, listo para venta</td></tr>
-    <tr><td><code>7890MNO</code></td><td>Ford Focus 1.5 TDCi</td><td><code>EN_VENTA</code></td><td>Publicado en catalogo a 14.500 EUR</td></tr>
-    <tr><td><code>1122PQR</code></td><td>Toyota Yaris Hybrid</td><td><code>VENDIDO</code></td><td>Vendido a particular a 16.500 EUR</td></tr>
+    <tr><th>Campo</th><th>Valor a introducir</th></tr>
+    <tr><td>Matricula</td><td><code>1234ABC</code> (7 caracteres)</td></tr>
+    <tr><td>Bastidor (VIN)</td><td><code>VSSZZZ1KZ7R123456</code> (17 caracteres)</td></tr>
+    <tr><td>Marca</td><td>Volkswagen</td></tr>
+    <tr><td>Modelo</td><td>Golf VII 1.6 TDI</td></tr>
+    <tr><td>Anio</td><td>2019</td></tr>
+    <tr><td>Combustible</td><td>DIESEL</td></tr>
+    <tr><td>Kilometraje</td><td>145.000 km</td></tr>
+    <tr><td>Tipo de dano</td><td>ACCIDENTAL</td></tr>
+    <tr><td>Etiqueta ambiental</td><td>C</td></tr>
+    <tr><td>Estado</td><td>ADQUIRIDO</td></tr>
+    <tr><td>Fecha adquisicion</td><td>10/06/2026</td></tr>
+    <tr><td>Plataforma subasta</td><td>BCA (British Car Auctions)</td></tr>
+    <tr><td>Precio subasta</td><td>8.500,00 EUR</td></tr>
+    <tr><td>Tasas sala</td><td>350,00 EUR</td></tr>
+    <tr><td>Logistica grua</td><td>200,00 EUR</td></tr>
+    <tr><td>Precio venta</td><td><em>(en blanco mientras no este EN_VENTA/VENDIDO)</em></td></tr>
+    <tr><td>Descripcion dano</td><td>Golpe frontal paragolpes y capo; faro derecho roto</td></tr>
+    <tr><td>Imagen principal</td><td><em>(opcional) adjuntar foto, p.ej. <code>backend/manual/ejemplos/vehiculo_ejemplo.jpg</code></em></td></tr>
 </table>
+
+<div class="info-box">
+    <strong>Coste inicial:</strong> El sistema calcula automaticamente <code>coste_inicial = precio_subasta + tasas_sala + logistica_grua</code>. Para este vehiculo = 8.500 + 350 + 200 = <strong>9.050,00 EUR</strong>. El <code>precio_venta</code> solo se rellena cuando el estado es <code>EN_VENTA</code> o <code>VENDIDO</code>.
+</div>
+
+<table>
+    <tr><th>Matricula</th><th>Bastidor</th><th>Marca/Modelo</th><th>Anio</th><th>Comb.</th><th>Km</th><th>Dano</th><th>Etiqueta</th><th>Estado</th><th>F. Adq.</th><th>Subasta</th><th>P. Subasta</th><th>Tasas</th><th>Grua</th><th>P. Venta</th><th>Descripcion dano</th></tr>
+    <tr><td><code>1234ABC</code></td><td><code>VSSZZZ1KZ7R123456</code></td><td>Volkswagen Golf VII 1.6 TDI</td><td>2019</td><td>DIESEL</td><td>145.000</td><td>ACCIDENTAL</td><td>C</td><td><code>ADQUIRIDO</code></td><td>10/06/2026</td><td>BCA</td><td>8.500</td><td>350</td><td>200</td><td>-</td><td>Golpe frontal paragolpes y capo</td></tr>
+    <tr><td><code>5678DEF</code></td><td><code>VSSZZZ1PZ9R234567</code></td><td>Seat Leon 2.0 TDI</td><td>2018</td><td>DIESEL</td><td>162.000</td><td>ACCIDENTAL</td><td>C</td><td><code>TALLER</code></td><td>12/06/2026</td><td>BCA</td><td>6.200</td><td>300</td><td>180</td><td>-</td><td>Golpe lateral izquierdo, puerta delantera</td></tr>
+    <tr><td><code>9012GHI</code></td><td><code>WBA3D5C50FK123456</code></td><td>BMW Serie 3 320d</td><td>2020</td><td>DIESEL</td><td>98.000</td><td>MECANICO</td><td>C</td><td><code>TALLER</code></td><td>14/06/2026</td><td>COPART</td><td>14.800</td><td>500</td><td>350</td><td>-</td><td>Averia motor, fugas de aceite</td></tr>
+    <tr><td><code>3456JKL</code></td><td><code>WDD1170121N123456</code></td><td>Mercedes Clase A 180</td><td>2019</td><td>GASOLINA</td><td>110.000</td><td>GRANIZO</td><td>C</td><td><code>ACONDICIONADO</code></td><td>05/06/2026</td><td>ADESA</td><td>12.000</td><td>400</td><td>250</td><td>-</td><td>Hundimiento capo y techo por granizo</td></tr>
+    <tr><td><code>7890MNO</code></td><td><code>WF0DXXGCBK9R12345</code></td><td>Ford Focus 1.5 TDCi</td><td>2017</td><td>DIESEL</td><td>134.000</td><td>ACCIDENTAL</td><td>C</td><td><code>EN_VENTA</code></td><td>01/06/2026</td><td>AUTOVIAS</td><td>7.200</td><td>320</td><td>190</td><td>14.500</td><td>Golpe trasero leve, paragolpes</td></tr>
+    <tr><td><code>1122PQR</code></td><td><code>JTD0TRLU1X1234567</code></td><td>Toyota Yaris Hybrid</td><td>2021</td><td>HIBRIDO</td><td>46.000</td><td>-</td><td>ECO</td><td><code>VENDIDO</code></td><td>10/01/2026</td><td>SUBASTAS_RED</td><td>11.000</td><td>700</td><td>320</td><td>16.500</td><td>Sin dano, listo para la venta</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Tipos de dano validos:</strong> <code>ACCIDENTAL</code>, <code>INUNDACION</code>, <code>GRANIZO</code>, <code>INCENDIO</code>, <code>MECANICO</code>, <code>OTRO</code>. <strong>Etiquetas:</strong> <code>0</code>, <code>ECO</code>, <code>B</code>, <code>C</code>. <strong>Combustible:</strong> <code>GASOLINA</code>, <code>DIESEL</code>, <code>HIBRIDO</code>, <code>ELECTRICO</code>, <code>GAS_LPG</code>, <code>GAS_CNG</code>.
+</div>
 
 <div class="diagram">
     <div class="title">Distribucion de Vehiculos por Estado</div>
@@ -1664,14 +1794,25 @@ Total: 6 vehiculos
     <strong>Alertas de stock:</strong> 4 materiales apareceran en el panel de alertas del dashboard (bomba de agua, correa distribucion, refrigerante, neumaticos).
 </div>
 
+<div class="warning-box">
+    <strong>Origen de estos materiales:</strong> En el ejemplo completo, los materiales listados arriba <strong>no</strong> se dan de alta manualmente sueltos. Se registran mediante <strong>compras con factura</strong> (Inventario &gt; "Registrar Compra"), lo que incrementa su stock y genera el asiento de entrada a inventario. Por ejemplo, la compra de "Aceite motor 5W30" (20 litros x 8,50 EUR, proveedor Distribuciones Auto S.L., IVA 21%) genera:
+    <pre><code>Asiento de Compra de Inventario:
+  DEBE  300 (Compras)          170,00 EUR
+  DEBE  472 (IVA soportado)     35,70 EUR
+  HABER 410 (Acreedores)         205,70 EUR
+  Verificacion: DEBE (205,70) = HABER (205,70) -> CUADRADO</code></pre>
+    Al consumirse en OTs (MaterialUsado), su importe suma al coste de la OT (cuenta 623 Reparaciones, REBU IVA no deducible).
+</div>
+
 <h3>11.1.3 Ordenes de Trabajo (5 OTs)</h3>
+<p>Formulario en <strong>Taller &gt; Nueva Orden de Trabajo</strong>. Campos del <code>OrdenTrabajoForm</code>: Vehiculo, Operario, Titulo, Descripcion, Horas estimadas, Horas reales, Estado, Fecha inicio, Fecha fin.</p>
 <table>
-    <tr><th>OT</th><th>Vehiculo</th><th>Operario</th><th>Estado</th><th>Descripcion</th></tr>
-    <tr><td>1</td><td>Seat Leon (5678DEF)</td><td>mecanico1</td><td><code>EN_PROGRESO</code></td><td>Reparacion paragolpes delantero</td></tr>
-    <tr><td>2</td><td>BMW (9012GHI)</td><td>mecanico2</td><td><code>COMPLETADA</code></td><td>Cambio de aceite y filtros</td></tr>
-    <tr><td>3</td><td>BMW (9012GHI)</td><td>mecanico1</td><td><code>PENDIENTE</code></td><td>Reparacion sistema de frenos</td></tr>
-    <tr><td>4</td><td>Mercedes (3456JKL)</td><td>mecanico1</td><td><code>COMPLETADA</code></td><td>Pintura capo y techo</td></tr>
-    <tr><td>5</td><td>Mercedes (3456JKL)</td><td>mecanico2</td><td><code>COMPLETADA</code></td><td>Cambio cristales laterales</td></tr>
+    <tr><th>OT</th><th>Vehiculo</th><th>Operario</th><th>Titulo</th><th>Descripcion</th><th>H. Est.</th><th>H. Reales</th><th>Estado</th><th>F. Inicio</th><th>F. Fin</th></tr>
+    <tr><td>1</td><td>Seat Leon (5678DEF)</td><td>mecanico1</td><td>Reparacion paragolpes delantero</td><td>Reparar golpe frontal, sustituir paragolpes y faro derecho</td><td>8,0</td><td>6,5</td><td><code>EN_PROGRESO</code></td><td>30/06/2026</td><td>-</td></tr>
+    <tr><td>2</td><td>BMW (9012GHI)</td><td>mecanico2</td><td>Cambio de aceite y filtros</td><td>Mantenimiento preventivo: aceite 5W30 y filtro aire</td><td>2,0</td><td>1,5</td><td><code>COMPLETADA</code></td><td>01/07/2026</td><td>01/07/2026</td></tr>
+    <tr><td>3</td><td>BMW (9012GHI)</td><td>mecanico1</td><td>Reparacion sistema de frenos</td><td>Sustitucion pastillas y discos delanteros</td><td>4,0</td><td>-</td><td><code>PENDIENTE</code></td><td>-</td><td>-</td></tr>
+    <tr><td>4</td><td>Mercedes (3456JKL)</td><td>mecanico1</td><td>Pintura capo y techo</td><td>Pulido y pintura tras reparacion granizo</td><td>10,0</td><td>9,0</td><td><code>COMPLETADA</code></td><td>16/06/2026</td><td>18/06/2026</td></tr>
+    <tr><td>5</td><td>Mercedes (3456JKL)</td><td>mecanico2</td><td>Cambio cristales laterales</td><td>Sustitucion cristal puerta delantera izquierda</td><td>3,0</td><td>2,5</td><td><code>COMPLETADA</code></td><td>19/06/2026</td><td>19/06/2026</td></tr>
 </table>
 
 <h3>11.1.4 Materiales Usados en OTs</h3>
@@ -1685,14 +1826,22 @@ Total: 6 vehiculos
 </table>
 
 <h3>11.1.5 Ventas (1 venta B2C)</h3>
+<p>Formulario en <strong>Ventas &gt; Nueva Venta</strong>. Campos del <code>VentaForm</code>: Vehiculo, Tipo cliente, Nombre, DNI, Direccion, Poblacion, Provincia, CP, Telefono, Email, Fecha venta, Metodo pago, Precio venta.</p>
 <table>
     <tr><th>Campo</th><th>Valor</th></tr>
     <tr><td>Vehiculo</td><td>Toyota Yaris Hybrid (1122PQR)</td></tr>
     <tr><td>Tipo cliente</td><td>PARTICULAR (B2C)</td></tr>
-    <tr><td>Cliente</td><td>Carlos Garcia Lopez (54321678K)</td></tr>
+    <tr><td>Cliente nombre</td><td>Carlos Garcia Lopez</td></tr>
+    <tr><td>Cliente DNI</td><td>54321678K</td></tr>
+    <tr><td>Cliente direccion</td><td>Calle Mayor 15, 3B</td></tr>
+    <tr><td>Cliente poblacion</td><td>Alcala de Henares</td></tr>
+    <tr><td>Cliente provincia</td><td>Madrid</td></tr>
+    <tr><td>Cliente CP</td><td>28801</td></tr>
+    <tr><td>Cliente telefono</td><td>612345678</td></tr>
+    <tr><td>Cliente email</td><td>carlos.garcia@email.com</td></tr>
     <tr><td>Precio venta</td><td>16.500,00 EUR</td></tr>
     <tr><td>Metodo pago</td><td>TRANSFERENCIA</td></tr>
-    <tr><td>Fecha</td><td>1 Julio 2026</td></tr>
+    <tr><td>Fecha venta</td><td>1 Julio 2026</td></tr>
 </table>
 
 <h3>11.1.6 Garantias y Reparaciones</h3>
@@ -1722,17 +1871,22 @@ Total: 6 vehiculos
 </table>
 
 <h3>11.1.9 Gastos de Estructura (8 categorias)</h3>
+<p>Formulario en <strong>Gastos &gt; Nuevo Gasto</strong>. Campos del <code>GastoForm</code>: Fecha factura, Proveedor/Acreedor, CIF/NIF, Numero factura, Categoria, Descripcion, Base imponible, Tipo IVA (%), Retencion IRPF (%), Pagado, Fecha pago.</p>
 <table>
-    <tr><th>Categoria</th><th>Proveedor</th><th>Base</th><th>Total</th></tr>
-    <tr><td>ARRENDAMIENTO</td><td>Propietario Galpon S.L.</td><td>2.000,00 EUR</td><td>2.040,00 EUR</td></tr>
-    <tr><td>SUMINISTROS</td><td>Endesa Energia S.A.U.</td><td>350,00 EUR</td><td>423,50 EUR</td></tr>
-    <tr><td>LIMPIEZA_PROD</td><td>Distrilimpia S.L.</td><td>180,00 EUR</td><td>217,80 EUR</td></tr>
-    <tr><td>LIMPIEZA_SERV</td><td>CleanPro Servicios S.A.</td><td>450,00 EUR</td><td>544,50 EUR</td></tr>
-    <tr><td>NOMINAS_ESTR</td><td>Nomina interna</td><td>1.600,00 EUR</td><td>1.600,00 EUR</td></tr>
-    <tr><td>SEG_SOCIAL_ESTR</td><td>Seguridad Social</td><td>504,00 EUR</td><td>504,00 EUR</td></tr>
-    <tr><td>IMPUESTOS_ESTR</td><td>Ayuntamiento Alcala</td><td>320,00 EUR</td><td>320,00 EUR</td></tr>
-    <tr><td>OTROS</td><td>Jardines y Paisajismo S.L.</td><td>120,00 EUR</td><td>145,20 EUR</td></tr>
+    <tr><th>Categoria</th><th>Proveedor</th><th>CIF/NIF</th><th>Nº Factura</th><th>Base</th><th>IVA%</th><th>IRPF%</th><th>Total</th><th>Pagado</th><th>F. Pago</th></tr>
+    <tr><td>ARRENDAMIENTO</td><td>Propietario Galpon S.L.</td><td>B12345678</td><td>F-2026-001</td><td>2.000,00</td><td>2%</td><td>0%</td><td>2.040,00</td><td>Si</td><td>05/07/2026</td></tr>
+    <tr><td>SUMINISTROS</td><td>Endesa Energia S.A.U.</td><td>A12345678</td><td>EN-2026-456</td><td>350,00</td><td>21%</td><td>0%</td><td>423,50</td><td>Si</td><td>10/07/2026</td></tr>
+    <tr><td>LIMPIEZA_PROD</td><td>Distrilimpia S.L.</td><td>B87654321</td><td>DL-2026-089</td><td>180,00</td><td>21%</td><td>0%</td><td>217,80</td><td>Si</td><td>12/07/2026</td></tr>
+    <tr><td>LIMPIEZA_SERV</td><td>CleanPro Servicios S.A.</td><td>A87654321</td><td>CP-2026-201</td><td>450,00</td><td>21%</td><td>0%</td><td>544,50</td><td>No</td><td>-</td></tr>
+    <tr><td>NOMINAS_ESTR</td><td>Nomina interna</td><td>-</td><td>NOM-2026-07</td><td>1.600,00</td><td>0%</td><td>0%</td><td>1.600,00</td><td>Si</td><td>30/06/2026</td></tr>
+    <tr><td>SEG_SOCIAL_ESTR</td><td>Seguridad Social</td><td>B00000000</td><td>SS-2026-07</td><td>504,00</td><td>0%</td><td>0%</td><td>504,00</td><td>Si</td><td>30/06/2026</td></tr>
+    <tr><td>IMPUESTOS_ESTR</td><td>Ayuntamiento Alcala</td><td>B11111111</td><td>IBI-2026-01</td><td>320,00</td><td>0%</td><td>0%</td><td>320,00</td><td>Si</td><td>15/07/2026</td></tr>
+    <tr><td>OTROS</td><td>Jardines y Paisajismo S.L.</td><td>B22222222</td><td>JP-2026-014</td><td>120,00</td><td>21%</td><td>0%</td><td>145,20</td><td>No</td><td>-</td></tr>
 </table>
+
+<div class="info-box">
+    <strong>Calculo del Total:</strong> <code>Total = Base + (Base x IVA%) - (Base x IRPF%)</code>. Ej.: ARRENDAMIENTO = 2.000 + (2.000 x 2%) = 2.040. El campo <code>Tipo IVA</code> admite 0-21% y <code>Retencion IRPF</code> 0-100%. Marque <code>Pagado</code> e indique <code>Fecha pago</code> solo cuando el gasto ya este abonado.
+</div>
 
 <h2>11.2 Ejecutar el Script</h2>
 
@@ -1747,19 +1901,20 @@ python create_full_test.py</code></pre>
     <li>Verifique los resultados en <code>http://localhost:8000/erp/</code></li>
 </ol>
 
-<h3>11.2.2 En Produccion (Servidor)</h3>
+<h3>11.2.2 En Produccion (Render)</h3>
 <ol class="steps">
-    <li>Acceda al servidor por SSH:
-        <pre><code>ssh root@79.143.89.97</code></pre>
+    <li>Abra la consola del Web Service en el panel de Render (<strong>Shell</strong>).</li>
+    <li>El script ya forma parte del repositorio desplegado. Ejecutelo directamente:
+        <pre><code>python create_full_test.py</code></pre>
     </li>
-    <li>Copie el script al servidor (si no esta):
-        <pre><code>scp create_full_test.py root@79.143.89.97:/home/infoaeromar/eurocar/backend/</code></pre>
-    </li>
-    <li>Ejecute dentro del contenedor Docker:
-        <pre><code>cd /home/infoaeromar/eurocar
-docker compose -f docker-compose.prod.yml exec backend python create_full_test.py</code></pre>
+    <li>Alternativamente, para crear solo los usuarios de produccion:
+        <pre><code>python create_users_prod.py</code></pre>
     </li>
 </ol>
+
+<div class="warning-box">
+    <strong>Cuidado en produccion:</strong> <code>create_full_test.py</code> genera datos de ejemplo (vehiculos, OTs, ventas, asientos). Ejecutalo solo en un entorno de pruebas o en el arranque inicial, no sobre datos reales.
+</div>
 
 <div class="warning-box">
     <strong>IMPORTANTE:</strong> El script usa <code>get_or_create</code> para todos los registros, por lo que es seguro ejecutarlo multiples veces sin crear duplicados.
@@ -2104,7 +2259,7 @@ INGRESOS (Cuenta 700 - Ventas)
 
 <h3>13.1.3 Acceder al PyG</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Informes</strong></li>
+    <li>Navegue a <strong>Contabilidad > Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
     <li>Haga clic en <strong>"Cuenta de Resultados (PyG)"</strong></li>
     <li>Seleccione el periodo (trimestre o rango de fechas)</li>
     <li>El informe muestra todas las lineas con importes y porcentajes</li>
@@ -2172,7 +2327,7 @@ ACTIVO CORRIENTE                | PASIVO CORRIENTE
 <pre><code>Total Activo = Total Pasivo + Patrimonio Neto
 
 Si no cuadra, el informe muestra un error indicando
-la diferencia y las cuentas que no estan平衡.</code></pre>
+la diferencia y las cuentas que no estan cuadradas.</code></pre>
 
 <h2 id="capitulo-13-3">13.3 Libro de IVA (Modelo 303/390)</h2>
 
@@ -2205,7 +2360,7 @@ la diferencia y las cuentas que no estan平衡.</code></pre>
 
 <h3>13.3.3 Acceder al Informe</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Informes</strong></li>
+    <li>Navegue a <strong>Contabilidad > Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
     <li>Haga clic en <strong>"Libro de IVA"</strong></li>
     <li>Seleccione el trimestre</li>
     <li>El informe muestra IVA repercutido, soportado y cuota a liquidar</li>
@@ -2269,7 +2424,7 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
 
 <h3>14.1.3 Descargar el Archivo</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong></li>
+    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong> (o directamente a <code>/erp/contabilidad/exportar/390/</code>)</li>
     <li>Haga clic en <strong>"Descargar Modelo 390"</strong></li>
     <li>El archivo <code>Modelo390_2026.txt</code> se descarga automaticamente</li>
     <li>Suba el archivo al portal de la AEAT</li>
@@ -2306,7 +2461,7 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
 
 <h3>14.2.4 Descargar el CSV</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong></li>
+    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong> (o directamente a <code>/erp/contabilidad/exportar/303/</code>)</li>
     <li>Haga clic en <strong>"Descargar Pre-303"</strong></li>
     <li>Seleccione el trimestre</li>
     <li>El archivo CSV se descarga automaticamente</li>
@@ -2354,7 +2509,7 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
 
 <h3>14.3.3 Descargar el XML</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong></li>
+    <li>Navegue a <strong>Contabilidad > Informes > IVA</strong> (o directamente a <code>/erp/contabilidad/exportar/sii/</code>)</li>
     <li>Haga clic en <strong>"Descargar SII"</strong></li>
     <li>Seleccione el trimestre</li>
     <li>El archivo XML se descarga automaticamente</li>
@@ -2377,7 +2532,7 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
 
 <h3>14.4.2 Configurar Tareas Programadas</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Tareas Programadas</strong></li>
+    <li>Navegue a <strong>Contabilidad > Tareas Programadas</strong> (<code>/erp/contabilidad/tareas/</code>)</li>
     <li>Haga clic en <strong>"Crear Tarea Programada"</strong></li>
     <li>Seleccione la tarea a programar</li>
     <li>Defina la frecuencia (diaria, semanal, mensual, trimestral)</li>

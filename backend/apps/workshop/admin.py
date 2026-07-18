@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import OrdenTrabajo, Material, MaterialUsado
+from .models import OrdenTrabajo, Material, MaterialUsado, CompraMaterial
 
 
 class MaterialUsadoInline(admin.TabularInline):
@@ -44,3 +44,15 @@ class MaterialAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).order_by('nombre')
+
+
+@admin.register(CompraMaterial)
+class CompraMaterialAdmin(admin.ModelAdmin):
+    list_display = [
+        'material', 'cantidad', 'precio_unitario', 'proveedor',
+        'cif_nif', 'fecha_compra', 'tipo_inventario',
+        'documento_pdf', 'asiento_contable',
+    ]
+    list_filter = ['tipo_inventario', 'fecha_compra', 'proveedor']
+    search_fields = ['material__nombre', 'proveedor', 'cif_nif']
+    readonly_fields = ['base_imponible', 'cuota_iva', 'asiento_contable', 'created_at']

@@ -17,6 +17,10 @@
         </div>
         {% if is_admin %}
         <div class="flex gap-2">
+            <a href="{% url 'workshop:compra_material_create' %}" 
+               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition">
+                🛒 Registrar Compra
+            </a>
             <a href="{% url 'workshop:material_update' material.pk %}" 
                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                 ✏️ Editar
@@ -166,6 +170,23 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Compras registradas -->
+            {% if compras %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">🛒 Compras Registradas</h3>
+                <div class="space-y-2">
+                    {% for compra in compras %}
+                    <div class="flex justify-between text-sm border-b pb-2">
+                        <span>{{ compra.fecha_compra }} · {{ compra.proveedor }}</span>
+                        <span class="font-medium">
+                            {{ compra.cantidad }} × €{{ compra.precio_unitario|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

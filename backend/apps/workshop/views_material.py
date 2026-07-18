@@ -2,8 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum, Count, F, ExpressionWrapper, DecimalField
-from .models import Material, MaterialUsado, OrdenTrabajo
-from .forms import MaterialForm
+from django.db import transaction
+from django.core.files import File
+from .models import Material, MaterialUsado, OrdenTrabajo, CompraMaterial
+from .forms import MaterialForm, CompraMaterialForm
 
 
 @login_required
@@ -68,11 +70,14 @@ def material_detail(request, pk):
         'veces_usado': usos.count(),
         'valor_stock': material.stock_actual * material.precio_unitario,
     }
+
+    compras = material.compras.select_related('asiento_contable').all()
     
     context = {
         'material': material,
         'usos': usos,
         'stats': stats,
+        'compras': compras,
     }
     return render(request, 'workshop/material_detail.html', context)
 
@@ -103,6 +108,68 @@ def material_create(request):
         'action': 'crear',
     }
     return render(request, 'workshop/material_form.html', context)
+
+
+@login_required
+def compra_material_create(request):
+    """Registrar la compra de material de inventario (entrada a stock + asiento)."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para registrar compras de material.')
+        return redirect('workshop:material_list')
+
+    if request.method == 'POST':
+        form = CompraMaterialForm(request.POST, request.FILES)
+        if form.is_valid():
+            nombre_nuevo = form.cleaned_data.get('nombre_material_nuevo')
+            unidad_nueva = form.cleaned_data.get('unidad_material_nuevo')
+            with transaction.atomic():
+                if nombre_nuevo:
+                    material = Material.objects.create(
+                        nombre=nombre_nuevo,
+                        unidad=unidad_nueva or 'ud',
+                        precio_unitario=form.cleaned_data['precio_unitario'],
+                    )
+                    compra = form.save(commit=False)
+                    compra.material = material
+                else:
+                    compra = form.save(commit=False)
+                compra.created_by = request.user
+                # El save() del modelo ya incrementa el stock del material
+                compra.save()
+            try:
+                asiento = compra.crear_asiento_contable()
+                # Postear automaticamente: el asiento de compra siempre cuadra
+                if asiento.esta_cuadrado:
+                    asiento.estado = 'POSTEADO'
+                    asiento.save()
+                    messages.success(
+                        request,
+                        f'Compra de {compra.material.nombre} registrada. '
+                        f'Asiento #{asiento.numero} creado y posteado.'
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        f'Compra registrada, pero el asiento #{asiento.numero} '
+                        f'NO esta cuadrado y quedo en borrador.'
+                    )
+                return redirect('accounting:detail', pk=asiento.pk)
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Compra registrada, pero no se pudo crear el asiento: {e}'
+                )
+            return redirect('workshop:material_detail', pk=compra.material.pk)
+        else:
+            messages.error(request, 'Por favor, corrija los errores del formulario.')
+    else:
+        form = CompraMaterialForm()
+
+    context = {
+        'form': form,
+        'materiales': Material.objects.all().order_by('nombre'),
+    }
+    return render(request, 'workshop/material_compra_form.html', context)
 
 
 @login_required

@@ -187,3 +187,146 @@ class MaterialUsado(models.Model):
         if not self.pk:  # Solo al crear, no al editar
             self.material.decrementar_stock(self.cantidad)
         super().save(*args, **kwargs)
+
+
+class CompraMaterial(models.Model):
+    """Compra de material de inventario de taller con factura y asiento contable."""
+
+    TIPOS_INVENTARIO = [
+        ('300', 'Compras (Grupo 3 - Existencias)'),
+        ('310', 'Mercaderías (A)'),
+        ('320', 'Materias primas (A)'),
+        ('330', 'Otros aprovisionamientos (A)'),
+    ]
+
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.PROTECT,
+        related_name='compras',
+        verbose_name='material',
+    )
+    cantidad = models.DecimalField(
+        max_digits=8, decimal_places=2, verbose_name='cantidad'
+    )
+    precio_unitario = models.DecimalField(
+        max_digits=8, decimal_places=2, verbose_name='precio unitario'
+    )
+    fecha_compra = models.DateField(verbose_name='fecha de compra')
+    proveedor = models.CharField(max_length=150, verbose_name='proveedor')
+    cif_nif = models.CharField(max_length=15, verbose_name='CIF/NIF')
+    tipo_inventario = models.CharField(
+        max_length=3, choices=TIPOS_INVENTARIO, default='300',
+        verbose_name='cuenta de inventario',
+    )
+    base_imponible = models.DecimalField(
+        max_digits=12, decimal_places=2, editable=False, default=Decimal('0'),
+        verbose_name='base imponible',
+    )
+    tipo_iva = models.DecimalField(
+        max_digits=4, decimal_places=2, default=Decimal('21.00'),
+        verbose_name='tipo de IVA (%)',
+    )
+    cuota_iva = models.DecimalField(
+        max_digits=12, decimal_places=2, editable=False, default=Decimal('0'),
+        verbose_name='cuota IVA',
+    )
+    documento_pdf = models.FileField(
+        upload_to='facturas_gastos/', null=True, blank=True,
+        verbose_name='factura PDF',
+    )
+    asiento_contable = models.OneToOneField(
+        'accounting.AsientoContable',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='compra_material',
+        verbose_name='asiento contable',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='compras_material_creadas',
+        verbose_name='creado por',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'compra de material'
+        verbose_name_plural = 'compras de material'
+        ordering = ['-fecha_compra', '-created_at']
+
+    def __str__(self):
+        return f"Compra {self.material} x{self.cantidad} - {self.proveedor}"
+
+    def save(self, *args, **kwargs):
+        from decimal import Decimal
+        self.base_imponible = (self.cantidad * self.precio_unitario).quantize(
+            Decimal('0.01')
+        )
+        self.cuota_iva = (self.base_imponible * (self.tipo_iva / Decimal('100'))).quantize(
+            Decimal('0.01')
+        )
+        # Entrada a inventario: incrementar stock solo al crear
+        if not self.pk:
+            super().save(*args, **kwargs)
+            self.material.stock_actual += self.cantidad
+            self.material.alerta_stock = (
+                self.material.stock_actual <= self.material.stock_minimo
+            )
+            self.material.save(
+                update_fields=['stock_actual', 'alerta_stock']
+            )
+        else:
+            super().save(*args, **kwargs)
+
+    def crear_asiento_contable(self):
+        """Genera el asiento de entrada a inventario (Grupo 3) + IVA + Proveedor."""
+        from apps.accounting.models import (
+            AsientoContable, MovimientoContable, CuentaContable,
+        )
+        from django.utils import timezone
+
+        codigos_requeridos = [self.tipo_inventario, '472', '410']
+        for codigo in codigos_requeridos:
+            if not CuentaContable.objects.filter(codigo=codigo).exists():
+                raise ValueError(
+                    f'Falta la cuenta contable {codigo} en el plan contable. '
+                    f'Inicialice el plan en Contabilidad > Cuentas > Inicializar.'
+                )
+
+        cuenta_inventario = CuentaContable.objects.get(codigo=self.tipo_inventario)
+        cuenta_iva = CuentaContable.objects.get(codigo='472')
+        cuenta_proveedor = CuentaContable.objects.get(codigo='410')
+
+        from apps.accounting.views import generar_numero_asiento
+        numero = generar_numero_asiento()
+
+        asiento = AsientoContable.objects.create(
+            numero=numero,
+            fecha=self.fecha_compra,
+            concepto=f"Compra inventario: {self.material.nombre} - {self.proveedor}",
+            estado='BORRADOR',
+            tipo_documento='CompraMaterial',
+            documento_id=self.pk,
+            created_by=self.created_by,
+        )
+
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_inventario,
+            debe=self.base_imponible, haber=Decimal('0'),
+            descripcion=f"Entrada inventario {self.material.nombre}",
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_iva,
+            debe=self.cuota_iva, haber=Decimal('0'),
+            descripcion=f"IVA soportado {self.tipo_iva}%",
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=cuenta_proveedor,
+            debe=Decimal('0'), haber=self.base_imponible + self.cuota_iva,
+            descripcion=f"Proveedor: {self.proveedor}",
+        )
+
+        self.asiento_contable = asiento
+        self.save(update_fields=['asiento_contable'])
+        return asiento

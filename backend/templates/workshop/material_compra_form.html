@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Registrar Compra de Material{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{% url 'workshop:material_list' %}" class="text-eurocar-light hover:underline">← Volver a inventario</a>
+        <h1 class="text-2xl font-bold text-gray-800">🛒 Registrar Compra de Material</h1>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+
+        <!-- Errores generales -->
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800 font-medium mb-2">Por favor, corrija los siguientes errores:</p>
+            <ul class="text-red-600 text-sm list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Material y cantidad -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Material *</label>
+                {{ form.material }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                {{ form.cantidad }}
+            </div>
+        </div>
+
+        <!-- Crear material nuevo -->
+        <details class="border rounded-lg p-4 bg-gray-50">
+            <summary class="cursor-pointer font-medium text-gray-700">
+                ¿El material no existe? Crear uno nuevo
+            </summary>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del nuevo material</label>
+                    {{ form.nombre_material_nuevo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unidad de medida</label>
+                    {{ form.unidad_material_nuevo }}
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+                Al guardar se dará de alta el material con stock 0 y se le asociará esta compra.
+                No rellene este bloque si ya seleccionó un material arriba.
+            </p>
+        </details>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Precio Unitario (€) *</label>
+                {{ form.precio_unitario }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Compra *</label>
+                {{ form.fecha_compra }}
+            </div>
+        </div>
+
+        <!-- Proveedor -->
+        <fieldset class="border-t pt-4">
+            <legend class="text-lg font-semibold mb-4">🧾 Datos de la Factura</legend>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor *</label>
+                    {{ form.proveedor }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">CIF/NIF *</label>
+                    {{ form.cif_nif }}
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Factura PDF</label>
+                {{ form.documento_pdf }}
+                <p class="text-sm text-gray-500 mt-1">
+                    Adjunte el PDF de la factura del proveedor (máx. 20 MB). Se guarda en el almacenamiento (R2 en producción).
+                </p>
+            </div>
+        </fieldset>
+
+        <!-- Contable -->
+        <fieldset class="border-t pt-4">
+            <legend class="text-lg font-semibold mb-4">📒 Tratamiento Contable</legend>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cuenta de Inventario *</label>
+                    {{ form.tipo_inventario }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo IVA (%)</label>
+                    {{ form.tipo_iva }}
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+                Al guardar se incrementa el stock del material y se genera y
+                <strong>postea automaticamente</strong> el asiento contable (estado POSTEADO):
+                <strong>DEBE</strong> cuenta de inventario (300/310/320/330) + IVA soportado (472) /
+                <strong>HABER</strong> Acreedores (410). Aparece de inmediato en el libro diario,
+                balance, PyG e IVA.
+            </p>
+        </fieldset>
+
+        <!-- Submit -->
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <a href="{% url 'workshop:material_list' %}"
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                Registrar Compra
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

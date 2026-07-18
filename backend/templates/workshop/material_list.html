@@ -11,10 +11,16 @@
             <p class="text-gray-500">Gestión de insumos del taller</p>
         </div>
         {% if is_admin %}
-        <a href="{% url 'workshop:material_create' %}" 
-           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
-            ➕ Nuevo Material
-        </a>
+        <div class="flex gap-2">
+            <a href="{% url 'workshop:compra_material_create' %}" 
+               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition">
+                🛒 Registrar Compra
+            </a>
+            <a href="{% url 'workshop:material_create' %}" 
+               class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                ➕ Nuevo Material
+            </a>
+        </div>
         {% endif %}
     </div>
     

@@ -75,15 +75,23 @@ def vehiculo_create(request):
     
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
+        estado_es_venta = form.data.get('estado') == 'EN_VENTA'
         imagenes_formset = ImagenVehiculoFormSet(
             request.POST, request.FILES, prefix='imagenes'
-        )
-        if form.is_valid() and imagenes_formset.is_valid():
+        ) if estado_es_venta else None
+        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
-            imagenes_formset.instance = vehiculo
-            imagenes_formset.save()
+            if estado_es_venta:
+                imagenes_formset.instance = vehiculo
+                imagenes_formset.save()
+            elif any(request.FILES.getlist('imagenes-' + k) for k in ('imagen',)) or request.FILES.get('imagen_principal'):
+                messages.error(
+                    request,
+                    'Las imágenes solo se pueden subir cuando el vehículo está en estado EN_VENTA.'
+                )
+                return redirect('vehicles:detail', pk=vehiculo.pk)
             messages.success(
                 request, 
                 f'Vehículo {vehiculo.marca} {vehiculo.modelo} creado correctamente.'
@@ -93,7 +101,7 @@ def vehiculo_create(request):
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
-        imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
+        imagenes_formset = None
     
     context = {
         'form': form,
@@ -114,12 +122,28 @@ def vehiculo_update(request, pk):
     
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
+        estado_es_venta = form.data.get('estado') == 'EN_VENTA'
         imagenes_formset = ImagenVehiculoFormSet(
             request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
-        )
-        if form.is_valid() and imagenes_formset.is_valid():
+        ) if estado_es_venta else None
+        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
+            nuevo_estado = form.cleaned_data.get('estado')
+            # Si el vehículo deja de estar EN_VENTA, eliminar sus imágenes.
+            if nuevo_estado != 'EN_VENTA':
+                if vehiculo.imagen_principal:
+                    vehiculo.imagen_principal.delete(save=False)
+                vehiculo.imagenes.all().delete()
             vehiculo = form.save()
-            imagenes_formset.save()
+            if estado_es_venta:
+                imagenes_formset.instance = vehiculo
+                imagenes_formset.save()
+            elif request.FILES.get('imagen_principal') or any(
+                f'imagenes-{i}-imagen' in request.FILES for i in range(0, 20)
+            ):
+                messages.error(
+                    request,
+                    'Las imágenes solo se pueden subir cuando el vehículo está en estado EN_VENTA.'
+                )
             messages.success(
                 request, 
                 f'Vehículo {vehiculo.marca} {vehiculo.modelo} actualizado correctamente.'
@@ -129,7 +153,7 @@ def vehiculo_update(request, pk):
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm(instance=vehiculo)
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes') if vehiculo.estado == 'EN_VENTA' else None
     
     context = {
         'form': form,

@@ -20,7 +20,7 @@ django.setup()
 
 from apps.accounts.models import User
 from apps.vehicles.models import Vehiculo, ImagenVehiculo
-from apps.workshop.models import OrdenTrabajo, Material, MaterialUsado
+from apps.workshop.models import OrdenTrabajo, Material, MaterialUsado, CompraMaterial
 from apps.sales.models import VentaVehiculo
 from apps.warranty.models import GarantiaVehiculo, HistorialReparacionGarantia
 from apps.attendance.models import Marcaje, ConfiguracionNomina
@@ -70,6 +70,41 @@ for data in materiales_data:
     status = 'CREADO' if created else 'YA EXISTE'
     alerta = ' [ALERTA STOCK]' if m.alerta_stock else ''
     print(f"  {m.nombre}: {m.stock_actual} {m.unidad} (min: {m.stock_minimo}) - {status}{alerta}")
+print()
+
+# 2b. COMPRAS DE MATERIALES (factura + entrada a inventario + asiento)
+print("[2b/10] Registrando compras de materiales (facturas)...")
+compras_data = [
+    {'material': 'Aceite motor 5W30', 'cantidad': Decimal('20'), 'precio_unitario': Decimal('8.50'),
+     'proveedor': 'Distribuciones Auto S.L.', 'cif_nif': 'B11111111', 'tipo_inventario': '300', 'tipo_iva': Decimal('21')},
+    {'material': 'Filtros de aire', 'cantidad': Decimal('10'), 'precio_unitario': Decimal('12.00'),
+     'proveedor': 'Filtros Ibérica S.A.', 'cif_nif': 'B22222222', 'tipo_inventario': '310', 'tipo_iva': Decimal('21')},
+    {'material': 'Neumaticos 205/55R16', 'cantidad': Decimal('4'), 'precio_unitario': Decimal('75.00'),
+     'proveedor': 'Neumáticos Express S.L.', 'cif_nif': 'B33333333', 'tipo_inventario': '330', 'tipo_iva': Decimal('21')},
+]
+for data in compras_data:
+    material_obj = materiales[data['material']]
+    stock_previo = material_obj.stock_actual
+    compra, created = CompraMaterial.objects.get_or_create(
+        material=material_obj,
+        proveedor=data['proveedor'],
+        cif_nif=data['cif_nif'],
+        fecha_compra=date(2026, 6, 20),
+        defaults={
+            'cantidad': data['cantidad'],
+            'precio_unitario': data['precio_unitario'],
+            'tipo_inventario': data['tipo_inventario'],
+            'tipo_iva': data['tipo_iva'],
+            'created_by': admin,
+        },
+    )
+    if created:
+        material_obj.refresh_from_db()
+        compra.crear_asiento_contable()
+        print(f"  {compra.material.nombre}: +{compra.cantidad} {compra.material.unidad} "
+              f"(stock {stock_previo} -> {material_obj.stock_actual}) - Asiento #{compra.asiento_contable.numero}")
+    else:
+        print(f"  {compra.material.nombre}: YA EXISTE")
 print()
 
 # ============================================================

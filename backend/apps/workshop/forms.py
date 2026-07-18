@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import OrdenTrabajo, Material, MaterialUsado
+from .models import OrdenTrabajo, Material, MaterialUsado, CompraMaterial
 from apps.vehicles.models import Vehiculo
 
 User = get_user_model()
@@ -157,3 +157,83 @@ MaterialUsadoFormSet = forms.inlineformset_factory(
     extra=1,
     can_delete=True,
 )
+
+
+class CompraMaterialForm(forms.ModelForm):
+    """Formulario para registrar la compra de material de inventario."""
+
+    nombre_material_nuevo = forms.CharField(
+        required=False, max_length=100, label='Nombre del nuevo material',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': 'Ej: Filtro de aceite',
+        }),
+    )
+    unidad_material_nuevo = forms.CharField(
+        required=False, max_length=20, label='Unidad de medida',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': 'Ej: ud, L, kg',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['material'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        material = cleaned_data.get('material')
+        nombre_nuevo = cleaned_data.get('nombre_material_nuevo')
+        if material and nombre_nuevo:
+            raise forms.ValidationError(
+                'Indique un material existente o cree uno nuevo, pero no ambos.'
+            )
+        if not material and not nombre_nuevo:
+            raise forms.ValidationError(
+                'Seleccione un material existente o indique el nombre de uno nuevo.'
+            )
+        return cleaned_data
+
+    class Meta:
+        model = CompraMaterial
+        fields = [
+            'material', 'cantidad', 'precio_unitario',
+            'fecha_compra', 'proveedor', 'cif_nif',
+            'tipo_inventario', 'tipo_iva', 'documento_pdf',
+        ]
+        widgets = {
+            'material': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'cantidad': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01', 'min': '0.01',
+            }),
+            'precio_unitario': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01', 'min': '0',
+            }),
+            'fecha_compra': forms.DateInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'type': 'date',
+            }),
+            'proveedor': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'Nombre del proveedor',
+            }),
+            'cif_nif': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'B12345678', 'maxlength': '15',
+            }),
+            'tipo_inventario': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'tipo_iva': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'step': '0.01', 'min': '0', 'max': '100',
+            }),
+            'documento_pdf': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+        }

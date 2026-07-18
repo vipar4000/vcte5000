@@ -16,6 +16,7 @@ urlpatterns = [
     # Materiales / Inventario
     path('materiales/', views_material.material_list, name='material_list'),
     path('materiales/nuevo/', views_material.material_create, name='material_create'),
+    path('materiales/comprar/', views_material.compra_material_create, name='compra_material_create'),
     path('materiales/<int:pk>/', views_material.material_detail, name='material_detail'),
     path('materiales/<int:pk>/editar/', views_material.material_update, name='material_update'),
     path('materiales/<int:pk>/eliminar/', views_material.material_delete, name='material_delete'),

@@ -53,10 +53,12 @@
     {% if materiales_alerta %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <h3 class="font-medium text-yellow-800 mb-2">⚠️ Alertas de Inventario</h3>
-        <p class="text-sm text-yellow-700">
-            Hay {{ materiales_alerta|length }} material(es) por debajo del stock mínimo.
-            <a href="{% url 'workshop:material_list' %}" class="underline">Ver inventario →</a>
-        </p>
+            <p class="text-sm text-yellow-700">
+             Hay {{ materiales_alerta|length }} material(es) por debajo del stock mínimo.
+             <a href="{% url 'workshop:material_list' %}" class="underline">Ver inventario →</a>
+             {% if is_admin %} ·
+             <a href="{% url 'workshop:compra_material_create' %}" class="underline">Registrar Compra →</a>{% endif %}
+         </p>
     </div>
     {% endif %}
 
