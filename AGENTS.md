@@ -30,7 +30,7 @@ Run from **repo root** unless noted:
 
 ## Testing
 
-No pytest. `test_modules.py` (root) uses Django `Client`, loads `config.settings.development` (SQLite by default), must run from repo root. **Stale**: it calls root paths (`/vehiculos/`, `/taller/`, `/gastos/`) but ERP views are now under `/erp/`, so those paths hit the SPA catch-all and fail expectations — fix the paths before trusting results (see `config/urls.py:9-20`). It also checks `/accounts/login/` and `/admin/` which still resolve, so partial results are usable.
+No pytest. `test_modules.py` (root) uses Django `Client`, loads `config.settings.development` (SQLite by default), must run from repo root. **Stale**: it calls root paths (`/vehiculos/`, `/taller/`, `/gastos/`) but ERP views are now under `/erp/`, so those paths hit the SPA catch-all and fail. To fix, prefix with `erp/` (e.g. `/erp/vehiculos/`, `/erp/taller/`, `/erp/gastos/`) per `config/urls.py:9-17`; `/accounts/login/` and `/admin/` still resolve so partial results are usable.
 
 Test users (from root `create_test_users.py`):
 

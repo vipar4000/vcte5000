@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}R Car Rogil ERP - Nueva Inversión Inicial{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'expenses:inversion_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+            ← Volver a inversiones
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-6">🏗️ Asistente de Inversión Inicial</h2>
+
+        {% if messages %}
+        <div class="space-y-2 mb-6">
+            {% for message in messages %}
+            <div class="p-3 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" id="inversionForm" class="space-y-8">
+            {% csrf_token %}
+
+            <!-- SECCIÓN 1: CABECERA -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 font-semibold text-gray-700">1. Datos de la Factura</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Emisión *</label>
+                        {{ form.fecha_emision }}
+                        {{ form.fecha_emision.errors }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor/Acreedor *</label>
+                        {{ form.proveedor_acreedor }}
+                        {{ form.proveedor_acreedor.errors }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Número de Factura *</label>
+                        {{ form.numero_factura }}
+                        {{ form.numero_factura.errors }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Forma de Pago (Banco 572) *</label>
+                        {{ form.forma_pago }}
+                        {{ form.forma_pago.errors }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Total Factura Físico (€) *</label>
+                        {{ form.total_factura_fisico }}
+                        {{ form.total_factura_fisico.errors }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Factura PDF (obligatorio)</label>
+                        <div id="dropzone" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400">
+                            <p class="text-sm text-gray-500">Arrastra y suelta (PDF, PNG, JPEG) o haz clic para seleccionar</p>
+                            {{ form.documento_pdf }}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">{{ form.documento_pdf.help_text }}</p>
+                        {{ form.documento_pdf.errors }}
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- SECCIÓN 2: LÍNEAS -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 font-semibold text-gray-700">2. Desglose de Líneas (Split Billing)</legend>
+
+                {{ formset.management_form }}
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm" id="lineasTable">
+                        <thead class="bg-gray-100 text-left">
+                            <tr>
+                                <th class="px-2 py-2">Categoría</th>
+                                <th class="px-2 py-2">Concepto</th>
+                                <th class="px-2 py-2">Base Imponible (€)</th>
+                                <th class="px-2 py-2">IVA (%)</th>
+                                <th class="px-2 py-2">Cuota IVA</th>
+                                <th class="px-2 py-2">Total Línea</th>
+                                <th class="px-2 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineasBody">
+                            {% for linea in formset %}
+                            <tr class="linea-row border-t">
+                                {% for hidden in linea.hidden_fields %}{{ hidden }}{% endfor %}
+                                <td class="px-2 py-2">{{ linea.categoria }}</td>
+                                <td class="px-2 py-2">{{ linea.concepto }}</td>
+                                <td class="px-2 py-2">{{ linea.base_imponible }}</td>
+                                <td class="px-2 py-2">{{ linea.tipo_iva }}</td>
+                                <td class="px-2 py-2 text-gray-500 cuota-iva">—</td>
+                                <td class="px-2 py-2 font-semibold total-linea">—</td>
+                                <td class="px-2 py-2">{{ linea.DELETE }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="button" id="addLinea"
+                        class="mt-3 bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-lg text-sm">
+                    + Añadir Línea
+                </button>
+
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg text-sm flex justify-between">
+                    <span>Total calculado de líneas: <strong id="totalCalculado">0.00 €</strong></span>
+                    <span id="descuadreMsg" class="text-gray-500"></span>
+                </div>
+            </fieldset>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <a href="{% url 'expenses:inversion_list' %}" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg">Cancelar</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Guardar Inversión</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<template id="lineaTemplate">
+    <tr class="linea-row border-t">
+        <td class="px-2 py-2">{{ formset.empty_form.categoria }}</td>
+        <td class="px-2 py-2">{{ formset.empty_form.concepto }}</td>
+        <td class="px-2 py-2">{{ formset.empty_form.base_imponible }}</td>
+        <td class="px-2 py-2">{{ formset.empty_form.tipo_iva }}</td>
+        <td class="px-2 py-2 text-gray-500 cuota-iva">—</td>
+        <td class="px-2 py-2 font-semibold total-linea">—</td>
+        <td class="px-2 py-2"></td>
+    </tr>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const totalFisicoInput = document.getElementById('id_total_factura_fisico');
+    const totalCalculadoEl = document.getElementById('totalCalculado');
+    const descuadreMsg = document.getElementById('descuadreMsg');
+    const tbody = document.getElementById('lineasBody');
+    const addBtn = document.getElementById('addLinea');
+    const template = document.getElementById('lineaTemplate');
+    const totalForms = document.getElementById('id_lineas-TOTAL_FORMS');
+
+    function recalc() {
+        let total = 0;
+        document.querySelectorAll('.linea-row').forEach(row => {
+            const base = parseFloat(row.querySelector('.base-imponible')?.value || 0) || 0;
+            const iva = parseFloat(row.querySelector('.tipo-iva')?.value || 0) || 0;
+            const cuota = base * iva / 100;
+            const lineaTotal = base + cuota;
+            total += lineaTotal;
+            const cuotaCell = row.querySelector('.cuota-iva');
+            const totalCell = row.querySelector('.total-linea');
+            if (cuotaCell) cuotaCell.textContent = cuota.toFixed(2) + ' €';
+            if (totalCell) totalCell.textContent = lineaTotal.toFixed(2) + ' €';
+        });
+        totalCalculadoEl.textContent = total.toFixed(2) + ' €';
+
+        const fisico = parseFloat(totalFisicoInput?.value || 0) || 0;
+        if (fisico > 0) {
+            if (Math.abs(total - fisico) < 0.01) {
+                descuadreMsg.innerHTML = '<span class="text-green-600">✔ Cuadrado</span>';
+            } else {
+                descuadreMsg.innerHTML = '<span class="text-red-600">✘ Descuadre: diff ' + (total - fisico).toFixed(2) + ' €</span>';
+            }
+        } else {
+            descuadreMsg.textContent = '';
+        }
+    }
+
+    // Event delegation for cascade calc
+    tbody.addEventListener('input', recalc);
+    if (totalFisicoInput) totalFisicoInput.addEventListener('input', recalc);
+
+    // Add line via clone of empty_form
+    addBtn.addEventListener('click', function () {
+        const index = parseInt(totalForms.value, 10);
+        const clone = template.content.firstElementChild.cloneNode(true);
+        clone.innerHTML = clone.innerHTML.replace(/__prefix__/g, index);
+        tbody.appendChild(clone);
+        totalForms.value = index + 1;
+        recalc();
+    });
+
+    // Drag & drop
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('id_documento_pdf');
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('border-blue-500'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-blue-500'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('border-blue-500');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+            }
+        });
+    }
+
+    recalc();
+});
+</script>
+{% endblock %}

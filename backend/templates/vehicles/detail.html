@@ -111,6 +111,10 @@
                         <span class="font-bold">Coste Total Vehículo</span>
                         <span class="font-bold">€{{ coste_total|floatformat:2 }}</span>
                     </div>
+                    <a href="{% url 'vehicles:costes_report' vehiculo.bastidor %}"
+                       class="block mt-3 text-center bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-lg text-sm">
+                        🔍 Ver trazabilidad de costes (Cost-Pooling)
+                    </a>
                 </div>
             </div>
             

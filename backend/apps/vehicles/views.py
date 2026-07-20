@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
+from decimal import Decimal
 from .models import Vehiculo, ImagenVehiculo
 from .forms import VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet
 
@@ -221,3 +222,45 @@ def vehiculo_cambiar_estado(request, pk):
             messages.error(request, 'Estado no válido.')
     
     return redirect('vehicles:detail', pk=pk)
+
+
+@login_required
+def vehiculo_costes_report(request, bastidor):
+    """REQ-01: Trazabilidad por vehículo (Cost-Pooling).
+
+    Consolida en tiempo real todos los costes asociados a un NÚMERO_BASTIDOR:
+    precio subasta + tasas + grúa + repuestos internos consumidos (OTs).
+    """
+    vehiculo = get_object_or_404(Vehiculo, bastidor__iexact=bastidor)
+
+    from apps.workshop.models import OrdenTrabajo, MaterialUsado
+
+    ots = OrdenTrabajo.objects.filter(vehiculo=vehiculo)
+    materiales_usados = MaterialUsado.objects.filter(orden_trabajo__vehiculo=vehiculo)
+
+    repuestos_internos = sum((mu.subtotal for mu in materiales_usados), Decimal('0'))
+
+    # Costes de adquisición
+    precio_subasta = vehiculo.precio_subasta
+    tasas_subasta = vehiculo.tasas_sala
+    grua = vehiculo.logistica_grua
+    coste_inicial = vehiculo.coste_inicial
+    coste_reparacion = vehiculo.coste_reparacion
+
+    total_coste = coste_inicial + coste_reparacion
+
+    context = {
+        'vehiculo': vehiculo,
+        'ots': ots,
+        'materiales_usados': materiales_usados,
+        'desglose': {
+            'precio_subasta': precio_subasta,
+            'tasas_subasta': tasas_subasta,
+            'grua': grua,
+            'coste_inicial': coste_inicial,
+            'coste_reparacion': coste_reparacion,
+            'repuestos_internos': repuestos_internos,
+        },
+        'total_coste': total_coste,
+    }
+    return render(request, 'vehicles/costes_report.html', context)

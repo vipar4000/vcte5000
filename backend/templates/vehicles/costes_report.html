@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}R Car Rogil ERP - Trazabilidad de Costes{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'vehicles:detail' vehiculo.pk %}" class="text-blue-600 hover:text-blue-800 text-sm">
+            ← Volver al vehículo
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-1">🔍 Trazabilidad de Costes (Cost-Pooling)</h2>
+        <p class="text-sm text-gray-500 mb-4">
+            Bastidor: <strong>{{ vehiculo.bastidor }}</strong> —
+            {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.matricula }})
+        </p>
+
+        <h3 class="font-semibold text-gray-700 mb-2">Desglose consolidado</h3>
+        <table class="w-full text-sm mb-6">
+            <tbody>
+                <tr class="border-t"><td class="px-2 py-2">Precio Subasta / Adjudicación</td><td class="px-2 py-2 text-right">€{{ desglose.precio_subasta|floatformat:2 }}</td></tr>
+                <tr class="border-t"><td class="px-2 py-2">Tasas de Subasta</td><td class="px-2 py-2 text-right">€{{ desglose.tasas_subasta|floatformat:2 }}</td></tr>
+                <tr class="border-t"><td class="px-2 py-2">Grúa / Logística</td><td class="px-2 py-2 text-right">€{{ desglose.grua|floatformat:2 }}</td></tr>
+                <tr class="border-t bg-gray-50"><td class="px-2 py-2 font-medium">Coste Inicial (subasta + tasas + grúa)</td><td class="px-2 py-2 text-right font-medium">€{{ desglose.coste_inicial|floatformat:2 }}</td></tr>
+                <tr class="border-t"><td class="px-2 py-2">Repuestos internos consumidos (OTs)</td><td class="px-2 py-2 text-right">€{{ desglose.repuestos_internos|floatformat:2 }}</td></tr>
+                <tr class="border-t"><td class="px-2 py-2">Mano de obra y otros (OTs)</td><td class="px-2 py-2 text-right">€{{ desglose.coste_reparacion|floatformat:2 }}</td></tr>
+            </tbody>
+            <tfoot>
+                <tr class="border-t bg-eurocar-blue text-white">
+                    <td class="px-2 py-2 font-bold">COSTE TOTAL DEL VEHÍCULO</td>
+                    <td class="px-2 py-2 text-right font-bold">€{{ total_coste|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <h3 class="font-semibold text-gray-700 mb-2">Órdenes de Trabajo ({{ ots.count }})</h3>
+        <table class="w-full text-sm mb-6">
+            <thead class="bg-gray-100 text-left">
+                <tr><th class="px-2 py-2">OT</th><th class="px-2 py-2">Título</th><th class="px-2 py-2">Coste</th></tr>
+            </thead>
+            <tbody>
+                {% for ot in ots %}
+                <tr class="border-t"><td class="px-2 py-2">OT-{{ ot.pk }}</td><td class="px-2 py-2">{{ ot.titulo }}</td><td class="px-2 py-2 text-right">€{{ ot.coste_total|floatformat:2 }}</td></tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-2 py-3 text-center text-gray-500">Sin órdenes de trabajo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3 class="font-semibold text-gray-700 mb-2">Repuestos Internos Consumidos ({{ materiales_usados.count }})</h3>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 text-left">
+                <tr><th class="px-2 py-2">Material</th><th class="px-2 py-2">Cantidad</th><th class="px-2 py-2">Subtotal</th></tr>
+            </thead>
+            <tbody>
+                {% for mu in materiales_usados %}
+                <tr class="border-t"><td class="px-2 py-2">{{ mu.material.nombre }}</td><td class="px-2 py-2">{{ mu.cantidad }}</td><td class="px-2 py-2 text-right">€{{ mu.subtotal|floatformat:2 }}</td></tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-2 py-3 text-center text-gray-500">Sin repuestos consumidos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="text-xs text-gray-400 mt-4">
+            Nota: las facturas de talleres externos se registran como inventario de taller y no están
+            vinculadas individualmente a un bastidor en el módulo actual; su importe se refleja vía las OTs.
+        </p>
+    </div>
+</div>
+{% endblock %}

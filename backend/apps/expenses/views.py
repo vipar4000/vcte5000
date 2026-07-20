@@ -4,8 +4,11 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Q, Sum
 import csv
-from .models import GastoEstructura
-from .forms import GastoEstructuraForm, GastoBusquedaForm
+from .models import GastoEstructura, InversionInicial, LineaInversionInicial
+from .forms import (
+    GastoEstructuraForm, GastoBusquedaForm,
+    InversionInicialForm, LineaInversionInicialFormSet,
+)
 from apps.workshop.models import Material
 
 
@@ -230,3 +233,93 @@ def gasto_export_csv(request):
     writer.writerow(['', '', '', 'TOTALES', total_base, '', total_iva, '', total_ret, total_total, '', ''])
 
     return response
+
+
+# ---------------------------------------------------------------------------
+# Inversión Inicial (asistente de apertura con desglose multilínea)
+# ---------------------------------------------------------------------------
+
+@login_required
+def inversion_list(request):
+    """Lista de inversiones iniciales."""
+    if not request.user.is_admin and not request.user.is_gestoria:
+        messages.error(request, 'No tiene permisos para acceder a inversiones.')
+        return redirect('home')
+
+    inversiones = InversionInicial.objects.select_related('created_by', 'forma_pago').all()
+    context = {
+        'inversiones': inversiones[:100],
+    }
+    return render(request, 'expenses/inversion_list.html', context)
+
+
+@login_required
+def inversion_create(request):
+    """Asistente de registro de inversión inicial (cabecera + líneas)."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para registrar inversiones.')
+        return redirect('expenses:inversion_list')
+
+    if request.method == 'POST':
+        form = InversionInicialForm(request.POST, request.FILES)
+        formset = LineaInversionInicialFormSet(request.POST, instance=InversionInicial())
+        form.lineas_formset = formset
+        if form.is_valid() and formset.is_valid():
+            inversion = form.save(commit=False)
+            inversion.created_by = request.user
+            inversion.save()
+            formset.instance = inversion
+            formset.save()
+
+            try:
+                asiento = inversion.crear_asiento_contable()
+                messages.success(
+                    request,
+                    f'Inversión registrada. Asiento contable #{asiento.numero} creado automáticamente.'
+                )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Inversión registrada, pero no se pudo crear el asiento contable: {str(e)}'
+                )
+            return redirect('expenses:inversion_detail', pk=inversion.pk)
+        else:
+            messages.error(request, 'Por favor, corrija los errores del formulario.')
+    else:
+        form = InversionInicialForm()
+        formset = LineaInversionInicialFormSet(instance=InversionInicial())
+        form.lineas_formset = formset
+
+    context = {
+        'form': form,
+        'formset': formset,
+    }
+    return render(request, 'expenses/inversion_form.html', context)
+
+
+@login_required
+def inversion_detail(request, pk):
+    """Detalle de una inversión inicial con sus líneas y asiento."""
+    if not request.user.is_admin and not request.user.is_gestoria:
+        messages.error(request, 'No tiene permisos para ver inversiones.')
+        return redirect('home')
+
+    inversion = get_object_or_404(
+        InversionInicial.objects.select_related('created_by', 'forma_pago'),
+        pk=pk
+    )
+    asiento = None
+    try:
+        from apps.accounting.models import AsientoContable
+        asiento = AsientoContable.objects.filter(
+            tipo_documento='InversionInicial',
+            documento_id=inversion.pk
+        ).first()
+    except Exception:
+        pass
+
+    context = {
+        'inversion': inversion,
+        'asiento': asiento,
+    }
+    return render(request, 'expenses/inversion_detail.html', context)

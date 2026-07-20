@@ -10,4 +10,7 @@ urlpatterns = [
     path('<int:pk>/editar/', views.gasto_update, name='update'),
     path('<int:pk>/eliminar/', views.gasto_delete, name='delete'),
     path('exportar/', views.gasto_export_csv, name='export_csv'),
+    path('inversion/', views.inversion_list, name='inversion_list'),
+    path('inversion/nueva/', views.inversion_create, name='inversion_create'),
+    path('inversion/<int:pk>/', views.inversion_detail, name='inversion_detail'),
 ]

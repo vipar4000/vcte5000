@@ -174,6 +174,9 @@ class PlanContableDefault(models.Model):
             # Grupo 2 - Inmovilizado
             ('200', 'Terrenos y bienes naturales', 'A'),
             ('210', 'Edificios', 'A'),
+            ('214', 'Herramientas y utillaje menor', 'A'),
+            ('216', 'Mobiliario', 'A'),
+            ('217', 'Equipos para procesos de información', 'A'),
             ('220', 'Instalaciones técnicas', 'A'),
             ('230', 'Maquinaria', 'A'),
             ('240', 'Utillaje', 'A'),

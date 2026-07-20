@@ -125,3 +125,289 @@ class GastoEstructura(models.Model):
         )
 
         return asiento
+
+
+class InversionInicial(models.Model):
+    """Inversión inicial / gastos pre-apertura con desglose multilínea (Split Billing).
+
+    Cabecera de una factura de inversión inicial. Las líneas van en
+    LineaInversionInicial. El total calculado de las líneas debe coincidir
+    exactamente con total_factura_fisico (validación de descuadre).
+    """
+
+    CATEGORIAS_INVERSION = [
+        ('HERRAMIENTAS', 'Herramientas / Utillaje (Cuenta PGC 214)'),
+        ('MOBILIARIO', 'Mobiliario (Cuenta PGC 216)'),
+        ('INFORMATICA', 'Informática (Cuenta PGC 217)'),
+        ('ALQUILER', 'Alquiler del local (Cuenta PGC 621)'),
+        ('NOTARIA', 'Notaría / Registro (Cuenta PGC 622)'),
+        ('TASAS', 'Tasas y permisologías (Cuenta PGC 631)'),
+        ('OTROS', 'Otros gastos de apertura'),
+    ]
+
+    MAPPINGS_CATEGORIA_CUENTA = {
+        'HERRAMIENTAS': '214',
+        'MOBILIARIO': '216',
+        'INFORMATICA': '217',
+        'ALQUILER': '621',
+        'NOTARIA': '622',
+        'TASAS': '631',
+        'OTROS': '620',
+    }
+
+    CUENTAS_INMOVILIZADO = {'214', '216', '217'}
+    LIMITE_GASTO_DIRECTO = Decimal('300.00')
+
+    fecha_emision = models.DateField(verbose_name='fecha de emisión')
+    proveedor_acreedor = models.CharField(max_length=150, verbose_name='proveedor/acreedor')
+    numero_factura = models.CharField(max_length=50, verbose_name='número de factura')
+    forma_pago = models.ForeignKey(
+        'accounting.CuentaContable',
+        on_delete=models.PROTECT,
+        related_name='inversiones_forma_pago',
+        verbose_name='forma de pago (banco)',
+        limit_choices_to={'codigo__in': ['570', '572']},
+    )
+    total_factura_fisico = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name='total factura físico (€)'
+    )
+    documento_pdf = models.FileField(
+        upload_to='facturas_gastos/', null=True, blank=True, verbose_name='factura PDF'
+    )
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.PROTECT,
+        related_name='inversiones_iniciales',
+        verbose_name='creado por',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'inversión inicial'
+        verbose_name_plural = 'inversiones iniciales'
+        ordering = ['-fecha_emision', '-created_at']
+
+    def __str__(self):
+        return f"Inversión {self.numero_factura} - {self.proveedor_acreedor}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.documento_pdf and self.documento_pdf.name:
+            self._renombrar_documento()
+
+    def _renombrar_documento(self):
+        from django.core.files.base import ContentFile
+        original = self.documento_pdf
+        ext = original.name.split('.')[-1].lower() if '.' in original.name else 'pdf'
+        nuevo_nombre = f"INV_INICIAL_{self.pk}_{self.numero_factura}.{ext}"
+        if original.name != nuevo_nombre:
+            data = original.read()
+            original.save(nuevo_nombre, ContentFile(data), save=True)
+
+    @property
+    def total_base_calculado(self):
+        return sum((l.base_imponible for l in self.lineas.all()), Decimal('0'))
+
+    @property
+    def total_iva_calculado(self):
+        return sum((l.cuota_iva for l in self.lineas.all()), Decimal('0'))
+
+    @property
+    def total_calculado(self):
+        return self.total_base_calculado + self.total_iva_calculado
+
+    @property
+    def esta_cuadrado(self):
+        return self.total_calculado.quantize(Decimal('0.01')) == self.total_factura_fisico.quantize(Decimal('0.01'))
+
+    def crear_asiento_contable(self):
+        """Genera el asiento compuesto automático a partir de las líneas."""
+        from apps.accounting.models import (
+            AsientoContable, MovimientoContable, CuentaContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
+            fecha=self.fecha_emision,
+            concepto=f"Inversión inicial {self.numero_factura}: {self.proveedor_acreedor}",
+            estado='BORRADOR',
+            tipo_documento='InversionInicial',
+            documento_id=self.pk,
+            created_by=self.created_by,
+        )
+
+        for linea in self.lineas.all():
+            cuenta_codigo = linea.cuenta_contable_destino()
+            cuenta = CuentaContable.objects.get(codigo=cuenta_codigo)
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta,
+                debe=linea.base_imponible,
+                haber=Decimal('0'),
+                descripcion=f"{linea.get_categoria_display()}: {linea.concepto}",
+            )
+            if linea.cuota_iva > 0:
+                cuenta_iva = CuentaContable.objects.get(codigo='472')
+                MovimientoContable.objects.create(
+                    asiento=asiento,
+                    cuenta=cuenta_iva,
+                    debe=linea.cuota_iva,
+                    haber=Decimal('0'),
+                    descripcion=f"IVA soportado {linea.tipo_iva}%",
+                )
+
+        MovimientoContable.objects.create(
+            asiento=asiento,
+            cuenta=self.forma_pago,
+            debe=Decimal('0'),
+            haber=self.total_calculado,
+            descripcion=f"Pago (banco): {self.proveedor_acreedor}",
+        )
+
+        return asiento
+
+
+class LineaInversionInicial(models.Model):
+    """Línea de desglose de una InversionInicial (Split Billing)."""
+
+    inversion = models.ForeignKey(
+        InversionInicial,
+        on_delete=models.CASCADE,
+        related_name='lineas',
+        verbose_name='inversión',
+    )
+    categoria = models.CharField(
+        max_length=20, choices=InversionInicial.CATEGORIAS_INVERSION, verbose_name='categoría'
+    )
+    concepto = models.CharField(max_length=255, verbose_name='concepto/descripción')
+    base_imponible = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name='base imponible (€)'
+    )
+    tipo_iva = models.DecimalField(
+        max_digits=4, decimal_places=2, default=Decimal('21.00'), verbose_name='tipo de IVA (%)'
+    )
+    cuota_iva = models.DecimalField(
+        max_digits=12, decimal_places=2, editable=False, default=Decimal('0'), verbose_name='cuota IVA'
+    )
+    total_linea = models.DecimalField(
+        max_digits=12, decimal_places=2, editable=False, default=Decimal('0'), verbose_name='total línea'
+    )
+
+    class Meta:
+        verbose_name = 'línea de inversión'
+        verbose_name_plural = 'líneas de inversión'
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.get_categoria_display()} - {self.concepto}"
+
+    def save(self, *args, **kwargs):
+        self.cuota_iva = (self.base_imponible * (self.tipo_iva / Decimal('100'))).quantize(Decimal('0.01'))
+        self.total_linea = (self.base_imponible + self.cuota_iva).quantize(Decimal('0.01'))
+        super().save(*args, **kwargs)
+        self._registrar_activo_si_procede()
+
+    def cuenta_contable_destino(self):
+        """Cuenta destino: 602 si Herramientas y base <= 300€, sino la del PGC."""
+        codigo = InversionInicial.MAPPINGS_CATEGORIA_CUENTA.get(self.categoria, '620')
+        if self.categoria == 'HERRAMIENTAS' and self.base_imponible <= InversionInicial.LIMITE_GASTO_DIRECTO:
+            return '602'
+        return codigo
+
+    def _registrar_activo_si_procede(self):
+        from django.utils.dateparse import parse_date
+        cuenta = self.cuenta_contable_destino()
+        if cuenta in InversionInicial.CUENTAS_INMOVILIZADO and \
+                self.base_imponible > InversionInicial.LIMITE_GASTO_DIRECTO:
+            fecha = self.inversion.fecha_emision
+            if isinstance(fecha, str):
+                fecha = parse_date(fecha)
+            ActivoFijo.objects.get_or_create(
+                linea=self,
+                defaults={
+                    'cuenta': cuenta,
+                    'descripcion': self.concepto,
+                    'valor_adquisicion': self.base_imponible,
+                    'fecha_adquisicion': fecha,
+                },
+            )
+
+
+class ActivoFijo(models.Model):
+    """Registro de inmovilizado y tabla de amortización lineal anual (REQ-04)."""
+
+    VIDAS_UTILES = {
+        '214': 5,
+        '216': 10,
+        '217': 5,
+    }
+
+    linea = models.OneToOneField(
+        LineaInversionInicial,
+        on_delete=models.CASCADE,
+        related_name='activo_fijo',
+        verbose_name='línea de inversión',
+    )
+    cuenta = models.CharField(max_length=10, verbose_name='cuenta PGC')
+    descripcion = models.CharField(max_length=255, verbose_name='descripción')
+    valor_adquisicion = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name='valor de adquisición (€)'
+    )
+    fecha_adquisicion = models.DateField(verbose_name='fecha de adquisición')
+    vida_util_anos = models.IntegerField(default=10, verbose_name='vida útil (años)')
+    creado_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'activo fijo'
+        verbose_name_plural = 'activos fijos'
+        ordering = ['-fecha_adquisicion']
+
+    def __str__(self):
+        return f"Activo {self.cuenta} - {self.descripcion}"
+
+    def save(self, *args, **kwargs):
+        if not self.vida_util_anos or self.vida_util_anos <= 0:
+            self.vida_util_anos = self.VIDAS_UTILES.get(self.cuenta, 10)
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            self.generar_amortizacion()
+
+    @property
+    def cuota_anual(self):
+        if self.vida_util_anos > 0:
+            return (self.valor_adquisicion / Decimal(self.vida_util_anos)).quantize(Decimal('0.01'))
+        return self.valor_adquisicion
+
+    def generar_amortizacion(self):
+        año_inicio = self.fecha_adquisicion.year
+        for i in range(self.vida_util_anos):
+            AmortizacionAnual.objects.create(
+                activo=self,
+                año=año_inicio + i,
+                cuota=self.cuota_anual,
+            )
+
+
+class AmortizacionAnual(models.Model):
+    """Cuota de amortización lineal de un activo para un año concreto."""
+
+    activo = models.ForeignKey(
+        ActivoFijo,
+        on_delete=models.CASCADE,
+        related_name='amortizaciones',
+        verbose_name='activo',
+    )
+    año = models.IntegerField(verbose_name='año')
+    cuota = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='cuota anual (€)')
+
+    class Meta:
+        verbose_name = 'amortización anual'
+        verbose_name_plural = 'amortizaciones anuales'
+        ordering = ['año']
+        unique_together = ['activo', 'año']
+
+    def __str__(self):
+        return f"{self.activo} - {self.año}: {self.cuota} €"
