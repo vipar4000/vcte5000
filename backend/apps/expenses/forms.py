@@ -144,7 +144,20 @@ class InversionInicialForm(forms.ModelForm):
             if l.cleaned_data and not l.cleaned_data.get('DELETE', False)
         )
         from decimal import Decimal
-        total_calculado = Decimal(str(total_calculado)).quantize(Decimal('0.01'))
+        lineas_validas = [
+            l for l in lineas.forms
+            if l.cleaned_data and not l.cleaned_data.get('DELETE', False)
+            and l.cleaned_data.get('base_imponible')
+        ]
+        if not lineas_validas:
+            raise forms.ValidationError(
+                'Debe introducir al menos una línea de desglose con importe.'
+            )
+        total_calculado = sum(
+            (Decimal(str(l.cleaned_data['base_imponible'])) *
+             (1 + Decimal(str(l.cleaned_data.get('tipo_iva', 0) or 0)) / 100)).quantize(Decimal('0.01'))
+            for l in lineas_validas
+        )
         if total_calculado != Decimal(str(total_fisico)).quantize(Decimal('0.01')):
             raise forms.ValidationError(
                 f'Descuadre: el total calculado de las líneas ({total_calculado} €) '

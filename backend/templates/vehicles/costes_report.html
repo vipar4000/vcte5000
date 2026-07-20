@@ -26,6 +26,7 @@
                 <tr class="border-t bg-gray-50"><td class="px-2 py-2 font-medium">Coste Inicial (subasta + tasas + grúa)</td><td class="px-2 py-2 text-right font-medium">€{{ desglose.coste_inicial|floatformat:2 }}</td></tr>
                 <tr class="border-t"><td class="px-2 py-2">Repuestos internos consumidos (OTs)</td><td class="px-2 py-2 text-right">€{{ desglose.repuestos_internos|floatformat:2 }}</td></tr>
                 <tr class="border-t"><td class="px-2 py-2">Mano de obra y otros (OTs)</td><td class="px-2 py-2 text-right">€{{ desglose.coste_reparacion|floatformat:2 }}</td></tr>
+                <tr class="border-t"><td class="px-2 py-2">Acondicionamiento (IVA no deducible)</td><td class="px-2 py-2 text-right">€{{ desglose.acondicionamiento|floatformat:2 }}</td></tr>
             </tbody>
             <tfoot>
                 <tr class="border-t bg-eurocar-blue text-white">
@@ -59,6 +60,20 @@
                 <tr class="border-t"><td class="px-2 py-2">{{ mu.material.nombre }}</td><td class="px-2 py-2">{{ mu.cantidad }}</td><td class="px-2 py-2 text-right">€{{ mu.subtotal|floatformat:2 }}</td></tr>
                 {% empty %}
                 <tr><td colspan="3" class="px-2 py-3 text-center text-gray-500">Sin repuestos consumidos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3 class="font-semibold text-gray-700 mb-2">Costes de Acondicionamiento (REBU, IVA no deducible)</h3>
+        <table class="w-full text-sm mb-6">
+            <thead class="bg-gray-100 text-left">
+                <tr><th class="px-2 py-2">Concepto</th><th class="px-2 py-2">Base</th><th class="px-2 py-2">Total</th></tr>
+            </thead>
+            <tbody>
+                {% for c in costos_acondicionamiento %}
+                <tr class="border-t"><td class="px-2 py-2">{{ c.concepto }}</td><td class="px-2 py-2 text-right">€{{ c.base_imponible|floatformat:2 }}</td><td class="px-2 py-2 text-right">€{{ c.total|floatformat:2 }}</td></tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-2 py-3 text-center text-gray-500">Sin costes de acondicionamiento.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

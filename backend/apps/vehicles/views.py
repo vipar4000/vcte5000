@@ -234,11 +234,14 @@ def vehiculo_costes_report(request, bastidor):
     vehiculo = get_object_or_404(Vehiculo, bastidor__iexact=bastidor)
 
     from apps.workshop.models import OrdenTrabajo, MaterialUsado
+    from apps.sales.models import CostoAcondicionamiento
 
     ots = OrdenTrabajo.objects.filter(vehiculo=vehiculo)
     materiales_usados = MaterialUsado.objects.filter(orden_trabajo__vehiculo=vehiculo)
+    costos_acondicionamiento = CostoAcondicionamiento.objects.filter(vehiculo=vehiculo)
 
     repuestos_internos = sum((mu.subtotal for mu in materiales_usados), Decimal('0'))
+    acondicionamiento = sum((c.total for c in costos_acondicionamiento), Decimal('0'))
 
     # Costes de adquisición
     precio_subasta = vehiculo.precio_subasta
@@ -247,12 +250,13 @@ def vehiculo_costes_report(request, bastidor):
     coste_inicial = vehiculo.coste_inicial
     coste_reparacion = vehiculo.coste_reparacion
 
-    total_coste = coste_inicial + coste_reparacion
+    total_coste = coste_inicial + coste_reparacion + acondicionamiento
 
     context = {
         'vehiculo': vehiculo,
         'ots': ots,
         'materiales_usados': materiales_usados,
+        'costos_acondicionamiento': costos_acondicionamiento,
         'desglose': {
             'precio_subasta': precio_subasta,
             'tasas_subasta': tasas_subasta,
@@ -260,6 +264,7 @@ def vehiculo_costes_report(request, bastidor):
             'coste_inicial': coste_inicial,
             'coste_reparacion': coste_reparacion,
             'repuestos_internos': repuestos_internos,
+            'acondicionamiento': acondicionamiento,
         },
         'total_coste': total_coste,
     }

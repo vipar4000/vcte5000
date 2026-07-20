@@ -127,6 +127,17 @@ class GastoEstructura(models.Model):
         return asiento
 
 
+def _ruta_documento_inversion(instance, filename):
+    """Nombra el PDF como INV_INICIAL_[ID]_[NUM_FACTURA].[ext] antes del primer guardado.
+
+    Evita renombrados post-save que dejan archivos huérfanos en storage de nube (R2).
+    """
+    ext = filename.split('.')[-1].lower() if '.' in filename else 'pdf'
+    pk = instance.pk or 'tmp'
+    num = (instance.numero_factura or 'sin_num').replace(' ', '_')
+    return f"facturas_gastos/INV_INICIAL_{pk}_{num}.{ext}"
+
+
 class InversionInicial(models.Model):
     """Inversión inicial / gastos pre-apertura con desglose multilínea (Split Billing).
 
@@ -172,7 +183,7 @@ class InversionInicial(models.Model):
         max_digits=12, decimal_places=2, verbose_name='total factura físico (€)'
     )
     documento_pdf = models.FileField(
-        upload_to='facturas_gastos/', null=True, blank=True, verbose_name='factura PDF'
+        upload_to=_ruta_documento_inversion, null=True, blank=True, verbose_name='factura PDF'
     )
     created_by = models.ForeignKey(
         'accounts.User',
@@ -191,20 +202,6 @@ class InversionInicial(models.Model):
     def __str__(self):
         return f"Inversión {self.numero_factura} - {self.proveedor_acreedor}"
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.documento_pdf and self.documento_pdf.name:
-            self._renombrar_documento()
-
-    def _renombrar_documento(self):
-        from django.core.files.base import ContentFile
-        original = self.documento_pdf
-        ext = original.name.split('.')[-1].lower() if '.' in original.name else 'pdf'
-        nuevo_nombre = f"INV_INICIAL_{self.pk}_{self.numero_factura}.{ext}"
-        if original.name != nuevo_nombre:
-            data = original.read()
-            original.save(nuevo_nombre, ContentFile(data), save=True)
-
     @property
     def total_base_calculado(self):
         return sum((l.base_imponible for l in self.lineas.all()), Decimal('0'))
@@ -222,11 +219,19 @@ class InversionInicial(models.Model):
         return self.total_calculado.quantize(Decimal('0.01')) == self.total_factura_fisico.quantize(Decimal('0.01'))
 
     def crear_asiento_contable(self):
-        """Genera el asiento compuesto automático a partir de las líneas."""
+        """Genera el asiento compuesto automático a partir de las líneas.
+
+        Es idempotente: elimina asientos previos del mismo documento para
+        evitar duplicados si se regenera (p. ej. al reintentar el guardado).
+        """
         from apps.accounting.models import (
             AsientoContable, MovimientoContable, CuentaContable,
         )
         from apps.accounting.views import generar_numero_asiento
+
+        AsientoContable.objects.filter(
+            tipo_documento='InversionInicial', documento_id=self.pk
+        ).delete()
 
         asiento = AsientoContable.objects.create(
             numero=generar_numero_asiento(),
