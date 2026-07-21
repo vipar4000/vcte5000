@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+{% block title %}Guía del Módulo Bancario - R Car Rogil{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">📖 Guía del Módulo Bancario</h1>
+        <p class="text-gray-600 mt-2">
+            Aprende a usar el módulo de banco paso a paso. Cada ejemplo incluye las acciones a realizar
+            y el asiento contable que se genera automáticamente.
+        </p>
+        <div class="mt-4 bg-blue-50 border-l-4 border-blue-400 p-4">
+            <p class="text-sm text-blue-800">
+                <strong>Regla de oro:</strong> Los movimientos de banco <strong>nunca</strong> se crean manualmente.
+                El sistema los genera automáticamente cuando registras una venta, compra, gasto o reserva.
+            </p>
+        </div>
+    </div>
+
+    <!-- Índice rápido -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-lg font-bold text-gray-800 mb-3">Contenidos</h2>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+            <li><a href="#ej1" class="text-eurocar-blue hover:underline">Crear cuenta bancaria</a></li>
+            <li><a href="#ej2" class="text-eurocar-blue hover:underline">Venta de contado</a></li>
+            <li><a href="#ej3" class="text-eurocar-blue hover:underline">Reserva (arras/señal)</a></li>
+            <li><a href="#ej4" class="text-eurocar-blue hover:underline">Cobro fraccionado (plazos)</a></li>
+            <li><a href="#ej5" class="text-eurocar-blue hover:underline">Conciliación bancaria</a></li>
+            <li><a href="#ej6" class="text-eurocar-blue hover:underline">Regularización anual de existencias</a></li>
+        </ol>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 1: Crear cuenta bancaria -->
+    <!-- ================================================================== -->
+    <div id="ej1" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 1</span>
+            <h2 class="text-xl font-bold text-gray-800">Crear cuenta bancaria</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            Antes de usar el módulo bancario, necesitas al menos una cuenta configurada.
+            Esta cuenta se vincula a una subcuenta del PGC grupo 572 (Banco).
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Pasos:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Ve a <strong>🏦 Banco</strong> en el sidebar</li>
+            <li>Haz clic en <strong>"+ Nueva Cuenta"</strong></li>
+            <li>Rellena el formulario:
+                <ul class="list-disc list-inside ml-6 mt-1 text-gray-600">
+                    <li><strong>Nombre:</strong> BBVA Empresa</li>
+                    <li><strong>IBAN:</strong> ES91 2100 0418 4502 0005 1332</li>
+                    <li><strong>SWIFT:</strong> BBVAESMMXXX (opcional)</li>
+                    <li><strong>Cuenta contable:</strong> 572 - Banco</li>
+                </ul>
+            </li>
+            <li>Haz clic en <strong>"Crear Cuenta"</strong></li>
+        </ol>
+
+        <div class="bg-green-50 border-l-4 border-green-400 p-4">
+            <p class="text-sm text-green-800">
+                <strong>Resultado:</strong> Aparece en el dashboard con saldo €0.00.
+                Los movimientos aparecerán automáticamente cuando registres ventas, compras o gastos.
+            </p>
+        </div>
+
+        <div class="mt-4 bg-gray-50 rounded p-4">
+            <p class="text-xs text-gray-500">
+                <strong>Asiento contable:</strong> Ninguno. Solo se crea la cuenta contable vinculada.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 2: Venta de contado -->
+    <!-- ================================================================== -->
+    <div id="ej2" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 2</span>
+            <h2 class="text-xl font-bold text-gray-800">Venta de contado</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            Cuando vendes un vehículo de contado, el sistema genera automáticamente:
+            el movimiento bancario (INGRESO), el asiento contable REBU, y baja el inventario.
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Datos del ejemplo:</h3>
+        <div class="bg-gray-50 rounded p-4 mb-4 text-sm">
+            <p>Vehículo: VW Golf VIII — Precio compra subasta: €8.000</p>
+            <p>Coste reparaciones: €2.500 → Coste total: €10.500</p>
+            <p><strong>Precio de venta: €14.000</strong> (transferencia bancaria)</p>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Pasos:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Ve a <strong>🚗 Vehículos</strong> → verifica que el vehículo está en estado <strong>ACONDICIONADO</strong></li>
+            <li>Ve a <strong>💰 Ventas</strong> → <strong>"+ Nueva Venta"</strong></li>
+            <li>Selecciona el vehículo, rellena datos del cliente</li>
+            <li>Método de pago: <strong>TRANSFERENCIA</strong></li>
+            <li>Precio de venta: <strong>14000</strong></li>
+            <li>Haz clic en <strong>"Registrar Venta"</strong></li>
+        </ol>
+
+        <h3 class="font-bold text-gray-800 mb-2">Lo que hace el sistema automáticamente:</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-blue-50 rounded p-4">
+                <p class="font-bold text-blue-800 text-sm">📊 Asiento contable (REBU)</p>
+                <table class="w-full text-xs mt-2">
+                    <thead><tr class="border-b"><th class="text-left">Cuenta</th><th class="text-right">Debe</th><th class="text-right">Haber</th></tr></thead>
+                    <tbody>
+                        <tr><td>572 Banco</td><td class="text-right">€14.000</td><td></td></tr>
+                        <tr><td>600 Compras mercaderías</td><td class="text-right">€10.500</td><td></td></tr>
+                        <tr class="border-t"><td>700 Ventas mercaderías</td><td></td><td class="text-right">€2.975,21</td></tr>
+                        <tr><td>471 HP IVA repercutido REBU</td><td></td><td class="text-right">€624,79</td></tr>
+                        <tr><td>310 Mercaderías</td><td></td><td class="text-right">€10.500</td></tr>
+                    </tbody>
+                </table>
+                <p class="text-xs text-gray-500 mt-2">
+                    Margen = 14.000 - 10.500 = €3.500<br>
+                    Base REBU = 3.500 / 1.21 = €2.975,21<br>
+                    IVA REBU = 2.975,21 × 21% = €624,79
+                </p>
+            </div>
+
+            <div class="bg-green-50 rounded p-4">
+                <p class="font-bold text-green-800 text-sm">🏦 Movimiento bancario</p>
+                <p class="text-sm mt-2">Tipo: <strong>INGRESO</strong></p>
+                <p class="text-sm">Importe: <strong>€14.000</strong></p>
+                <p class="text-sm">Concepto: "Cobro cliente Juan García"</p>
+                <p class="text-sm">Conciliado: <strong>No</strong></p>
+                <p class="text-xs text-gray-500 mt-2">
+                    El movimiento queda pendiente de conciliar con el extracto bancario real.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>Tip:</strong> Si el método de pago es FINANCIADO, el Debe va a cuenta 430 (Clientes)
+                en lugar de 572 (Banco). El cobro se registra después con los plazos.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 3: Reserva (arras) -->
+    <!-- ================================================================== -->
+    <div id="ej3" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 3</span>
+            <h2 class="text-xl font-bold text-gray-800">Reserva (arras/señal)</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            Un cliente deja una señal de €500 para apartar un vehículo. El sistema crea un anticipo
+            con IVA y un movimiento bancario. Al convertir en venta, el anticipo se descuenta.
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Datos del ejemplo:</h3>
+        <div class="bg-gray-50 rounded p-4 mb-4 text-sm">
+            <p>Vehículo: BMW Serie 3 — Precio venta: €18.000</p>
+            <p>Cliente: María López</p>
+            <p><strong>Señal/Reserva: €500</strong></p>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Paso 1 — Crear la reserva:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Ve a <strong>🔖 Reservas</strong> → <strong>"+ Nueva Reserva"</strong></li>
+            <li>Selecciona el vehículo, rellena datos del cliente</li>
+            <li>Importe: <strong>500</strong></li>
+            <li>Haz clic en <strong>"Crear Reserva"</strong></li>
+        </ol>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-blue-50 rounded p-4">
+                <p class="font-bold text-blue-800 text-sm">📊 Asiento contable (Anticipo)</p>
+                <table class="w-full text-xs mt-2">
+                    <thead><tr class="border-b"><th class="text-left">Cuenta</th><th class="text-right">Debe</th><th class="text-right">Haber</th></tr></thead>
+                    <tbody>
+                        <tr><td>572 Banco</td><td class="text-right">€500,00</td><td></td></tr>
+                        <tr class="border-t"><td>438 Anticipos Clientes</td><td></td><td class="text-right">€413,22</td></tr>
+                        <tr><td>477 HP IVA Repercutido</td><td></td><td class="text-right">€86,78</td></tr>
+                    </tbody>
+                </table>
+                <p class="text-xs text-gray-500 mt-2">
+                    Base = 500 / 1.21 = €413,22<br>
+                    IVA = 413,22 × 21% = €86,78
+                </p>
+            </div>
+
+            <div class="bg-green-50 rounded p-4">
+                <p class="font-bold text-green-800 text-sm">🏦 Movimiento bancario</p>
+                <p class="text-sm mt-2">Tipo: <strong>INGRESO</strong></p>
+                <p class="text-sm">Importe: <strong>€500</strong></p>
+                <p class="text-sm">Concepto: "Reserva/Señal BMW Serie 3 - María López"</p>
+            </div>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Paso 2 — Convertir en venta:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Ve a <strong>🔖 Reservas</strong> → haz clic en la reserva</li>
+            <li>Haz clic en <strong>"Convertir en Venta"</strong></li>
+            <li>Se abre el formulario de venta con el vehículo pre-seleccionado</li>
+            <li>Registra la venta normalmente</li>
+        </ol>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>Al convertir:</strong> El asiento de venta REBU se genera por el precio completo (€18.000).
+                El anticipo de €500 queda registrado en cuenta 438 y se compensa contablemente
+                cuando el cliente paga el resto (€17.500).
+            </p>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Opciones de cancelación:</h3>
+        <ul class="list-disc list-inside text-sm space-y-1 ml-4">
+            <li><strong>Devolver señal:</strong> Crea un EGRESO de €500 (el dinero vuelve al cliente)</li>
+            <li><strong>Penalizar:</strong> La S.L. retiene la señal. No se crea movimiento de egreso.</li>
+        </ul>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 4: Cobro fraccionado -->
+    <!-- ================================================================== -->
+    <div id="ej4" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 4</span>
+            <h2 class="text-xl font-bold text-gray-800">Cobro fraccionado (plazos)</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            El cliente paga un vehículo de €12.000 en 3 plazos de €4.000.
+            Cada plazo genera su propio movimiento bancario y asiento contable.
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Paso 1 — Definir los plazos:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Registra la venta normalmente (método: FINANCIADO o DIRECTA)</li>
+            <li>Ve a <strong>💰 Ventas</strong> → selecciona la venta</li>
+            <li>Haz clic en <strong>"Cobros"</strong> (o ve a <code>/erp/ventas/{id}/cobros/</code>)</li>
+            <li>Haz clic en <strong>"+ Añadir Plazo"</strong> 3 veces:</li>
+        </ol>
+
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full text-sm bg-gray-50 rounded">
+                <thead><tr class="border-b">
+                    <th class="px-4 py-2 text-left">Plazo</th>
+                    <th class="px-4 py-2 text-left">Vencimiento</th>
+                    <th class="px-4 py-2 text-left">Financiación</th>
+                    <th class="px-4 py-2 text-right">Importe</th>
+                </tr></thead>
+                <tbody>
+                    <tr><td class="px-4 py-2">#1</td><td class="px-4 py-2">15/08/2026</td><td class="px-4 py-2">Directa S.L.</td><td class="px-4 py-2 text-right">€4.000</td></tr>
+                    <tr><td class="px-4 py-2">#2</td><td class="px-4 py-2">15/09/2026</td><td class="px-4 py-2">Directa S.L.</td><td class="px-4 py-2 text-right">€4.000</td></tr>
+                    <tr><td class="px-4 py-2">#3</td><td class="px-4 py-2">15/10/2026</td><td class="px-4 py-2">Directa S.L.</td><td class="px-4 py-2 text-right">€4.000</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Paso 2 — Recibir un plazo:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>En la lista de cobros, haz clic en <strong>"Marcar recibido"</strong> del plazo #1</li>
+            <li>El sistema crea automáticamente el movimiento bancario y el asiento</li>
+        </ol>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-blue-50 rounded p-4">
+                <p class="font-bold text-blue-800 text-sm">📊 Asiento — Plazo directo (S.L. financia)</p>
+                <table class="w-full text-xs mt-2">
+                    <thead><tr class="border-b"><th class="text-left">Cuenta</th><th class="text-right">Debe</th><th class="text-right">Haber</th></tr></thead>
+                    <tbody>
+                        <tr><td>572 Banco</td><td class="text-right">€4.000</td><td></td></tr>
+                        <tr class="border-t"><td>430 Clientes</td><td></td><td class="text-right">€4.000</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-purple-50 rounded p-4">
+                <p class="font-bold text-purple-800 text-sm">📊 Asiento — Financiación externa (con comisión)</p>
+                <table class="w-full text-xs mt-2">
+                    <thead><tr class="border-b"><th class="text-left">Cuenta</th><th class="text-right">Debe</th><th class="text-right">Haber</th></tr></thead>
+                    <tbody>
+                        <tr><td>572 Banco (neto)</td><td class="text-right">€3.800</td><td></td></tr>
+                        <tr><td>626 Comisiones bancarias</td><td class="text-right">€200</td><td></td></tr>
+                        <tr class="border-t"><td>430 Clientes</td><td></td><td class="text-right">€4.000</td></tr>
+                    </tbody>
+                </table>
+                <p class="text-xs text-gray-500 mt-2">
+                    La financiera ingresa €3.800 y cobra €200 de comisión.
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>Tip:</strong> Cuando el total cobrado supera el precio de venta,
+                la venta se marca automáticamente como <strong>PAGADA</strong>.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 5: Conciliación bancaria -->
+    <!-- ================================================================== -->
+    <div id="ej5" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 5</span>
+            <h2 class="text-xl font-bold text-gray-800">Conciliación bancaria</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            Sube el extracto de tu banco (Excel o CSV) y el sistema busca automáticamente
+            los movimientos que coinciden con los del ERP.
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Formato del archivo Excel:</h3>
+        <div class="bg-gray-50 rounded p-4 mb-4 font-mono text-xs">
+            <p class="text-gray-500">Ejemplo de extracto bancario (BBVA, Santander, etc.):</p>
+            <table class="w-full mt-2">
+                <thead><tr class="border-b"><th class="text-left">Fecha</th><th class="text-left">Concepto</th><th class="text-left">Tipo</th><th class="text-right">Importe</th></tr></thead>
+                <tbody>
+                    <tr><td>2026-07-15</td><td>Transferencia Juan García</td><td>INGRESO</td><td class="text-right">14000</td></tr>
+                    <tr><td>2026-07-16</td><td>Pago factura proveedor</td><td>EGRESO</td><td class="text-right">-2500</td></tr>
+                    <tr><td>2026-07-18</td><td>Señal María López</td><td>INGRESO</td><td class="text-right">500</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Pasos:</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm mb-4">
+            <li>Ve a <strong>🏦 Banco</strong> → <strong>"Conciliación Bancaria"</strong></li>
+            <li>Selecciona la cuenta bancaria</li>
+            <li>Sube el archivo Excel o CSV</li>
+            <li>Haz clic en <strong>"Procesar Extracto"</strong></li>
+            <li>El sistema muestra los resultados del matching:
+                <ul class="list-disc list-inside ml-6 mt-1">
+                    <li><span class="text-green-600">✓</span> <strong>Verde:</strong> coincidencia automática (mismo importe, fecha ±2 días)</li>
+                    <li><span class="text-yellow-600">⏳</span> <strong>Amarillo:</strong> sin coincidencia (revisar manualmente)</li>
+                </ul>
+            </li>
+            <li>Marca los movimientos a conciliar</li>
+            <li>Haz clic en <strong>"Conciliación automática"</strong></li>
+        </ol>
+
+        <h3 class="font-bold text-gray-800 mb-2">Algoritmo de matching:</h3>
+        <div class="bg-gray-50 rounded p-4 text-sm space-y-2">
+            <p>1. <strong>Mismo tipo:</strong> INGRESO ↔ INGRESO, EGRESO ↔ EGRESO</p>
+            <p>2. <strong>Mismo importe:</strong> coincidencia exacta en valor absoluto</p>
+            <p>3. <strong>Fecha ±2 días:</strong> compensa el desfase de fecha valor del banco</p>
+            <p>4. <strong>Concepto:</strong> similitud de texto (SequenceMatcher) como desempate</p>
+        </div>
+
+        <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>Tip:</strong> Las columnas del Excel se mapean automáticamente.
+                El sistema busca columnas con nombres como "fecha", "concepto", "importe", "tipo".
+                No importa el orden ni si hay columnas extra.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- EJEMPLO 6: Regularización anual -->
+    <!-- ================================================================== -->
+    <div id="ej6" class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="bg-eurocar-blue text-white text-sm font-bold px-3 py-1 rounded">Ejemplo 6</span>
+            <h2 class="text-xl font-bold text-gray-800">Regularización anual de existencias</h2>
+        </div>
+
+        <p class="text-gray-600 mb-4">
+            Al cierre de ejercicio (31 de diciembre), el sistema ajusta el valor del inventario
+            de vehículos no vendidos para el balance de la S.L.
+        </p>
+
+        <h3 class="font-bold text-gray-800 mb-2">Ejecutar el comando:</h3>
+        <div class="bg-gray-900 text-green-400 rounded p-4 mb-4 font-mono text-sm">
+            <p>cd backend</p>
+            <p>python manage.py regularizar_existencias --ano 2025</p>
+        </div>
+
+        <h3 class="font-bold text-gray-800 mb-2">Resultado esperado:</h3>
+        <div class="bg-gray-50 rounded p-4 mb-4 text-sm">
+            <p>Supongamos que a 31/12/2025 hay 3 vehículos sin vender:</p>
+            <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                <li>VW Golf VIII — coste_inicial: €8.000</li>
+                <li>BMW Serie 3 — coste_inicial: €12.000</li>
+                <li>Audi A4 — coste_inicial: €9.500</li>
+            </ul>
+            <p class="mt-2"><strong>Valor total del stock: €29.500</strong></p>
+        </div>
+
+        <div class="bg-blue-50 rounded p-4 mb-4">
+            <p class="font-bold text-blue-800 text-sm">📊 Asiento de regularización</p>
+            <table class="w-full text-xs mt-2">
+                <thead><tr class="border-b"><th class="text-left">Cuenta</th><th class="text-right">Debe</th><th class="text-right">Haber</th></tr></thead>
+                <tbody>
+                    <tr><td>300 Existencias (Mercaderías)</td><td class="text-right">€29.500</td><td></td></tr>
+                    <tr class="border-t"><td>610 Variación de existencias</td><td></td><td class="text-right">€29.500</td></tr>
+                </tbody>
+            </table>
+            <p class="text-xs text-gray-500 mt-2">
+                Este asiento es idempotente: si ya existe uno para ese año, se omite.
+            </p>
+        </div>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>Nota fiscal:</strong> La cuenta 300 refleja el valor del stock en el balance.
+                La cuenta 610 ajusta la variación de existencias en la cuenta de resultados.
+                Este asiento se ejecuta una sola vez al cierre de cada año.
+            </p>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- REFERENCIA RÁPIDA -->
+    <!-- ================================================================== -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Referencia Rápida</h2>
+
+        <h3 class="font-bold text-gray-800 mb-2">Cuentas PGC del módulo bancario:</h3>
+        <table class="w-full text-sm mb-6">
+            <thead><tr class="border-b bg-gray-50">
+                <th class="px-4 py-2 text-left">Código</th>
+                <th class="px-4 py-2 text-left">Nombre</th>
+                <th class="px-4 py-2 text-left">Uso</th>
+            </tr></thead>
+            <tbody class="divide-y">
+                <tr><td class="px-4 py-2 font-mono">430</td><td class="px-4 py-2">Clientes</td><td class="px-4 py-2 text-gray-600">Ventas a crédito / cobros fraccionados</td></tr>
+                <tr><td class="px-4 py-2 font-mono">438</td><td class="px-4 py-2">Anticipos de Clientes</td><td class="px-4 py-2 text-gray-600">Reservas / señales</td></tr>
+                <tr><td class="px-4 py-2 font-mono">477</td><td class="px-4 py-2">HP IVA Repercutido</td><td class="px-4 py-2 text-gray-600">IVA 21% de anticipos</td></tr>
+                <tr><td class="px-4 py-2 font-mono">477001</td><td class="px-4 py-2">HP IVA Repercutido REBU</td><td class="px-4 py-2 text-gray-600">IVA sobre margen REBU</td></tr>
+                <tr><td class="px-4 py-2 font-mono">572</td><td class="px-4 py-2">Banco</td><td class="px-4 py-2 text-gray-600">Todos los movimientos bancarios</td></tr>
+                <tr><td class="px-4 py-2 font-mono">626</td><td class="px-4 py-2">Comisiones bancarias</td><td class="px-4 py-2 text-gray-600">Comisión de financiación externa</td></tr>
+            </tbody>
+        </table>
+
+        <h3 class="font-bold text-gray-800 mb-2">Flujos contables resumen:</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead><tr class="border-b bg-gray-50">
+                    <th class="px-3 py-2 text-left">Operación</th>
+                    <th class="px-3 py-2 text-left">DEBE</th>
+                    <th class="px-3 py-2 text-left">HABER</th>
+                    <th class="px-3 py-2 text-left">Banco</th>
+                </tr></thead>
+                <tbody class="divide-y text-xs">
+                    <tr><td class="px-3 py-2">Venta contado</td><td class="px-3 py-2">572</td><td class="px-3 py-2">700 + 471 + 310</td><td class="px-3 py-2">INGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Venta crédito</td><td class="px-3 py-2">430</td><td class="px-3 py-2">700 + 471 + 310</td><td class="px-3 py-2">—</td></tr>
+                    <tr><td class="px-3 py-2">Cobro plazo</td><td class="px-3 py-2">572</td><td class="px-3 py-2">430</td><td class="px-3 py-2">INGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Cobro ext. (comisión)</td><td class="px-3 py-2">572 + 626</td><td class="px-3 py-2">430</td><td class="px-3 py-2">INGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Reserva</td><td class="px-3 py-2">572</td><td class="px-3 py-2">438 + 477</td><td class="px-3 py-2">INGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Compra inventario</td><td class="px-3 py-2">300 + 472</td><td class="px-3 py-2">410</td><td class="px-3 py-2">EGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Gasto estructura</td><td class="px-3 py-2">6xx + 472</td><td class="px-3 py-2">410</td><td class="px-3 py-2">EGRESO</td></tr>
+                    <tr><td class="px-3 py-2">Devolución reserva</td><td class="px-3 py-2">438 + 477</td><td class="px-3 py-2">572</td><td class="px-3 py-2">EGRESO</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Volver -->
+    <div class="text-center mb-8">
+        <a href="{% url 'bank:cuenta_list' %}" class="bg-eurocar-blue text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">
+            🏦 Volver al módulo bancario
+        </a>
+    </div>
+
+</div>
+{% endblock %}

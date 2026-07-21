@@ -6,7 +6,7 @@
 - **`frontend/`** — Vue 3 + Vite public SPA (catalog, contact). Builds into `backend/static/web/` (see `frontend/vite.config.js:6,21`). README's "Nuxt 3" claim is wrong.
 - `docker-compose.yml` runs 5 services: `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 
-Routing (`backend/config/urls.py`): ERP under `/erp/*` (vehicles, taller, ventas, contabilidad, gastos, etc.), API at `/api/` (raw `JsonResponse`, **not** DRF despite `rest_framework` installed). A catch-all `spa_index` at line 20 serves the Vue SPA for every other path — **keep it last**.
+Routing (`backend/config/urls.py`): ERP under `/erp/*` (vehicles, taller, ventas, contabilidad, gastos, banco, etc.), API at `/api/` (raw `JsonResponse`, **not** DRF despite `rest_framework` installed). A catch-all `spa_index` at line 20 serves the Vue SPA for every other path — **keep it last**.
 
 - **`/api/*` is dual-mode**: each endpoint returns HTML when the request `Accept` header contains `text/html`, else JSON (`apps/api/urls.py:11` `is_html_request`). The public catalog/health views render both — keep both branches working when editing these views.
 - **Public SPA only works after a frontend build**: `spa_index` reads `STATIC_ROOT/web/index.html` and 404s with "Web pública no construida" otherwise (`apps/core/views.py:94-99`). Run `npm run build` (and `collectstatic` in prod) so the file exists.
@@ -30,6 +30,7 @@ Run from **repo root** unless noted:
 | Build frontend | `cd frontend && npm run build` → `backend/static/web/` |
 | Full sample data | `python create_full_test.py` (after test users) |
 | Prod users | `python create_users_prod.py` (`config.settings.production`; creates `roger`, `puede_eliminar=False`) |
+| Regularización existencias | `cd backend && python manage.py regularizar_existencias --ano YYYY` (year-end inventory adjustment, DEBE 300 / HABER 610) |
 
 **No lint/typecheck/format/CI test gates exist** — no eslint, ruff, flake8, pre-commit. Only CI is `.github/workflows/backup.yml`.
 
@@ -70,6 +71,7 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 - **Vehicle images**: vehicle must be `EN_VENTA` or images are discarded/deleted (`apps/vehicles/views.py:89-94,132-135`). UI: admin → `/erp/vehiculos/nuevo/` or `<pk>/editar/`, `ImagenVehiculoFormSet` max 8. Command: `python manage.py subir_imagen_vehiculo --matricula 1234ABC --imagen "C:/fotos/golf.jpg" [--principal]`.
 - **Expense PDFs** (`GastoEstructura.documento_pdf`, `is_admin` only): UI `/erp/gastos/nuevo/` or edit; command `python manage.py subir_factura_gasto --pk 12 --pdf "C:/facturas/alquiler.pdf"` (expense must already exist). Don't confuse with REBU `FacturaVenta` PDF, which the system **generates**.
 - **Workshop inventory stock** is added only via **purchase with invoice** (`CompraMaterial`), never loose manual entry. Access it via the sidebar **`🛒 Compras`** (admin-only) or Inventario → "🛒 Registrar Compra" button — both link to `workshop:compra_material_create`. The "Registrar Compra" button/links are **admin-only** (`is_admin`). On save it increments `stock_actual` and `crear_asiento_contable()` generates **and auto-posts** a balanced entry (DEBE 300/310/320/330 + 472, HABER 410, `estado='POSTEADO'`) so it appears immediately in the ledger/balance/PyG/IVA reports (`views_material.py:119`). A material can be **created inline** from the purchase form (name + unit) instead of pre-creating it. `MaterialUsado` (in an OT) decrements stock and adds to OT `coste_materiales` → REBU account 623. PGC accounts at `apps/accounting/models.py:184-197`; `generar_numero_asiento` at `apps/accounting/views.py:251`.
+- **Bank module** (`apps.bank`): admin-only. Sidebar: `🏦 Banco` → account dashboard, `🔖 Reservas` → reservations, `❓ Ayuda Banco` → step-by-step guide. Bank movements are **never created manually** — only via `services.py:crear_movimiento_banco()`. Every financial transaction (sale, purchase, expense, reservation, cobro) auto-creates a `BancoMovimiento`. Balance is computed on-the-fly (no stored `saldo`). Conciliación via Excel/CSV upload uses `pandas` (lazy-imported). Key URLs: `/erp/banco/cuentas/`, `/erp/banco/movimientos/`, `/erp/banco/conciliacion/`, `/erp/banco/reservas/`, `/erp/banco/guia/`.
 
 ## Gotchas
 
@@ -82,3 +84,6 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 - **`django-csp`** active — new inline `<script>`/`<style>` must comply with CSP (use nonces or external files).
 - **Session** expires in 1h and on browser close (`SESSION_EXPIRE_AT_BROWSER_CLOSE=True`, `SESSION_SAVE_EVERY_REQUEST=True`).
 - **`django-cleanup`** auto-deletes orphaned files when records are removed.
+- **Bank `saldo` is computed, not stored**: `BancoCuenta.saldo` queries `BancoMovimiento` rows each time (filtered by `conciliado=True`). `saldo_pendiente` includes unconfirmed movements. Never write to a `saldo` field.
+- **`pandas` is lazy-imported** in `bank/services.py` — only loaded when conciliación runs. Keep it lazy if adding new imports; don't put `import pandas` at module level.
+- **Bank movements are system-only**: `crear_movimiento_banco()` is the single entry point. No admin UI to manually insert movements — this is by design (spec: "Prohibido insertar apuntes de banco manuales").
