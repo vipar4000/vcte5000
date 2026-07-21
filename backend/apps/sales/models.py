@@ -113,6 +113,17 @@ class VentaVehiculo(models.Model):
         related_name='venta',
         verbose_name='asiento contable'
     )
+
+    # Cobros fraccionados
+    total_cobrado = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0'),
+        verbose_name='total cobrado',
+        help_text='Actualizado automáticamente al recibir plazos',
+    )
+    pagada = models.BooleanField(
+        default=False, verbose_name='pagada',
+        help_text='True cuando total_cobrado >= precio_venta',
+    )
     
     class Meta:
         verbose_name = 'venta de vehículo'
@@ -144,60 +155,89 @@ class VentaVehiculo(models.Model):
     def precio_final_cliente(self):
         """Precio que paga el cliente (con IVA REBU incluido)."""
         return self.precio_venta
+
+    def actualizar_estado_cobros(self):
+        """Actualiza el estado de pago según cobros recibidos."""
+        from django.db.models import Sum
+        self.total_cobrado = self.cobros.filter(
+            estado='RECIBIDO'
+        ).aggregate(total=Sum('importe'))['total'] or Decimal('0')
+        if self.total_cobrado >= self.precio_venta:
+            self.pagada = True
+        self.save(update_fields=['total_cobrado', 'pagada'])
     
     def crear_asiento_contable(self):
         """Genera asiento contable automático para esta venta REBU."""
+        from django.db import transaction
         from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
-        
-        cuenta_banco = CuentaContable.objects.get(codigo='572')
-        cuenta_ventas = CuentaContable.objects.get(codigo='700')
-        cuenta_iva = CuentaContable.objects.get(codigo='471')
-        cuenta_compras = CuentaContable.objects.get(codigo='600')
-        cuenta_mercancias = CuentaContable.objects.get(codigo='310')
-        
-        asiento = AsientoContable.objects.create(
-            fecha=self.fecha_venta,
-            concepto=f"Venta vehículo {self.vehiculo} a {self.cliente_nombre}",
-            estado='BORRADOR',
-            tipo_documento='VentaVehiculo',
-            documento_id=self.pk,
-            created_by=self.created_by,
-        )
-        
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_banco,
-            debe=self.precio_venta, haber=Decimal('0'),
-            descripcion=f"Cobro cliente {self.cliente_nombre}",
-        )
-        
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_compras,
-            debe=self.coste_total, haber=Decimal('0'),
-            descripcion=f"Coste adquisición {self.vehiculo}",
-        )
-        
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_ventas,
-            debe=Decimal('0'), haber=self.base_imponible,
-            descripcion="Ingresos por venta (margen REBU)",
-        )
-        
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_iva,
-            debe=Decimal('0'), haber=self.cuota_iva,
-            descripcion="IVA REBU 21% sobre margen",
-        )
-        
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_mercancias,
-            debe=Decimal('0'), haber=self.coste_total,
-            descripcion=f"Baja inventario {self.vehiculo}",
-        )
-        
-        self.asiento_contable = asiento
-        self.save(update_fields=['asiento_contable'])
-        
-        return asiento
+        from apps.accounting.views import generar_numero_asiento
+
+        with transaction.atomic():
+            cuenta_banco = CuentaContable.objects.get(codigo='572')
+            cuenta_clientes = CuentaContable.objects.get(codigo='430')
+            cuenta_ventas = CuentaContable.objects.get(codigo='700')
+            cuenta_iva = CuentaContable.objects.get(codigo='471')
+            cuenta_compras = CuentaContable.objects.get(codigo='600')
+            cuenta_mercancias = CuentaContable.objects.get(codigo='310')
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_venta,
+                concepto=f"Venta vehículo {self.vehiculo} a {self.cliente_nombre}",
+                estado='BORRADOR',
+                tipo_documento='VentaVehiculo',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            # Debe: según método de pago
+            if self.metodo_pago in ('EFECTIVO', 'TRANSFERENCIA'):
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_banco,
+                    debe=self.precio_venta, haber=Decimal('0'),
+                    descripcion=f"Cobro cliente {self.cliente_nombre}",
+                )
+            elif self.metodo_pago == 'FINANCIADO':
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_clientes,
+                    debe=self.precio_venta, haber=Decimal('0'),
+                    descripcion=f"Cliente {self.cliente_nombre} (crédito)",
+                )
+            else:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_banco,
+                    debe=self.precio_venta, haber=Decimal('0'),
+                    descripcion=f"Cobro cliente {self.cliente_nombre}",
+                )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_compras,
+                debe=self.coste_total, haber=Decimal('0'),
+                descripcion=f"Coste adquisición {self.vehiculo}",
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_ventas,
+                debe=Decimal('0'), haber=self.base_imponible,
+                descripcion="Ingresos por venta (margen REBU)",
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_iva,
+                debe=Decimal('0'), haber=self.cuota_iva,
+                descripcion="IVA REBU 21% sobre margen",
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_mercancias,
+                debe=Decimal('0'), haber=self.coste_total,
+                descripcion=f"Baja inventario {self.vehiculo}",
+            )
+
+            self.asiento_contable = asiento
+            self.save(update_fields=['asiento_contable'])
+
+            return asiento
 
 
 class FacturaVenta(models.Model):
@@ -445,35 +485,199 @@ class CostoAcondicionamiento(models.Model):
     
     def crear_asiento_contable(self):
         """Genera asiento: IVA va a cuenta de gasto (623), NO a 472."""
+        from django.db import transaction
         from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
-        
-        cuenta_gasto = CuentaContable.objects.get(codigo='623')
-        cuenta_proveedor = CuentaContable.objects.get(codigo='410')
-        
-        asiento = AsientoContable.objects.create(
-            fecha=self.fecha,
-            concepto=f"Acondicionamiento {self.get_categoria_display()}: {self.vehiculo} - {self.proveedor}",
-            estado='BORRADOR',
-            tipo_documento='CostoAcondicionamiento',
-            documento_id=self.pk,
-            created_by=self.created_by,
-        )
-        
-        # Gasto (incluye IVA no deducible)
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_gasto,
-            debe=self.total, haber=Decimal('0'),
-            descripcion=f"{self.descripcion[:100]} (IVA incluido, no deducible)",
-        )
-        
-        # Proveedor
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_proveedor,
-            debe=Decimal('0'), haber=self.total,
-            descripcion=f"Proveedor: {self.proveedor}",
-        )
-        
-        self.asiento_contable = asiento
-        self.save(update_fields=['asiento_contable'])
-        
-        return asiento
+        from apps.accounting.views import generar_numero_asiento
+
+        with transaction.atomic():
+            cuenta_gasto = CuentaContable.objects.get(codigo='623')
+            cuenta_proveedor = CuentaContable.objects.get(codigo='410')
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha,
+                concepto=f"Acondicionamiento {self.get_categoria_display()}: {self.vehiculo} - {self.proveedor}",
+                estado='BORRADOR',
+                tipo_documento='CostoAcondicionamiento',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_gasto,
+                debe=self.total, haber=Decimal('0'),
+                descripcion=f"{self.descripcion[:100]} (IVA incluido, no deducible)",
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_proveedor,
+                debe=Decimal('0'), haber=self.total,
+                descripcion=f"Proveedor: {self.proveedor}",
+            )
+
+            self.asiento_contable = asiento
+            self.save(update_fields=['asiento_contable'])
+
+            return asiento
+
+
+# =============================================================================
+# COBROS FRACCIONADOS
+# =============================================================================
+
+class CobroFraccionado(models.Model):
+    """Pagos fraccionados / plazos asociados a una venta."""
+
+    TIPOS_FINANCIACION = [
+        ('CONTADO', 'Contado'),
+        ('DIRECTA', 'Financiación Directa S.L.'),
+        ('EXTERNA', 'Financiación Bancaria Externa'),
+    ]
+
+    venta = models.ForeignKey(
+        VentaVehiculo,
+        on_delete=models.CASCADE,
+        related_name='cobros',
+        verbose_name='venta',
+    )
+    fecha_vencimiento = models.DateField(verbose_name='fecha de vencimiento')
+    importe = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name='importe del plazo'
+    )
+    estado = models.CharField(
+        max_length=15,
+        choices=[('PENDIENTE', 'Pendiente'), ('RECIBIDO', 'Recibido')],
+        default='PENDIENTE',
+        verbose_name='estado',
+    )
+    banco_movimiento = models.OneToOneField(
+        'bank.BancoMovimiento',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='cobro_fraccionado',
+        verbose_name='movimiento bancario',
+    )
+    tipo_financiacion = models.CharField(
+        max_length=10,
+        choices=TIPOS_FINANCIACION,
+        default='CONTADO',
+        verbose_name='tipo de financiación',
+    )
+    comision_financiera = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='comisión financiera',
+    )
+    numero_plazo = models.PositiveIntegerField(verbose_name='número de plazo')
+    notas = models.TextField(blank=True, verbose_name='notas')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'cobro fraccionado'
+        verbose_name_plural = 'cobros fraccionados'
+        ordering = ['fecha_vencimiento']
+        unique_together = ['venta', 'numero_plazo']
+
+    def __str__(self):
+        return f"Plazo {self.numero_plazo} - {self.venta} (€{self.importe})"
+
+    def recibir(self, user):
+        """
+        Marca el plazo como recibido y crea el asiento contable correspondiente.
+        """
+        from django.db import transaction
+        from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+
+        with transaction.atomic():
+            banco_cuenta = obtener_cuenta_banco_default()
+            if not banco_cuenta:
+                raise ValueError('No hay cuentas bancarias configuradas')
+
+            # Crear movimiento bancario
+            if self.tipo_financiacion == 'EXTERNA' and self.comision_financiera > 0:
+                # Financiación externa: importe neto + comisión
+                importe_neto = self.importe - self.comision_financiera
+                movimiento = crear_movimiento_banco(
+                    banco_cuenta=banco_cuenta,
+                    fecha=self.fecha_vencimiento,
+                    concepto=f"Cobro financiación externa - {self.venta.vehiculo} (plazo {self.numero_plazo})",
+                    tipo='INGRESO',
+                    importe=importe_neto,
+                )
+            else:
+                movimiento = crear_movimiento_banco(
+                    banco_cuenta=banco_cuenta,
+                    fecha=self.fecha_vencimiento,
+                    concepto=f"Cobro plazo {self.numero_plazo} - {self.venta.vehiculo}",
+                    tipo='INGRESO',
+                    importe=self.importe,
+                )
+
+            # Crear asiento contable
+            cuenta_banco = CuentaContable.objects.get(codigo='572')
+            cuenta_clientes = CuentaContable.objects.get(codigo='430')
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_vencimiento,
+                concepto=f"Cobro plazo {self.numero_plazo} - {self.venta.vehiculo} a {self.venta.cliente_nombre}",
+                estado='BORRADOR',
+                tipo_documento='CobroFraccionado',
+                documento_id=self.pk,
+                created_by=user,
+            )
+
+            if self.tipo_financiacion == 'EXTERNA' and self.comision_financiera > 0:
+                # Financiación externa: DEBE banco + DEBE comisión, HABER clientes
+                importe_neto = self.importe - self.comision_financiera
+                cuenta_comision = CuentaContable.objects.get(codigo='626')
+
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_banco,
+                    debe=importe_neto, haber=Decimal('0'),
+                    descripcion=f"Ingreso neto financiación",
+                )
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_comision,
+                    debe=self.comision_financiera, haber=Decimal('0'),
+                    descripcion=f"Comisión financiera",
+                )
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_clientes,
+                    debe=Decimal('0'), haber=self.importe,
+                    descripcion=f"Cliente {self.venta.cliente_nombre}",
+                )
+            else:
+                # Financiación directa o contado: DEBE banco, HABER clientes
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_banco,
+                    debe=self.importe, haber=Decimal('0'),
+                    descripcion=f"Cobro plazo {self.numero_plazo}",
+                )
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_clientes,
+                    debe=Decimal('0'), haber=self.importe,
+                    descripcion=f"Cliente {self.venta.cliente_nombre}",
+                )
+
+            # Actualizar estado
+            self.estado = 'RECIBIDO'
+            self.banco_movimiento = movimiento
+            self.save(update_fields=['estado', 'banco_movimiento'])
+
+            # Actualizar estado de la venta
+            self.venta.actualizar_estado_cobros()
+
+            return asiento
+
+    @property
+    def total_cobrado_venta(self):
+        """Total cobrado de la venta hasta este plazo."""
+        from django.db.models import Sum
+        return CobroFraccionado.objects.filter(
+            venta=self.venta, estado='RECIBIDO'
+        ).aggregate(total=Sum('importe'))['total'] or Decimal('0')
+

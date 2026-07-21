@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Cuentas Bancarias - R Car Rogil{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">🏦 Cuentas Bancarias</h1>
+            <p class="text-gray-600">Gestión de cuentas y movimientos bancarios</p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'bank:cuenta_create' %}"
+           class="bg-eurocar-blue text-white px-4 py-2 rounded hover:bg-blue-800 transition">
+            + Nueva Cuenta
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for cuenta in cuentas %}
+    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">{{ cuenta.nombre }}</h3>
+                <p class="text-sm text-gray-500">{{ cuenta.iban }}</p>
+            </div>
+            {% if cuenta.activa %}
+            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Activa</span>
+            {% else %}
+            <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Inactiva</span>
+            {% endif %}
+        </div>
+
+        <div class="mb-4">
+            <p class="text-sm text-gray-600">Cuenta contable:</p>
+            <p class="font-mono text-sm">{{ cuenta.cuenta_contable }}</p>
+        </div>
+
+        <div class="border-t pt-4">
+            <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Saldo conciliado:</span>
+                <span class="font-bold {% if cuenta.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    €{{ cuenta.saldo|floatformat:2 }}
+                </span>
+            </div>
+            <div class="flex justify-between mt-1">
+                <span class="text-sm text-gray-600">Saldo total:</span>
+                <span class="text-sm {% if cuenta.saldo_pendiente >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    €{{ cuenta.saldo_pendiente|floatformat:2 }}
+                </span>
+            </div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+            <a href="{% url 'bank:cuenta_detail' pk=cuenta.pk %}"
+               class="flex-1 text-center bg-eurocar-light text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition">
+                Ver Movimientos
+            </a>
+            {% if is_admin %}
+            <a href="{% url 'bank:cuenta_edit' pk=cuenta.pk %}"
+               class="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-300 transition">
+                ✏️
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-3 text-center py-12">
+        <p class="text-gray-500 text-lg">No hay cuentas bancarias configuradas</p>
+        {% if is_admin %}
+        <a href="{% url 'bank:cuenta_create' %}" class="text-eurocar-blue hover:underline mt-2 inline-block">
+            Crear primera cuenta
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_admin %}
+<div class="mt-8">
+    <a href="{% url 'bank:conciliacion_upload' %}"
+       class="bg-eurocar-green text-white px-6 py-3 rounded-lg hover:bg-green-600 transition inline-block">
+        📄 Conciliación Bancaria
+    </a>
+    <a href="{% url 'bank:reserva_list' %}"
+       class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition inline-block ml-4">
+        🔖 Reservas
+    </a>
+</div>
+{% endif %}
+{% endblock %}

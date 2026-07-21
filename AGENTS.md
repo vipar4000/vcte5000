@@ -8,6 +8,9 @@
 
 Routing (`backend/config/urls.py`): ERP under `/erp/*` (vehicles, taller, ventas, contabilidad, gastos, etc.), API at `/api/` (raw `JsonResponse`, **not** DRF despite `rest_framework` installed). A catch-all `spa_index` at line 20 serves the Vue SPA for every other path — **keep it last**.
 
+- **`/api/*` is dual-mode**: each endpoint returns HTML when the request `Accept` header contains `text/html`, else JSON (`apps/api/urls.py:11` `is_html_request`). The public catalog/health views render both — keep both branches working when editing these views.
+- **Public SPA only works after a frontend build**: `spa_index` reads `STATIC_ROOT/web/index.html` and 404s with "Web pública no construida" otherwise (`apps/core/views.py:94-99`). Run `npm run build` (and `collectstatic` in prod) so the file exists.
+
 Roles (`accounts.User.rol`): `ADMIN`, `OPERARIO`, `VENDEDOR`, `GESTORIA`. Use `user.is_admin` / `is_operario` / `is_vendedor` / `is_gestoria` properties — never raw `rol` string comparisons.
 
 Backend Django apps live under `apps/` — import as `apps.<name>` (e.g. `apps.vehicles`), not top-level.
@@ -27,6 +30,8 @@ Run from **repo root** unless noted:
 | Build frontend | `cd frontend && npm run build` → `backend/static/web/` |
 | Full sample data | `python create_full_test.py` (after test users) |
 | Prod users | `python create_users_prod.py` (`config.settings.production`; creates `roger`, `puede_eliminar=False`) |
+
+**No lint/typecheck/format/CI test gates exist** — no eslint, ruff, flake8, pre-commit. Only CI is `.github/workflows/backup.yml`.
 
 ## Testing
 
@@ -71,7 +76,6 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
 - **`User.puede_eliminar`** (default True) gates delete permission.
 - **`rol` has `default='ADMIN'`** and `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` all fall back to `is_superuser`. But a user created via `createsuperuser` (README's path) stores `rol=''` in the DB, so it is NOT automatically admin until its `rol` is set — fix existing rows with `User.objects.filter(username='admin').update(rol='ADMIN')`.
-- **No lint/typecheck/format/CI test gates** exist (eslint, ruff, flake8, pre-commit all absent). Only CI is `.github/workflows/backup.yml`.
 - **Keep the `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat) even though we run 3.11.
 - **`.env` split**: root `.env` is read by Django (`base.py:23`) for DB/Redis/secret keys — not just docker-compose. There is no `backend/.env` loading path.
 - **Account locking twice**: manual (5 attempts → 1h) + `django-axes` (`AXES_*`). Both active.

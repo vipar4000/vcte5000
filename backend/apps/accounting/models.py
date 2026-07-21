@@ -194,9 +194,12 @@ class PlanContableDefault(models.Model):
             ('400', 'Proveedores', 'P'),
             ('410', 'Acreedores varios', 'P'),
             ('430', 'Clientes', 'A'),
+            ('438', 'Anticipos de Clientes', 'A'),
             ('440', 'Deudores varios', 'A'),
             ('472', 'Hacienda Pública, IVA soportado', 'P'),
             ('471', 'Hacienda Pública, IVA repercutido', 'P'),
+            ('477', 'Hacienda Pública, IVA repercutido (otros)', 'P'),
+            ('477001', 'HP IVA Repercutido REBU', 'P'),
             ('4751', 'Retenciones y anticipos IRPF', 'P'),
             
             # Grupo 5 - Tesorería
@@ -211,7 +214,9 @@ class PlanContableDefault(models.Model):
             ('610', 'Compras de materias primas', 'G'),
             ('620', 'Otros gastos exteriores', 'G'),
             ('621', 'Arrendamientos y cánones', 'G'),
+            ('622', 'Notaría y Registro', 'G'),
             ('623', 'Reparaciones y conservación', 'G'),
+            ('626', 'Comisiones bancarias', 'G'),
             ('628', 'Suministros y otros gastos', 'G'),
             ('629', 'Otros servicios exteriores', 'G'),
             ('630', 'Gastos financieros', 'G'),

@@ -107,6 +107,17 @@
                 {% endif %}
                 
                 {% if is_admin %}
+                <a href="{% url 'bank:cuenta_list' %}" 
+                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
+                    🏦 Banco
+                </a>
+                <a href="{% url 'bank:reserva_list' %}" 
+                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
+                    🔖 Reservas
+                </a>
+                {% endif %}
+                
+                {% if is_admin %}
                 <div class="border-t border-eurocar-light my-4"></div>
                 <a href="{% url 'admin:index' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">

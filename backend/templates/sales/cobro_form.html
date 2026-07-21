@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Plazo - {{ venta.vehiculo }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Nuevo Plazo de Cobro</h1>
+        <p class="text-gray-600">{{ venta.vehiculo }} — €{{ venta.precio_venta|floatformat:2 }}</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de vencimiento</label>
+                <input type="date" name="fecha_vencimiento" required
+                       class="form-control w-full border rounded px-3 py-2">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Importe (€)</label>
+                <input type="number" name="importe" step="0.01" required
+                       class="form-control w-full border rounded px-3 py-2">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de financiación</label>
+                <select name="tipo_financiacion" class="form-select w-full border rounded px-3 py-2">
+                    <option value="CONTADO">Contado</option>
+                    <option value="DIRECTA">Financiación Directa S.L.</option>
+                    <option value="EXTERNA">Financiación Bancaria Externa</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Comisión financiera (€)</label>
+                <input type="number" name="comision_financiera" step="0.01" value="0"
+                       class="form-control w-full border rounded px-3 py-2">
+                <p class="text-xs text-gray-500 mt-1">Solo para financiación externa. Se registra como gasto (626).</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                <textarea name="notas" rows="2"
+                          class="form-control w-full border rounded px-3 py-2"></textarea>
+            </div>
+
+            <div class="flex gap-4 mt-6">
+                <button type="submit" class="bg-eurocar-blue text-white px-6 py-2 rounded hover:bg-blue-800 transition">
+                    Crear Plazo
+                </button>
+                <a href="{% url 'sales:cobro_list' venta_pk=venta.pk %}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded hover:bg-gray-300 transition">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

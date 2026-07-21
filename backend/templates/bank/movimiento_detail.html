@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Movimiento #{{ movimiento.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">Detalle del Movimiento</h1>
+        <a href="{% url 'bank:movimiento_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-sm text-gray-600">Fecha</p>
+                <p class="font-medium">{{ movimiento.fecha }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Cuenta bancaria</p>
+                <p class="font-medium">{{ movimiento.banco_cuenta }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Tipo</p>
+                {% if movimiento.tipo == 'INGRESO' %}
+                <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded">INGRESO</span>
+                {% else %}
+                <span class="bg-red-100 text-red-800 text-sm px-3 py-1 rounded">EGRESO</span>
+                {% endif %}
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Importe</p>
+                <p class="text-2xl font-bold {% if movimiento.tipo == 'INGRESO' %}text-green-600{% else %}text-red-600{% endif %}">
+                    {% if movimiento.tipo == 'INGRESO' %}+{% else %}-{% endif %}€{{ movimiento.importe|floatformat:2 }}
+                </p>
+            </div>
+            <div class="col-span-2">
+                <p class="text-sm text-gray-600">Concepto</p>
+                <p class="font-medium">{{ movimiento.concepto }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Conciliado</p>
+                {% if movimiento.conciliado %}
+                <span class="text-green-600 font-medium">✓ Conciliado</span>
+                {% else %}
+                <span class="text-yellow-500 font-medium">⏳ Pendiente</span>
+                {% endif %}
+            </div>
+            {% if movimiento.asiento_asociado %}
+            <div>
+                <p class="text-sm text-gray-600">Asiento contable</p>
+                <a href="{% url 'accounting:detail' pk=movimiento.asiento_asociado.pk %}" class="text-eurocar-blue hover:underline">
+                    {{ movimiento.asiento_asociado }}
+                </a>
+            </div>
+            {% endif %}
+            {% if movimiento.vehiculo_asociado %}
+            <div>
+                <p class="text-sm text-gray-600">Vehículo</p>
+                <a href="{% url 'vehicles:detail' pk=movimiento.vehiculo_asociado.pk %}" class="text-eurocar-blue hover:underline">
+                    {{ movimiento.vehiculo_asociado }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

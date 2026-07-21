@@ -285,52 +285,53 @@ class CompraMaterial(models.Model):
 
     def crear_asiento_contable(self):
         """Genera el asiento de entrada a inventario (Grupo 3) + IVA + Proveedor."""
+        from django.db import transaction
         from apps.accounting.models import (
             AsientoContable, MovimientoContable, CuentaContable,
         )
-        from django.utils import timezone
-
-        codigos_requeridos = [self.tipo_inventario, '472', '410']
-        for codigo in codigos_requeridos:
-            if not CuentaContable.objects.filter(codigo=codigo).exists():
-                raise ValueError(
-                    f'Falta la cuenta contable {codigo} en el plan contable. '
-                    f'Inicialice el plan en Contabilidad > Cuentas > Inicializar.'
-                )
-
-        cuenta_inventario = CuentaContable.objects.get(codigo=self.tipo_inventario)
-        cuenta_iva = CuentaContable.objects.get(codigo='472')
-        cuenta_proveedor = CuentaContable.objects.get(codigo='410')
-
         from apps.accounting.views import generar_numero_asiento
-        numero = generar_numero_asiento()
 
-        asiento = AsientoContable.objects.create(
-            numero=numero,
-            fecha=self.fecha_compra,
-            concepto=f"Compra inventario: {self.material.nombre} - {self.proveedor}",
-            estado='BORRADOR',
-            tipo_documento='CompraMaterial',
-            documento_id=self.pk,
-            created_by=self.created_by,
-        )
+        with transaction.atomic():
+            codigos_requeridos = [self.tipo_inventario, '472', '410']
+            for codigo in codigos_requeridos:
+                if not CuentaContable.objects.filter(codigo=codigo).exists():
+                    raise ValueError(
+                        f'Falta la cuenta contable {codigo} en el plan contable. '
+                        f'Inicialice el plan en Contabilidad > Cuentas > Inicializar.'
+                    )
 
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_inventario,
-            debe=self.base_imponible, haber=Decimal('0'),
-            descripcion=f"Entrada inventario {self.material.nombre}",
-        )
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_iva,
-            debe=self.cuota_iva, haber=Decimal('0'),
-            descripcion=f"IVA soportado {self.tipo_iva}%",
-        )
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_proveedor,
-            debe=Decimal('0'), haber=self.base_imponible + self.cuota_iva,
-            descripcion=f"Proveedor: {self.proveedor}",
-        )
+            cuenta_inventario = CuentaContable.objects.get(codigo=self.tipo_inventario)
+            cuenta_iva = CuentaContable.objects.get(codigo='472')
+            cuenta_proveedor = CuentaContable.objects.get(codigo='410')
 
-        self.asiento_contable = asiento
-        self.save(update_fields=['asiento_contable'])
-        return asiento
+            numero = generar_numero_asiento()
+
+            asiento = AsientoContable.objects.create(
+                numero=numero,
+                fecha=self.fecha_compra,
+                concepto=f"Compra inventario: {self.material.nombre} - {self.proveedor}",
+                estado='BORRADOR',
+                tipo_documento='CompraMaterial',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_inventario,
+                debe=self.base_imponible, haber=Decimal('0'),
+                descripcion=f"Entrada inventario {self.material.nombre}",
+            )
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_iva,
+                debe=self.cuota_iva, haber=Decimal('0'),
+                descripcion=f"IVA soportado {self.tipo_iva}%",
+            )
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_proveedor,
+                debe=Decimal('0'), haber=self.base_imponible + self.cuota_iva,
+                descripcion=f"Proveedor: {self.proveedor}",
+            )
+
+            self.asiento_contable = asiento
+            self.save(update_fields=['asiento_contable'])
+            return asiento

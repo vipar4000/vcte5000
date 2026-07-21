@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Reservas - Arras{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">🔖 Reservas / Arras</h1>
+            <p class="text-gray-600">Gestión de señales y apartados de vehículos</p>
+        </div>
+        <a href="{% url 'bank:reserva_create' %}"
+           class="bg-eurocar-blue text-white px-4 py-2 rounded hover:bg-blue-800 transition">
+            + Nueva Reserva
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="flex gap-2 mb-6">
+    <a href="{% url 'bank:reserva_list' %}" class="px-4 py-2 rounded {% if not estado_filtro %}bg-eurocar-blue text-white{% else %}bg-gray-200 text-gray-700{% endif %}">
+        Todas
+    </a>
+    <a href="{% url 'bank:reserva_list' %}?estado=ACTIVA" class="px-4 py-2 rounded {% if estado_filtro == 'ACTIVA' %}bg-eurocar-blue text-white{% else %}bg-gray-200 text-gray-700{% endif %}">
+        Activas
+    </a>
+    <a href="{% url 'bank:reserva_list' %}?estado=CONVERTIDA" class="px-4 py-2 rounded {% if estado_filtro == 'CONVERTIDA' %}bg-eurocar-blue text-white{% else %}bg-gray-200 text-gray-700{% endif %}">
+        Convertidas
+    </a>
+    <a href="{% url 'bank:reserva_list' %}?estado=DEVUELTA" class="px-4 py-2 rounded {% if estado_filtro == 'DEVUELTA' %}bg-eurocar-blue text-white{% else %}bg-gray-200 text-gray-700{% endif %}">
+        Devueltas
+    </a>
+</div>
+
+<!-- Lista -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Vehículo</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Cliente</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Fecha</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Importe</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Estado</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for reserva in reservas %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm font-medium">{{ reserva.vehiculo }}</td>
+                <td class="px-4 py-3 text-sm">{{ reserva.cliente_nombre }}</td>
+                <td class="px-4 py-3 text-sm">{{ reserva.fecha_reserva }}</td>
+                <td class="px-4 py-3 text-right font-mono text-sm">€{{ reserva.importe_reserva|floatformat:2 }}</td>
+                <td class="px-4 py-3 text-center">
+                    {% if reserva.estado == 'ACTIVA' %}
+                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">ACTIVA</span>
+                    {% elif reserva.estado == 'CONVERTIDA' %}
+                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">CONVERTIDA</span>
+                    {% elif reserva.estado == 'DEVUELTA' %}
+                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">DEVUELTA</span>
+                    {% else %}
+                    <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">{{ reserva.estado }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-center text-sm">
+                    <a href="{% url 'bank:reserva_detail' pk=reserva.pk %}" class="text-eurocar-blue hover:underline">Ver</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay reservas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

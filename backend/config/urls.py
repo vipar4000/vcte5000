@@ -15,6 +15,7 @@ urlpatterns = [
     path('erp/garantias/', include('apps.warranty.urls')),
     path('erp/contabilidad/', include('apps.accounting.urls')),
     path('erp/gastos/', include('apps.expenses.urls')),
+    path('erp/banco/', include('apps.bank.urls')),
     path('api/', include('apps.api.urls')),
     # Web pública (SPA Vue) - catch-all al final; /static, /erp, /api, /admin resuelven antes
     re_path(r'^.*$', spa_index),

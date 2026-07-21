@@ -21,4 +21,9 @@ urlpatterns = [
     # Costos de acondicionamiento
     path('vehiculo/<int:vehiculo_pk>/costos/', views.costo_acondicionamiento_list, name='costos_list'),
     path('vehiculo/<int:vehiculo_pk>/costos/nuevo/', views.costo_acondicionamiento_create, name='costos_create'),
+
+    # Cobros fraccionados
+    path('<int:venta_pk>/cobros/', views.cobro_list, name='cobro_list'),
+    path('<int:venta_pk>/cobros/nuevo/', views.cobro_create, name='cobro_create'),
+    path('<int:venta_pk>/cobros/<int:pk>/recibir/', views.cobro_recibir, name='cobro_recibir'),
 ]

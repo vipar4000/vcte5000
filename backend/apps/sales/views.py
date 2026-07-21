@@ -375,3 +375,102 @@ def costo_acondicionamiento_create(request, vehiculo_pk):
         'vehiculo': vehiculo,
     }
     return render(request, 'sales/costo_acondicionamiento_form.html', context)
+
+
+# =============================================================================
+# VISTAS DE COBROS FRACCIONADOS
+# =============================================================================
+
+@login_required
+def cobro_list(request, venta_pk):
+    """Lista de cobros fraccionados de una venta."""
+    venta = get_object_or_404(VentaVehiculo, pk=venta_pk)
+    cobros = venta.cobros.all()
+
+    total_cobrado = sum(
+        c.importe for c in cobros.filter(estado='RECIBIDO')
+    )
+    total_pendiente = sum(
+        c.importe for c in cobros.filter(estado='PENDIENTE')
+    )
+
+    context = {
+        'venta': venta,
+        'cobros': cobros,
+        'total_cobrado': total_cobrado,
+        'total_pendiente': total_pendiente,
+    }
+    return render(request, 'sales/cobro_list.html', context)
+
+
+@login_required
+def cobro_create(request, venta_pk):
+    """Añadir un plazo de cobro fraccionado."""
+    venta = get_object_or_404(VentaVehiculo, pk=venta_pk)
+
+    if not request.user.is_admin and not request.user.is_vendedor:
+        messages.error(request, 'No tiene permisos para crear cobros.')
+        return redirect('sales:detail', pk=venta.pk)
+
+    if request.method == 'POST':
+        from .models import CobroFraccionado
+        from decimal import Decimal
+
+        fecha_vencimiento = request.POST.get('fecha_vencimiento')
+        importe = request.POST.get('importe')
+        tipo_financiacion = request.POST.get('tipo_financiacion', 'CONTADO')
+        comision = request.POST.get('comision_financiera', '0')
+        notas = request.POST.get('notas', '')
+
+        # Calcular siguiente número de plazo
+        ultimo_plazo = venta.cobros.order_by('-numero_plazo').first()
+        siguiente_plazo = (ultimo_plazo.numero_plazo + 1) if ultimo_plazo else 1
+
+        cobro = CobroFraccionado.objects.create(
+            venta=venta,
+            fecha_vencimiento=fecha_vencimiento,
+            importe=Decimal(importe),
+            tipo_financiacion=tipo_financiacion,
+            comision_financiera=Decimal(comision),
+            numero_plazo=siguiente_plazo,
+            notas=notas,
+        )
+
+        messages.success(
+            request,
+            f'Plazo {siguiente_plazo} creado: €{importe} - vence {fecha_vencimiento}'
+        )
+        return redirect('sales:cobro_list', venta_pk=venta.pk)
+
+    context = {
+        'venta': venta,
+    }
+    return render(request, 'sales/cobro_form.html', context)
+
+
+@login_required
+def cobro_recibir(request, venta_pk, pk):
+    """Marcar un cobro como recibido y generar asiento contable."""
+    from .models import CobroFraccionado
+
+    cobro = get_object_or_404(
+        CobroFraccionado, pk=pk, venta__pk=venta_pk, estado='PENDIENTE'
+    )
+
+    if not request.user.is_admin and not request.user.is_vendedor:
+        messages.error(request, 'No tiene permisos para recibir cobros.')
+        return redirect('sales:cobro_list', venta_pk=venta_pk)
+
+    if request.method != 'POST':
+        return redirect('sales:cobro_list', venta_pk=venta_pk)
+
+    try:
+        cobro.recibir(request.user)
+        messages.success(
+            request,
+            f'Plazo {cobro.numero_plazo} recibido: €{cobro.importe}'
+        )
+    except Exception as e:
+        messages.error(request, f'Error al recibir el cobro: {str(e)}')
+
+    return redirect('sales:cobro_list', venta_pk=venta_pk)

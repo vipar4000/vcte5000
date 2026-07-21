@@ -37,13 +37,15 @@ def liquidar_iva_trimestral():
         cuenta_iva_soportado = CuentaContable.objects.get(codigo='472')
         cuenta_banco = CuentaContable.objects.get(codigo='572')
         
+        from apps.accounting.views import generar_numero_asiento
         asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
             fecha=hoy,
             concepto=f'Liquidación IVA T{trimestre}/{anio} - Cuota: €{cuota}',
             estado='BORRADOR',
             tipo_documento='LiquidacionIVA',
             documento_id=trimestre,
-            created_by_id=1,  # Admin user
+            created_by_id=1,
         )
         
         if cuota > 0:
@@ -102,7 +104,9 @@ def cierre_anual():
         cuenta_129 = CuentaContable.objects.get(codigo='129')
         cuenta_110 = CuentaContable.objects.get(codigo='110')
         
+        from apps.accounting.views import generar_numero_asiento
         asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
             fecha=hoy,
             concepto=f'Cierre ejercicio {anio} - Resultado: €{resultado_neto}',
             estado='BORRADOR',
@@ -232,9 +236,9 @@ def generar_cuotas_seguridad_social():
         cuenta_ss = CuentaContable.objects.get(codigo='642')
         cuenta_banco = CuentaContable.objects.get(codigo='572')
         
-        # Cuota SS patronal estimada (23.6% sobre base)
-        # Por ahora se crea un borrador para revisión manual
+        from apps.accounting.views import generar_numero_asiento
         asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
             fecha=hoy,
             concepto=f'Cuarto Seguridad Social {hoy.strftime("%m/%Y")} - Borrador para revisar',
             estado='BORRADOR',

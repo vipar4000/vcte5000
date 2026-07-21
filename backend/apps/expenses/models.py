@@ -71,60 +71,64 @@ class GastoEstructura(models.Model):
 
     def crear_asiento_contable(self):
         """Genera el asiento contable PGC automático para este gasto."""
+        from django.db import transaction
         from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+        from apps.accounting.views import generar_numero_asiento
 
-        cuenta_gasto_codigo = self.MAPPINGS_CATEGORIA_CUENTA.get(self.categoria, '620')
-        cuenta_gasto = CuentaContable.objects.get(codigo=cuenta_gasto_codigo)
-        cuenta_iva = CuentaContable.objects.get(codigo='472')
-        cuenta_proveedor = CuentaContable.objects.get(codigo='410')
+        with transaction.atomic():
+            cuenta_gasto_codigo = self.MAPPINGS_CATEGORIA_CUENTA.get(self.categoria, '620')
+            cuenta_gasto = CuentaContable.objects.get(codigo=cuenta_gasto_codigo)
+            cuenta_iva = CuentaContable.objects.get(codigo='472')
+            cuenta_proveedor = CuentaContable.objects.get(codigo='410')
 
-        asiento = AsientoContable.objects.create(
-            fecha=self.fecha_factura,
-            concepto=f"Gasto {self.get_categoria_display()}: {self.proveedor_acreedor} - Factura {self.cif_nif}",
-            estado='BORRADOR',
-            tipo_documento='GastoEstructura',
-            documento_id=self.pk,
-            created_by=self.created_by,
-        )
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_factura,
+                concepto=f"Gasto {self.get_categoria_display()}: {self.proveedor_acreedor} - Factura {self.cif_nif}",
+                estado='BORRADOR',
+                tipo_documento='GastoEstructura',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
 
-        MovimientoContable.objects.create(
-            asiento=asiento,
-            cuenta=cuenta_gasto,
-            debe=self.base_imponible,
-            haber=Decimal('0'),
-            descripcion=f"Base imponible - {self.proveedor_acreedor}",
-        )
-
-        MovimientoContable.objects.create(
-            asiento=asiento,
-            cuenta=cuenta_iva,
-            debe=self.cuota_iva,
-            haber=Decimal('0'),
-            descripcion=f"IVA soportado {self.tipo_iva}%",
-        )
-
-        if self.tiene_retencion:
-            cuenta_retencion = CuentaContable.objects.get(codigo='4751.115')
             MovimientoContable.objects.create(
                 asiento=asiento,
-                cuenta=cuenta_retencion,
-                debe=Decimal('0'),
-                haber=self.cuota_retencion,
-                descripcion=f"Retención IRPF {self.retencion_irpf}%",
+                cuenta=cuenta_gasto,
+                debe=self.base_imponible,
+                haber=Decimal('0'),
+                descripcion=f"Base imponible - {self.proveedor_acreedor}",
             )
-            importe_proveedor = self.total_factura
-        else:
-            importe_proveedor = self.total_factura
 
-        MovimientoContable.objects.create(
-            asiento=asiento,
-            cuenta=cuenta_proveedor,
-            debe=Decimal('0'),
-            haber=importe_proveedor,
-            descripcion=f"Proveedor: {self.proveedor_acreedor}",
-        )
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_iva,
+                debe=self.cuota_iva,
+                haber=Decimal('0'),
+                descripcion=f"IVA soportado {self.tipo_iva}%",
+            )
 
-        return asiento
+            if self.tiene_retencion:
+                cuenta_retencion = CuentaContable.objects.get(codigo='4751.115')
+                MovimientoContable.objects.create(
+                    asiento=asiento,
+                    cuenta=cuenta_retencion,
+                    debe=Decimal('0'),
+                    haber=self.cuota_retencion,
+                    descripcion=f"Retención IRPF {self.retencion_irpf}%",
+                )
+                importe_proveedor = self.total_factura
+            else:
+                importe_proveedor = self.total_factura
+
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_proveedor,
+                debe=Decimal('0'),
+                haber=importe_proveedor,
+                descripcion=f"Proveedor: {self.proveedor_acreedor}",
+            )
+
+            return asiento
 
 
 def _ruta_documento_inversion(instance, filename):
@@ -224,54 +228,56 @@ class InversionInicial(models.Model):
         Es idempotente: elimina asientos previos del mismo documento para
         evitar duplicados si se regenera (p. ej. al reintentar el guardado).
         """
+        from django.db import transaction
         from apps.accounting.models import (
             AsientoContable, MovimientoContable, CuentaContable,
         )
         from apps.accounting.views import generar_numero_asiento
 
-        AsientoContable.objects.filter(
-            tipo_documento='InversionInicial', documento_id=self.pk
-        ).delete()
+        with transaction.atomic():
+            AsientoContable.objects.filter(
+                tipo_documento='InversionInicial', documento_id=self.pk
+            ).delete()
 
-        asiento = AsientoContable.objects.create(
-            numero=generar_numero_asiento(),
-            fecha=self.fecha_emision,
-            concepto=f"Inversión inicial {self.numero_factura}: {self.proveedor_acreedor}",
-            estado='BORRADOR',
-            tipo_documento='InversionInicial',
-            documento_id=self.pk,
-            created_by=self.created_by,
-        )
-
-        for linea in self.lineas.all():
-            cuenta_codigo = linea.cuenta_contable_destino()
-            cuenta = CuentaContable.objects.get(codigo=cuenta_codigo)
-            MovimientoContable.objects.create(
-                asiento=asiento,
-                cuenta=cuenta,
-                debe=linea.base_imponible,
-                haber=Decimal('0'),
-                descripcion=f"{linea.get_categoria_display()}: {linea.concepto}",
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_emision,
+                concepto=f"Inversión inicial {self.numero_factura}: {self.proveedor_acreedor}",
+                estado='BORRADOR',
+                tipo_documento='InversionInicial',
+                documento_id=self.pk,
+                created_by=self.created_by,
             )
-            if linea.cuota_iva > 0:
-                cuenta_iva = CuentaContable.objects.get(codigo='472')
+
+            for linea in self.lineas.all():
+                cuenta_codigo = linea.cuenta_contable_destino()
+                cuenta = CuentaContable.objects.get(codigo=cuenta_codigo)
                 MovimientoContable.objects.create(
                     asiento=asiento,
-                    cuenta=cuenta_iva,
-                    debe=linea.cuota_iva,
+                    cuenta=cuenta,
+                    debe=linea.base_imponible,
                     haber=Decimal('0'),
-                    descripcion=f"IVA soportado {linea.tipo_iva}%",
+                    descripcion=f"{linea.get_categoria_display()}: {linea.concepto}",
                 )
+                if linea.cuota_iva > 0:
+                    cuenta_iva = CuentaContable.objects.get(codigo='472')
+                    MovimientoContable.objects.create(
+                        asiento=asiento,
+                        cuenta=cuenta_iva,
+                        debe=linea.cuota_iva,
+                        haber=Decimal('0'),
+                        descripcion=f"IVA soportado {linea.tipo_iva}%",
+                    )
 
-        MovimientoContable.objects.create(
-            asiento=asiento,
-            cuenta=self.forma_pago,
-            debe=Decimal('0'),
-            haber=self.total_calculado,
-            descripcion=f"Pago (banco): {self.proveedor_acreedor}",
-        )
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=self.forma_pago,
+                debe=Decimal('0'),
+                haber=self.total_calculado,
+                descripcion=f"Pago (banco): {self.proveedor_acreedor}",
+            )
 
-        return asiento
+            return asiento
 
 
 class LineaInversionInicial(models.Model):

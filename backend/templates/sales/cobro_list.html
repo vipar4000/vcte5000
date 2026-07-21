@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Cobros - {{ venta.vehiculo }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800">Cobros Fraccionados</h1>
+        <p class="text-gray-600">{{ venta.vehiculo }} — {{ venta.cliente_nombre }} — Precio: €{{ venta.precio_venta|floatformat:2 }}</p>
+    </div>
+    <a href="{% url 'sales:detail' pk=venta.pk %}" class="text-eurocar-blue hover:underline">← Volver a venta</a>
+</div>
+
+<!-- Resumen -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-sm text-gray-600">Total cobrado</p>
+        <p class="text-xl font-bold text-green-600">€{{ total_cobrado|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-sm text-gray-600">Pendiente</p>
+        <p class="text-xl font-bold text-yellow-600">€{{ total_pendiente|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-sm text-gray-600">Estado</p>
+        {% if venta.pagada %}
+        <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded">PAGADA</span>
+        {% else %}
+        <span class="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded">PENDIENTE</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Botón nuevo plazo -->
+{% if not venta.pagada %}
+<div class="mb-4">
+    <a href="{% url 'sales:cobro_create' venta_pk=venta.pk %}"
+       class="bg-eurocar-blue text-white px-4 py-2 rounded hover:bg-blue-800 transition">
+        + Añadir Plazo
+    </a>
+</div>
+{% endif %}
+
+<!-- Lista de plazos -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Plazo</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Vencimiento</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Financiación</th>
+                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Importe</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Estado</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for cobro in cobros %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm font-medium">#{{ cobro.numero_plazo }}</td>
+                <td class="px-4 py-3 text-sm">{{ cobro.fecha_vencimiento }}</td>
+                <td class="px-4 py-3 text-center text-sm">
+                    {% if cobro.tipo_financiacion == 'EXTERNA' %}
+                    <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">EXTERNA</span>
+                    {% elif cobro.tipo_financiacion == 'DIRECTA' %}
+                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">DIRECTA</span>
+                    {% else %}
+                    <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">CONTADO</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-right font-mono text-sm">€{{ cobro.importe|floatformat:2 }}</td>
+                <td class="px-4 py-3 text-center">
+                    {% if cobro.estado == 'RECIBIDO' %}
+                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">RECIBIDO</span>
+                    {% else %}
+                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">PENDIENTE</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-center text-sm">
+                    {% if cobro.estado == 'PENDIENTE' %}
+                    <form method="post" action="{% url 'sales:cobro_recibir' venta_pk=venta.pk pk=cobro.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-green-600 hover:underline">
+                            Marcar recibido
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="text-gray-400">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                    No hay plazos definidos. Use "Añadir Plazo" para crear el primer cobro fraccionado.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

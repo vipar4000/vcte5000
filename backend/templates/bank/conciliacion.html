@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Conciliación Bancaria{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">📄 Conciliación Bancaria</h1>
+    <p class="text-gray-600">Suba el extracto del banco para conciliación automática</p>
+</div>
+
+{% if not procesado %}
+<!-- Formulario de subida -->
+<div class="bg-white rounded-lg shadow p-6 max-w-xl">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <p class="text-red-600 text-sm mt-1">{{ field.errors.0 }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="bg-eurocar-green text-white px-6 py-2 rounded hover:bg-green-600 transition">
+            Procesar Extracto
+        </button>
+    </form>
+</div>
+
+{% else %}
+<!-- Resultados de conciliación -->
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-lg font-bold text-gray-800">
+            Resultados — {{ banco_cuenta.nombre }}
+        </h2>
+        <div class="flex gap-2">
+            <a href="{% url 'bank:conciliacion_upload' %}" class="text-eurocar-blue hover:underline">
+                Subir otro extracto
+            </a>
+            <a href="{% url 'bank:cuenta_detail' pk=banco_cuenta.pk %}" class="text-eurocar-blue hover:underline">
+                Ver movimientos
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="post" action="{% url 'bank:conciliacion_confirmar' %}">
+    {% csrf_token %}
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-sm">Seleccionar</th>
+                    <th class="px-4 py-3 text-left text-sm">Fecha Banco</th>
+                    <th class="px-4 py-3 text-left text-sm">Concepto Banco</th>
+                    <th class="px-4 py-3 text-center text-sm">Tipo</th>
+                    <th class="px-4 py-3 text-right text-sm">Importe</th>
+                    <th class="px-4 py-3 text-left text-sm">Match ERP</th>
+                    <th class="px-4 py-3 text-center text-sm">Confianza</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for r in resultados %}
+                <tr class="{% if r.erp_match %}bg-green-50{% else %}bg-yellow-50{% endif %}">
+                    <td class="px-4 py-3">
+                        {% if r.erp_match %}
+                        <input type="checkbox" name="movimientos_conciliar" value="{{ r.erp_match.pk }}" checked
+                               class="rounded text-eurocar-blue">
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ r.bank_row.fecha }}</td>
+                    <td class="px-4 py-3 text-sm">{{ r.bank_row.concepto }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if r.bank_row.tipo == 'INGRESO' %}
+                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">INGRESO</span>
+                        {% else %}
+                        <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">EGRESO</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono text-sm">€{{ r.bank_row.importe|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if r.erp_match %}
+                        {{ r.erp_match.concepto|truncatewords:6 }}
+                        <br><span class="text-xs text-gray-500">{{ r.erp_match.fecha }}</span>
+                        {% else %}
+                        <span class="text-yellow-600">Sin coincidencia</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        {% if r.confidence > 0.8 %}
+                        <span class="text-green-600 font-bold">{{ r.confidence|floatformat:0 }}%</span>
+                        {% elif r.confidence > 0.5 %}
+                        <span class="text-yellow-600">{{ r.confidence|floatformat:0 }}%</span>
+                        {% else %}
+                        <span class="text-red-600">{{ r.confidence|floatformat:0 }}%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4 flex gap-4">
+        <button type="submit" class="bg-eurocar-green text-white px-6 py-2 rounded hover:bg-green-600 transition">
+            Conciliación automática
+        </button>
+        <a href="{% url 'bank:movimiento_list' %}" class="bg-gray-200 text-gray-700 px-6 py-2 rounded hover:bg-gray-300 transition">
+            Ir a movimientos
+        </a>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

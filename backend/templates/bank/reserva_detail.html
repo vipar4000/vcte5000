@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Reserva - {{ reserva.vehiculo }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">Detalle de Reserva</h1>
+        <a href="{% url 'bank:reserva_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-sm text-gray-600">Vehículo</p>
+                <p class="font-medium">{{ reserva.vehiculo }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Estado</p>
+                {% if reserva.estado == 'ACTIVA' %}
+                <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded">ACTIVA</span>
+                {% elif reserva.estado == 'CONVERTIDA' %}
+                <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded">CONVERTIDA</span>
+                {% elif reserva.estado == 'DEVUELTA' %}
+                <span class="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded">DEVUELTA</span>
+                {% else %}
+                <span class="bg-red-100 text-red-800 text-sm px-3 py-1 rounded">{{ reserva.estado }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Cliente</p>
+                <p class="font-medium">{{ reserva.cliente_nombre }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">DNI/NIE</p>
+                <p class="font-medium">{{ reserva.cliente_dni }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Fecha de reserva</p>
+                <p class="font-medium">{{ reserva.fecha_reserva }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Importe reserva</p>
+                <p class="text-2xl font-bold text-blue-600">€{{ reserva.importe_reserva|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Base imponible (IVA 21%)</p>
+                <p class="font-medium">€{{ base_imponible|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Cuota IVA</p>
+                <p class="font-medium">€{{ cuota_iva|floatformat:2 }}</p>
+            </div>
+
+            {% if reserva.banco_movimiento %}
+            <div class="col-span-2">
+                <p class="text-sm text-gray-600">Movimiento bancario</p>
+                <a href="{% url 'bank:movimiento_detail' pk=reserva.banco_movimiento.pk %}" class="text-eurocar-blue hover:underline">
+                    {{ reserva.banco_movimiento }}
+                </a>
+            </div>
+            {% endif %}
+
+            {% if reserva.venta %}
+            <div class="col-span-2">
+                <p class="text-sm text-gray-600">Venta asociada</p>
+                <a href="{% url 'sales:detail' pk=reserva.venta.pk %}" class="text-eurocar-blue hover:underline">
+                    {{ reserva.venta }}
+                </a>
+            </div>
+            {% endif %}
+
+            {% if reserva.notas %}
+            <div class="col-span-2">
+                <p class="text-sm text-gray-600">Notas</p>
+                <p class="font-medium">{{ reserva.notas }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if reserva.estado == 'ACTIVA' %}
+        <div class="border-t mt-6 pt-4 flex gap-4">
+            {% if not reserva.venta %}
+            <form method="post" action="{% url 'bank:reserva_convertir' pk=reserva.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="bg-eurocar-green text-white px-6 py-2 rounded hover:bg-green-600 transition">
+                    Convertir en Venta
+                </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'bank:reserva_cancelar' pk=reserva.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="DEVUELTA">
+                <button type="submit" class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
+                    Devolver Señal
+                </button>
+            </form>
+            <form method="post" action="{% url 'bank:reserva_cancelar' pk=reserva.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="PENALIZADA">
+                <button type="submit" class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition"
+                        onclick="return confirm('¿Está seguro? La empresa retiene la señal.')">
+                    Penalizar (S.L. retiene)
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
