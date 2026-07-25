@@ -8,7 +8,7 @@ from decimal import Decimal
 from .models import BancoCuenta, BancoMovimiento, Reserva
 from .forms import (
     BancoCuentaForm, BancoMovimientoFilterForm,
-    ReservaForm, ConciliacionUploadForm,
+    ReservaForm, ConciliacionUploadForm, DepositoForm,
 )
 from .services import (
     crear_movimiento_banco, obtener_cuenta_banco_default,
@@ -71,16 +71,28 @@ def cuenta_detail(request, pk):
 
 @login_required
 def cuenta_create(request):
-    """Crear cuenta bancaria."""
+    """Crear cuenta bancaria con deposito inicial opcional."""
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para crear cuentas bancarias.')
         return redirect('bank:cuenta_list')
 
     if request.method == 'POST':
-        form = BancoCuentaForm(request.POST)
+        form = BancoCuentaForm(request.POST, request.FILES)
         if form.is_valid():
             cuenta = form.save()
-            messages.success(request, f'Cuenta {cuenta.nombre} creada correctamente.')
+            deposito = form.cleaned_data.get('deposito_inicial')
+            if deposito and deposito > 0:
+                notas = form.cleaned_data.get('notas_deposito', '')
+                movimiento = crear_movimiento_banco(
+                    banco_cuenta=cuenta,
+                    fecha=date.today(),
+                    concepto='Deposito inicial',
+                    tipo='INGRESO',
+                    importe=deposito,
+                    notas=notas,
+                )
+                _crear_asiento_deposito(cuenta, deposito, 'Deposito inicial', date.today(), request.user)
+                messages.success(request, f'Deposito inicial de {deposito} registrado.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
     else:
         form = BancoCuentaForm()
@@ -97,15 +109,49 @@ def cuenta_edit(request, pk):
 
     cuenta = get_object_or_404(BancoCuenta, pk=pk)
     if request.method == 'POST':
-        form = BancoCuentaForm(request.POST, instance=cuenta)
+        form = BancoCuentaForm(request.POST, request.FILES, instance=cuenta, editing=True)
         if form.is_valid():
             cuenta = form.save()
             messages.success(request, f'Cuenta {cuenta.nombre} actualizada.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
     else:
-        form = BancoCuentaForm(instance=cuenta)
+        form = BancoCuentaForm(instance=cuenta, editing=True)
 
     return render(request, 'bank/cuenta_form.html', {'form': form, 'action': 'editar'})
+
+
+@login_required
+def deposito_create(request, cuenta_pk):
+    """Agregar un deposito (INGRESO) a una cuenta bancaria existente."""
+    cuenta = get_object_or_404(BancoCuenta, pk=cuenta_pk)
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para registrar depositos.')
+        return redirect('bank:cuenta_detail', pk=cuenta.pk)
+
+    if request.method == 'POST':
+        form = DepositoForm(request.POST, request.FILES)
+        if form.is_valid():
+            movimiento = crear_movimiento_banco(
+                banco_cuenta=cuenta,
+                fecha=form.cleaned_data['fecha'],
+                concepto=form.cleaned_data['concepto'],
+                tipo='INGRESO',
+                importe=form.cleaned_data['importe'],
+                notas=form.cleaned_data.get('notas', ''),
+            )
+            _crear_asiento_deposito(cuenta, form.cleaned_data['importe'], form.cleaned_data['concepto'], form.cleaned_data['fecha'], request.user)
+            soporte = request.FILES.get('soporte')
+            if soporte:
+                movimiento.soporte = soporte
+                movimiento.save()
+            messages.success(request, f'Deposito de {form.cleaned_data["importe"]} registrado.')
+            return redirect('bank:cuenta_detail', pk=cuenta.pk)
+    else:
+        form = DepositoForm()
+
+    return render(request, 'bank/deposito_form.html', {
+        'form': form, 'cuenta': cuenta, 'action': 'crear'
+    })
 
 
 # =============================================================================
@@ -173,7 +219,9 @@ def conciliacion_upload(request):
                 import pandas as pd
 
                 if archivo.name.endswith('.csv'):
-                    df = pd.read_csv(archivo)
+                    import io
+                    content = archivo.read().decode('utf-8')
+                    df = pd.read_csv(io.StringIO(content), sep=None, engine='python', dtype=str)
                 else:
                     df = pd.read_excel(archivo)
 
@@ -191,10 +239,18 @@ def conciliacion_upload(request):
                         col_map[col] = 'concepto'
                     elif 'tipo' in col or 'operacion' in col:
                         col_map[col] = 'tipo'
-                    elif 'importe' in col or 'amount' in col or 'debito' in col or 'credito' in col:
+                    elif 'importe' in col or 'amount' in col or 'debito' in col or 'credito' in col or 'monto' in col:
                         col_map[col] = 'importe'
 
                 df = df.rename(columns=col_map)
+
+                # Convertir formato español en importe (25.000,50 → 25000.50)
+                if 'importe' in df.columns:
+                    df['importe'] = df['importe'].apply(
+                        lambda x: Decimal(
+                            str(x).replace('.', '').replace(',', '.')
+                        ) if isinstance(x, str) else Decimal(str(x))
+                    )
 
                 # Convertir fechas
                 if 'fecha' in df.columns:
@@ -203,6 +259,12 @@ def conciliacion_upload(request):
                 # Normalizar tipo
                 if 'tipo' in df.columns:
                     df['tipo'] = df['tipo'].apply(_normalizar_tipo)
+                elif 'importe' in df.columns:
+                    df['tipo'] = df['importe'].apply(
+                        lambda x: 'INGRESO' if Decimal(str(x)) >= 0 else 'EGRESO'
+                    )
+                else:
+                    raise ValueError('El archivo no contiene columnas "tipo" ni "importe"')
 
                 # Conciliar
                 resultados = conciliar_extracto(banco_cuenta, df)
@@ -398,6 +460,38 @@ def reserva_cancelar(request, pk):
 
     messages.success(request, f'Reserva {reserva.get_estado_display().lower()} correctamente.')
     return redirect('bank:reserva_detail', pk=pk)
+
+
+def _crear_asiento_deposito(cuenta, importe, concepto, fecha, user):
+    """Crea el asiento contable de un deposito: DEBE 572 (banco) / HABER 110 (resultados no asignados)."""
+    from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+    from apps.accounting.views import generar_numero_asiento
+
+    cuenta_banco = CuentaContable.objects.get(codigo='572')
+    cuenta_resultados = CuentaContable.objects.get(codigo='110')
+
+    asiento = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=fecha,
+        concepto=f'{concepto} - {cuenta.nombre}',
+        estado='POSTEADO',
+        tipo_documento='Banco',
+        created_by=user,
+    )
+
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=cuenta_banco,
+        debe=Decimal(str(importe)), haber=Decimal('0'),
+        descripcion=f'{concepto} {cuenta.nombre}',
+    )
+
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=cuenta_resultados,
+        debe=Decimal('0'), haber=Decimal(str(importe)),
+        descripcion=f'{concepto} {cuenta.nombre}',
+    )
+
+    return asiento
 
 
 def _crear_asiento_reserva(reserva, user):

@@ -3,9 +3,36 @@ from .models import BancoCuenta, BancoMovimiento, Reserva
 
 
 class BancoCuentaForm(forms.ModelForm):
+    deposito_inicial = forms.DecimalField(
+        max_digits=12, decimal_places=2, required=False,
+        label='Deposito inicial',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+    notas_deposito = forms.CharField(
+        required=False, label='Notas del deposito',
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
+    )
+
     class Meta:
         model = BancoCuenta
-        fields = ['nombre', 'iban', 'swift', 'cuenta_contable', 'activa']
+        fields = ['nombre', 'iban', 'swift', 'cuenta_contable', 'activa',
+                  'soporte_deposito', 'deposito_inicial', 'notas_deposito']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: BBVA Empresa'}),
+            'iban': forms.TextInput(attrs={'class': 'form-control'}),
+            'swift': forms.TextInput(attrs={'class': 'form-control'}),
+            'cuenta_contable': forms.Select(attrs={'class': 'form-select'}),
+            'soporte_deposito': forms.ClearableFileInput(
+                attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}
+            ),
+        }
+
+    def __init__(self, *args, editing=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if editing:
+            del self.fields['deposito_inicial']
+            del self.fields['notas_deposito']
+            del self.fields['soporte_deposito']
 
 
 class BancoMovimientoFilterForm(forms.Form):
@@ -65,4 +92,31 @@ class ConciliacionUploadForm(forms.Form):
         queryset=BancoCuenta.objects.filter(activa=True),
         label='Cuenta bancaria',
         widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+
+class DepositoForm(forms.Form):
+    fecha = forms.DateField(
+        label='Fecha del deposito',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    importe = forms.DecimalField(
+        max_digits=12, decimal_places=2,
+        label='Importe',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+    concepto = forms.CharField(
+        max_length=255, initial='Deposito',
+        label='Concepto',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    notas = forms.CharField(
+        required=False, label='Notas',
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
+    )
+    soporte = forms.FileField(
+        required=False, label='Soporte (PDF, imagen)',
+        widget=forms.ClearableFileInput(
+            attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}
+        )
     )

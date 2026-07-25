@@ -6,10 +6,10 @@
 - **`frontend/`** — Vue 3 + Vite public SPA (catalog, contact). Builds into `backend/static/web/` (see `frontend/vite.config.js:6,21`). README's "Nuxt 3" claim is wrong.
 - `docker-compose.yml` runs 5 services: `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 
-Routing (`backend/config/urls.py`): ERP under `/erp/*` (vehicles, taller, ventas, contabilidad, gastos, banco, etc.), API at `/api/` (raw `JsonResponse`, **not** DRF despite `rest_framework` installed). A catch-all `spa_index` at line 20 serves the Vue SPA for every other path — **keep it last**.
+Routing (`backend/config/urls.py`): ERP under `/erp/*` (vehicles, taller, ventas, contabilidad, gastos, banco, etc.), API at `/api/` (raw `JsonResponse`, **not** DRF despite `rest_framework` installed). A catch-all `spa_index` at line 21 serves the Vue SPA for every other path — **keep it last**.
 
 - **`/api/*` is dual-mode**: each endpoint returns HTML when the request `Accept` header contains `text/html`, else JSON (`apps/api/urls.py:11` `is_html_request`). The public catalog/health views render both — keep both branches working when editing these views.
-- **Public SPA only works after a frontend build**: `spa_index` reads `STATIC_ROOT/web/index.html` and 404s with "Web pública no construida" otherwise (`apps/core/views.py:94-99`). Run `npm run build` (and `collectstatic` in prod) so the file exists.
+- **Public SPA only works after a frontend build**: `spa_index` reads `STATIC_ROOT/web/index.html` and 404s with "Web pública no construida" otherwise (`apps/core/views.py:94-100`). Run `npm run build` (and `collectstatic` in prod) so the file exists.
 
 Roles (`accounts.User.rol`): `ADMIN`, `OPERARIO`, `VENDEDOR`, `GESTORIA`. Use `user.is_admin` / `is_operario` / `is_vendedor` / `is_gestoria` properties — never raw `rol` string comparisons.
 
@@ -32,11 +32,11 @@ Run from **repo root** unless noted:
 | Prod users | `python create_users_prod.py` (`config.settings.production`; creates `roger`, `puede_eliminar=False`) |
 | Regularización existencias | `cd backend && python manage.py regularizar_existencias --ano YYYY` (year-end inventory adjustment, DEBE 300 / HABER 610) |
 
-**No lint/typecheck/format/CI test gates exist** — no eslint, ruff, flake8, pre-commit. Only CI is `.github/workflows/backup.yml`.
+**No lint/typecheck/format/CI test gates exist** — no eslint, ruff, flake8, pre-commit. Only CI is `.github/workflows/backup.yml` (daily Postgres backup, needs `DATABASE_URL` secret). `render.yaml` defines the Render deploy spec; `Procfile` starts gunicorn.
 
 ## Testing
 
-No pytest. `test_modules.py` (root) uses Django `Client`, loads `config.settings.development` (SQLite by default), must run from repo root. **Stale**: it calls root paths (`/vehiculos/`, `/taller/`, `/gastos/`) but ERP views are now under `/erp/`, so those paths hit the SPA catch-all and fail. To fix, prefix with `erp/` (e.g. `/erp/vehiculos/`, `/erp/taller/`, `/erp/gastos/`) per `config/urls.py:9-17`; `/accounts/login/` and `/admin/` still resolve so partial results are usable.
+No pytest. `test_modules.py` (root) uses Django `Client`, loads `config.settings.development` (SQLite by default), must run from repo root. **Stale**: it calls root paths (`/vehiculos/`, `/taller/`, `/gastos/`, `/accounts/login/`) but ERP views are now under `/erp/`, so those paths hit the SPA catch-all and fail. To fix, prefix with `erp/` (e.g. `/erp/vehiculos/`, `/erp/taller/`, `/erp/gastos/`, `/erp/accounts/login/`) per `config/urls.py:9-18`; only `/admin/` still resolves at root.
 
 Test users (from root `create_test_users.py`):
 
@@ -70,7 +70,7 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 
 - **Vehicle images**: vehicle must be `EN_VENTA` or images are discarded/deleted (`apps/vehicles/views.py:89-94,132-135`). UI: admin → `/erp/vehiculos/nuevo/` or `<pk>/editar/`, `ImagenVehiculoFormSet` max 8. Command: `python manage.py subir_imagen_vehiculo --matricula 1234ABC --imagen "C:/fotos/golf.jpg" [--principal]`.
 - **Expense PDFs** (`GastoEstructura.documento_pdf`, `is_admin` only): UI `/erp/gastos/nuevo/` or edit; command `python manage.py subir_factura_gasto --pk 12 --pdf "C:/facturas/alquiler.pdf"` (expense must already exist). Don't confuse with REBU `FacturaVenta` PDF, which the system **generates**.
-- **Workshop inventory stock** is added only via **purchase with invoice** (`CompraMaterial`), never loose manual entry. Access it via the sidebar **`🛒 Compras`** (admin-only) or Inventario → "🛒 Registrar Compra" button — both link to `workshop:compra_material_create`. The "Registrar Compra" button/links are **admin-only** (`is_admin`). On save it increments `stock_actual` and `crear_asiento_contable()` generates **and auto-posts** a balanced entry (DEBE 300/310/320/330 + 472, HABER 410, `estado='POSTEADO'`) so it appears immediately in the ledger/balance/PyG/IVA reports (`views_material.py:119`). A material can be **created inline** from the purchase form (name + unit) instead of pre-creating it. `MaterialUsado` (in an OT) decrements stock and adds to OT `coste_materiales` → REBU account 623. PGC accounts at `apps/accounting/models.py:184-197`; `generar_numero_asiento` at `apps/accounting/views.py:251`.
+- **Workshop inventory stock** is added only via **purchase with invoice** (`CompraMaterial`), never loose manual entry. Access it via the sidebar **`🛒 Compras`** (admin-only) or Inventario → "🛒 Registrar Compra" button — both link to `workshop:compra_material_create`. The "Registrar Compra" button/links are **admin-only** (`is_admin`). On save it increments `stock_actual` and `crear_asiento_contable()` generates **and auto-posts** a balanced entry (DEBE 300/310/320/330 + 472, HABER 410, `estado='POSTEADO'`) so it appears immediately in the ledger/balance/PyG/IVA reports (`views_material.py:141-143`). A material can be **created inline** from the purchase form (name + unit) instead of pre-creating it. `MaterialUsado` (in an OT) decrements stock and adds to OT `coste_materiales` → REBU account 623. PGC accounts at `apps/accounting/models.py:167-233` (`crear_plan_base`); `generar_numero_asiento` at `apps/accounting/views.py:251`.
 - **Bank module** (`apps.bank`): admin-only. Sidebar: `🏦 Banco` → account dashboard, `🔖 Reservas` → reservations, `❓ Ayuda Banco` → step-by-step guide. Bank movements are **never created manually** — only via `services.py:crear_movimiento_banco()`. Every financial transaction (sale, purchase, expense, reservation, cobro) auto-creates a `BancoMovimiento`. Balance is computed on-the-fly (no stored `saldo`). Conciliación via Excel/CSV upload uses `pandas` (lazy-imported). Key URLs: `/erp/banco/cuentas/`, `/erp/banco/movimientos/`, `/erp/banco/conciliacion/`, `/erp/banco/reservas/`, `/erp/banco/guia/`.
 
 ## Gotchas
@@ -79,11 +79,13 @@ Render env vars (web + celery_worker): `AWS_STORAGE_BUCKET_NAME=eurocar`, `AWS_S
 - **`User.puede_eliminar`** (default True) gates delete permission.
 - **`rol` has `default='ADMIN'`** and `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` all fall back to `is_superuser`. But a user created via `createsuperuser` (README's path) stores `rol=''` in the DB, so it is NOT automatically admin until its `rol` is set — fix existing rows with `User.objects.filter(username='admin').update(rol='ADMIN')`.
 - **Keep the `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat) even though we run 3.11.
-- **`.env` split**: root `.env` is read by Django (`base.py:23`) for DB/Redis/secret keys — not just docker-compose. There is no `backend/.env` loading path.
+- **`debug_toolbar` removed** — incompatible with Python 3.14 (`development.py:22`). Don't re-add without checking.
+- **`.env` split**: `backend/.env` is read by Django (`base.py:23`) for DB/Redis/secret keys (not just docker-compose). Root `.env.example` is for docker-compose only.
 - **Account locking twice**: manual (5 attempts → 1h) + `django-axes` (`AXES_*`). Both active.
 - **`django-csp`** active — new inline `<script>`/`<style>` must comply with CSP (use nonces or external files).
 - **Session** expires in 1h and on browser close (`SESSION_EXPIRE_AT_BROWSER_CLOSE=True`, `SESSION_SAVE_EVERY_REQUEST=True`).
 - **`django-cleanup`** auto-deletes orphaned files when records are removed.
+- **Development has `AUTH_PASSWORD_VALIDATORS = []`** (`development.py:31`) — weak test passwords work locally but would fail in production.
 - **Bank `saldo` is computed, not stored**: `BancoCuenta.saldo` queries `BancoMovimiento` rows each time (filtered by `conciliado=True`). `saldo_pendiente` includes unconfirmed movements. Never write to a `saldo` field.
-- **`pandas` is lazy-imported** in `bank/services.py` — only loaded when conciliación runs. Keep it lazy if adding new imports; don't put `import pandas` at module level.
+- **`pandas` is lazy-imported** in `bank/views.py` — only loaded when conciliación runs. Keep it lazy if adding new imports; don't put `import pandas` at module level.
 - **Bank movements are system-only**: `crear_movimiento_banco()` is the single entry point. No admin UI to manually insert movements — this is by design (spec: "Prohibido insertar apuntes de banco manuales").
