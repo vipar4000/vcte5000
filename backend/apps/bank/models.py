@@ -20,6 +20,11 @@ class BancoCuenta(models.Model):
         limit_choices_to={'codigo__startswith': '572'},
     )
     activa = models.BooleanField(default=True, verbose_name='activa')
+    soporte_deposito = models.FileField(
+        upload_to='banco/soportes/',
+        blank=True,
+        verbose_name='soporte del deposito inicial'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -97,6 +102,13 @@ class BancoMovimiento(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    notas = models.TextField(blank=True, verbose_name='notas')
+    soporte = models.FileField(
+        upload_to='banco/movimientos/',
+        blank=True,
+        verbose_name='soporte'
+    )
 
     class Meta:
         verbose_name = 'movimiento bancario'
