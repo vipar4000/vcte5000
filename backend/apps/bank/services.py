@@ -28,6 +28,7 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
         importe=abs(importe),
         asiento_asociado=asiento,
         vehiculo_asociado=vehiculo,
+        notas=notas,
     )
     logger.info(
         f'Movimiento bancario creado: {movimiento} '
@@ -42,7 +43,7 @@ def obtener_cuenta_banco_default():
     return BancoCuenta.objects.filter(activa=True).first()
 
 
-def conciliar_extracto(banco_cuenta, df):
+def conciliar_extracto(banco_cuenta, rows):
     """
     Busca emparejamientos automáticos entre líneas del extracto bancario
     y movimientos del ERP.
@@ -54,7 +55,7 @@ def conciliar_extracto(banco_cuenta, df):
 
     Args:
         banco_cuenta: BancoCuenta instance
-        df: pandas DataFrame con columnas [fecha, concepto, tipo, importe]
+        rows: list of dicts con keys [fecha, concepto, tipo, importe]
 
     Returns:
         list of dict: [
@@ -71,7 +72,7 @@ def conciliar_extracto(banco_cuenta, df):
 
     resultados = []
 
-    for _, row in df.iterrows():
+    for row in rows:
         bank_fecha = row['fecha']
         bank_tipo = row['tipo'].upper()
         bank_importe = abs(Decimal(str(row['importe'])))

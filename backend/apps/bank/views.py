@@ -216,58 +216,66 @@ def conciliacion_upload(request):
             banco_cuenta = form.cleaned_data['banco_cuenta']
 
             try:
-                import pandas as pd
+                import csv
+                import io
+                from datetime import datetime as dt
 
-                if archivo.name.endswith('.csv'):
-                    import io
-                    content = archivo.read().decode('utf-8')
-                    df = pd.read_csv(io.StringIO(content), sep=None, engine='python', dtype=str)
-                else:
-                    df = pd.read_excel(archivo)
+                content = archivo.read().decode('utf-8')
 
-                # Normalizar columnas esperadas
-                df.columns = [c.strip().lower() for c in df.columns]
+                # Detectar delimitador
+                sniffer = csv.Sniffer()
+                try:
+                    dialect = sniffer.sniff(content[:2048])
+                except csv.Error:
+                    dialect = csv.excel
+
+                reader = csv.DictReader(io.StringIO(content), dialect=dialect)
 
                 # Mapear columnas comunes del extracto bancario
                 col_map = {}
-                for col in df.columns:
-                    if 'fecha' in col and 'valor' in col:
+                for col in reader.fieldnames or []:
+                    cl = col.strip().lower()
+                    if 'fecha' in cl and 'valor' in cl:
                         col_map[col] = 'fecha_valor'
-                    elif 'fecha' in col:
+                    elif 'fecha' in cl:
                         col_map[col] = 'fecha'
-                    elif 'concepto' in col or 'descripcion' in col:
+                    elif 'concepto' in cl or 'descripcion' in cl:
                         col_map[col] = 'concepto'
-                    elif 'tipo' in col or 'operacion' in col:
+                    elif 'tipo' in cl or 'operacion' in cl:
                         col_map[col] = 'tipo'
-                    elif 'importe' in col or 'amount' in col or 'debito' in col or 'credito' in col or 'monto' in col:
+                    elif 'importe' in cl or 'amount' in cl or 'debito' in cl or 'credito' in cl or 'monto' in cl:
                         col_map[col] = 'importe'
 
-                df = df.rename(columns=col_map)
+                # Leer filas como lista de dicts con columnas normalizadas
+                rows = []
+                for raw_row in reader:
+                    row = {}
+                    for orig, mapped in col_map.items():
+                        row[mapped] = raw_row.get(orig, '').strip()
+                    rows.append(row)
 
                 # Convertir formato español en importe (25.000,50 → 25000.50)
-                if 'importe' in df.columns:
-                    df['importe'] = df['importe'].apply(
-                        lambda x: Decimal(
-                            str(x).replace('.', '').replace(',', '.')
-                        ) if isinstance(x, str) else Decimal(str(x))
-                    )
+                for row in rows:
+                    if 'importe' in row:
+                        val = row['importe'].replace('.', '').replace(',', '.')
+                        row['importe'] = Decimal(val) if val else Decimal('0')
 
                 # Convertir fechas
-                if 'fecha' in df.columns:
-                    df['fecha'] = pd.to_datetime(df['fecha']).dt.date
+                for row in rows:
+                    if 'fecha' in row:
+                        row['fecha'] = _parse_fecha(row['fecha'])
 
                 # Normalizar tipo
-                if 'tipo' in df.columns:
-                    df['tipo'] = df['tipo'].apply(_normalizar_tipo)
-                elif 'importe' in df.columns:
-                    df['tipo'] = df['importe'].apply(
-                        lambda x: 'INGRESO' if Decimal(str(x)) >= 0 else 'EGRESO'
-                    )
-                else:
-                    raise ValueError('El archivo no contiene columnas "tipo" ni "importe"')
+                for row in rows:
+                    if 'tipo' in row:
+                        row['tipo'] = _normalizar_tipo(row['tipo'])
+                    elif 'importe' in row:
+                        row['tipo'] = 'INGRESO' if row['importe'] >= 0 else 'EGRESO'
+                    else:
+                        raise ValueError('El archivo no contiene columnas "tipo" ni "importe"')
 
                 # Conciliar
-                resultados = conciliar_extracto(banco_cuenta, df)
+                resultados = conciliar_extracto(banco_cuenta, rows)
 
                 context = {
                     'form': form,
@@ -313,6 +321,18 @@ def _normalizar_tipo(valor):
     elif any(p in valor for p in ['EGRESO', 'CARGO', 'RECIBO', 'TRANSFERENCIA', 'PAGO', 'DEBITO']):
         return 'EGRESO'
     return 'INGRESO' if valor.startswith('+') else 'EGRESO'
+
+
+def _parse_fecha(valor):
+    """Parsea una fecha en varios formatos comunes (dd/mm/aaaa, dd-mm-aaaa, etc.)."""
+    from datetime import datetime
+    valor = str(valor).strip()
+    for fmt in ('%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d', '%d.%m.%Y', '%d/%m/%y'):
+        try:
+            return datetime.strptime(valor, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f'No se pudo parsear la fecha: "{valor}"')
 
 
 # =============================================================================
