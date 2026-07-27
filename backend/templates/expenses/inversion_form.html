@@ -189,6 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('id_documento_pdf');
     if (dropzone && fileInput) {
+        fileInput.addEventListener('click', e => e.stopPropagation());
         dropzone.addEventListener('click', () => fileInput.click());
         dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('border-blue-500'); });
         dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-blue-500'));
