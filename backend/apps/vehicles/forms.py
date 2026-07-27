@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 from django import forms
 from django.forms import inlineformset_factory
 from .models import Vehiculo, ImagenVehiculo
@@ -5,7 +6,16 @@ from .models import Vehiculo, ImagenVehiculo
 
 class VehiculoForm(forms.ModelForm):
     """Formulario para crear/editar vehículos."""
-    
+
+    tipo_iva = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+            'placeholder': '0',
+            'inputmode': 'decimal',
+        }),
+    )
+
     class Meta:
         model = Vehiculo
         fields = [
@@ -13,6 +23,8 @@ class VehiculoForm(forms.ModelForm):
             'combustible', 'kilometraje', 'tipo_dano', 'etiqueta_ambiental',
             'estado', 'fecha_adquisicion', 'plataforma_subasta',
             'precio_subasta', 'tasas_sala', 'logistica_grua',
+            'proveedor', 'cif_nif', 'numero_factura', 'factura_compra_pdf',
+            'tipo_iva', 'forma_pago',
             'precio_venta',
             'descripcion_dano', 'imagen_principal',
         ]
@@ -63,26 +75,25 @@ class VehiculoForm(forms.ModelForm):
             'plataforma_subasta': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
             }),
-            'precio_subasta': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
+            'precio_subasta': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
             }),
-            'tasas_sala': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
+            'tasas_sala': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
             }),
-            'logistica_grua': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
+            'logistica_grua': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
             }),
-            'precio_venta': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
-                'placeholder': 'Precio de venta en euros',
+            'precio_venta': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
             }),
             'descripcion_dano': forms.Textarea(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
@@ -90,6 +101,31 @@ class VehiculoForm(forms.ModelForm):
                 'placeholder': 'Descripción del estado del vehículo...',
             }),
             'imagen_principal': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'proveedor': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'BCA, Copart, ADESA...',
+            }),
+            'cif_nif': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'B12345678',
+                'maxlength': '15',
+            }),
+            'numero_factura': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'placeholder': 'INV-2026-001',
+            }),
+            'factura_compra_pdf': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'accept': '.pdf',
+            }),
+            'tipo_iva': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0',
+                'inputmode': 'decimal',
+            }),
+            'forma_pago': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
             }),
         }
@@ -111,6 +147,16 @@ class VehiculoForm(forms.ModelForm):
         if anio < 1900 or anio > 2030:
             raise forms.ValidationError('El año debe estar entre 1900 y 2030.')
         return anio
+
+    def clean_tipo_iva(self):
+        val = self.cleaned_data.get('tipo_iva', '').strip()
+        if not val:
+            return Decimal('0')
+        val = val.replace('%', '').replace(',', '.').strip()
+        try:
+            return Decimal(val)
+        except InvalidOperation:
+            raise forms.ValidationError('Introduzca un número válido.')
 
 
 class VehiculoBusquedaForm(forms.Form):

@@ -228,6 +228,53 @@
                 </div>
             </div>
             
+            <!-- Factura de Compra -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold mb-3">🧾 Factura de Compra</h3>
+                <div class="space-y-2 text-sm">
+                    {% if vehiculo.proveedor %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Proveedor</span>
+                        <span>{{ vehiculo.proveedor }}</span>
+                    </div>
+                    {% endif %}
+                    {% if vehiculo.cif_nif %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">CIF/NIF</span>
+                        <span>{{ vehiculo.cif_nif }}</span>
+                    </div>
+                    {% endif %}
+                    {% if vehiculo.numero_factura %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">N&ordm; Factura</span>
+                        <span>{{ vehiculo.numero_factura }}</span>
+                    </div>
+                    {% endif %}
+                    {% if vehiculo.tipo_iva %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">IVA</span>
+                        <span>{{ vehiculo.tipo_iva }}%</span>
+                    </div>
+                    {% endif %}
+                    {% if vehiculo.factura_compra_pdf %}
+                    <div class="pt-2 border-t">
+                        <a href="{{ vehiculo.factura_compra_pdf.url }}" target="_blank"
+                           class="block w-full text-center bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition">
+                            📄 Ver Factura PDF
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if vehiculo.asiento_contable %}
+                    <div class="pt-2 border-t">
+                        <a href="{% url 'accounting:detail' vehiculo.asiento_contable.pk %}"
+                           class="block w-full text-center bg-blue-100 text-blue-800 py-2 rounded-lg hover:bg-blue-200 transition text-sm">
+                            📒 Asiento #{{ vehiculo.asiento_contable.numero }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
             <!-- Documentos de Venta -->
             {% if vehiculo.estado == 'VENDIDO' and vehiculo.venta %}
             <div class="bg-white rounded-lg shadow p-6">
