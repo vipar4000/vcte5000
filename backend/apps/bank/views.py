@@ -218,7 +218,7 @@ def conciliacion_upload(request):
             try:
                 import csv
                 import io
-                from datetime import datetime as dt
+                from datetime import datetime as dt, timedelta
 
                 content = archivo.read().decode('utf-8')
 
@@ -254,11 +254,10 @@ def conciliacion_upload(request):
                         row[mapped] = raw_row.get(orig, '').strip()
                     rows.append(row)
 
-                # Convertir formato español en importe (25.000,50 → 25000.50)
+                # Convertir formato de importe (25.000,50 / 2,420.00 / 2420,00 / 2420.00)
                 for row in rows:
                     if 'importe' in row:
-                        val = row['importe'].replace('.', '').replace(',', '.')
-                        row['importe'] = Decimal(val) if val else Decimal('0')
+                        row['importe'] = _parse_importe(str(row['importe']))
 
                 # Convertir fechas
                 for row in rows:
@@ -276,6 +275,25 @@ def conciliacion_upload(request):
 
                 # Conciliar
                 resultados = conciliar_extracto(banco_cuenta, rows)
+
+                # Para filas sin match, buscar candidatos manuales
+                from .models import BancoMovimiento
+                for r in resultados:
+                    if not r['erp_match']:
+                        tipo = r['bank_row']['tipo']
+                        importe = r['bank_row']['importe']
+                        fecha = r['bank_row']['fecha']
+                        r['candidatos'] = BancoMovimiento.objects.filter(
+                            banco_cuenta=banco_cuenta,
+                            tipo=tipo,
+                            importe=importe,
+                            conciliado=False,
+                        ).exclude(
+                            fecha__lt=fecha - timedelta(days=7),
+                            fecha__gt=fecha + timedelta(days=7),
+                        ).order_by('fecha')[:10]
+                    else:
+                        r['candidatos'] = []
 
                 context = {
                     'form': form,
@@ -303,7 +321,13 @@ def conciliacion_confirmar(request):
     if request.method != 'POST':
         return redirect('bank:conciliacion_upload')
 
-    movimientos_ids = request.POST.getlist('movimientos_conciliar')
+    movimientos_ids = list(request.POST.getlist('movimientos_conciliar'))
+
+    # Recoger selecciones manuales del <select>
+    for key, val in request.POST.items():
+        if key.startswith('conciliar_manual_') and val:
+            movimientos_ids.append(val)
+
     if movimientos_ids:
         count = conciliacion_batch(movimientos_ids)
         messages.success(request, f'{count} movimientos conciliados correctamente.')
@@ -333,6 +357,62 @@ def _parse_fecha(valor):
         except ValueError:
             continue
     raise ValueError(f'No se pudo parsear la fecha: "{valor}"')
+
+
+def _parse_importe(valor):
+    """Parsea un importe en formato español o ingles.
+
+    Spanish:  2.420,00 → 2420.00
+    English:  2,420.00 → 2420.00
+    Simple:   2420.00  → 2420.00
+    Simple:   2420,00  → 2420.00
+    """
+    valor = str(valor).strip()
+    if not valor:
+        return Decimal('0')
+
+    negativo = False
+    if valor.startswith('(') and valor.endswith(')'):
+        negativo = True
+        valor = valor[1:-1]
+    if valor.endswith('-'):
+        negativo = True
+        valor = valor[:-1]
+    valor = valor.replace('€', '').replace('$', '').replace(' ', '')
+
+    tiene_punto = '.' in valor
+    tiene_coma = ',' in valor
+
+    if tiene_punto and tiene_coma:
+        pos_punto = valor.rindex('.')
+        pos_coma = valor.rindex(',')
+        if pos_punto > pos_coma:
+            # English: 2,420.00
+            valor = valor.replace(',', '')
+        else:
+            # Spanish: 2.420,00
+            valor = valor.replace('.', '').replace(',', '.')
+    elif tiene_coma:
+        parts = valor.split(',')
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            # 2420,00 → decimal
+            valor = valor.replace(',', '.')
+        else:
+            # 2,420,000 or just 2420,00 with more → thousands
+            valor = valor.replace(',', '')
+    elif tiene_punto:
+        parts = valor.split('.')
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            # 2420.00 → already decimal
+            pass
+        else:
+            # 2.420.000 → thousands
+            valor = valor.replace('.', '')
+
+    result = Decimal(valor) if valor else Decimal('0')
+    if negativo:
+        result = -result
+    return result
 
 
 # =============================================================================

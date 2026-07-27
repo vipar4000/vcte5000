@@ -70,6 +70,14 @@
                         {% if r.erp_match %}
                         <input type="checkbox" name="movimientos_conciliar" value="{{ r.erp_match.pk }}" checked
                                class="rounded text-eurocar-blue">
+                        {% elif r.candidatos %}
+                        <select name="conciliar_manual_{{ forloop.counter0 }}"
+                                class="text-xs border rounded px-1 py-1">
+                            <option value="">-- Seleccionar --</option>
+                            {% for c in r.candidatos %}
+                            <option value="{{ c.pk }}">{{ c.fecha }} | {{ c.concepto|truncatewords:4 }} | €{{ c.importe|floatformat:2 }}</option>
+                            {% endfor %}
+                        </select>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 text-sm">{{ r.bank_row.fecha }}</td>
