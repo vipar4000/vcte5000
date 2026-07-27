@@ -68,7 +68,7 @@ def calcular_pyg(fecha_desde, fecha_hasta):
     
     # 2. Coste de ventas
     compras = saldo('600')
-    repuestos = saldo('600')
+    repuestos = saldo('606')
     
     # 3. Resultado bruto
     resultado_bruto = ventas - compras - repuestos
@@ -139,16 +139,21 @@ def calcular_balance(fecha_corte):
     """
     Calcula el Balance de Situación simplificado Pymes.
     
+    Ecuación contable: Activo = Pasivo + Patrimonio Neto
+    
     ACTIVO:
-    - Activo corriente: 3xx (existencias), 430 (clientes), 440 (deudores), 5xx (tesorería)
+    - Activo corriente: 310-330 (existencias), 430 (clientes), 438 (anticipos),
+      440 (deudores), 5xx (tesorería)
     - Activo no corriente: 2xx (inmovilizado)
     
     PASIVO:
-    - Pasivo corriente: 400 (proveedores), 410 (acreedores), 471 (IVA repercutido), 472 (IVA soportado)
-    - Pasivo no corriente: 1xx (financiación)
+    - Pasivo corriente: 400 (proveedores), 410 (acreedores), 471+477 (IVA repercutido),
+      472 (IVA soportado), 4751 (retenciones IRPF)
+    - Pasivo no corriente: 0 (Grupo 1 = Fondos Propios, no pasivo)
     
     PATRIMONIO NETO:
-    - 100 (capital), 102 (reservas), 110 (resultados acumulados), 129 (resultado ejercicio)
+    - 100 (capital), 102 (reservas), 110 (resultados acumulados)
+    - Resultado ejercicio = cuenta 129 + PyG (ingresos 7xx - gastos 6xx)
     """
     
     def saldo_grupo(codigo):
@@ -162,31 +167,40 @@ def calcular_balance(fecha_corte):
     
     # ACTIVO
     inmovilizado = saldo_grupo('2')
-    existencias = saldo_grupo('3')
+    existencias = saldo_grupo('310') + saldo_grupo('320') + saldo_grupo('330')
     clientes = saldo_grupo('430')
+    anticipos_clientes = saldo_grupo('438')
     deudores = saldo_grupo('440')
     tesoreria = saldo_grupo('5')
     
     activo_no_corriente = inmovilizado
-    activo_corriente = existencias + clientes + deudores + tesoreria
+    activo_corriente = existencias + clientes + anticipos_clientes + deudores + tesoreria
     total_activo = activo_no_corriente + activo_corriente
     
     # PASIVO
     proveedores = saldo_grupo_haber('400')
     acreedores = saldo_grupo_haber('410')
-    iva_repercutido = saldo_grupo_haber('471')
+    iva_repercutido = saldo_grupo_haber('471') + saldo_grupo_haber('477')
     iva_soportado = saldo_grupo('472')  # IVA soportado es deudor
+    retenciones = saldo_grupo_haber('4751')
     
-    pasivo_corriente = proveedores + acreedores + iva_repercutido - iva_soportado
-    financiacion = saldo_grupo_haber('1')
-    pasivo_no_corriente = financiacion
+    pasivo_corriente = proveedores + acreedores + iva_repercutido - iva_soportado + retenciones
+    pasivo_no_corriente = Decimal('0')
     total_pasivo = pasivo_corriente + pasivo_no_corriente
     
-    # PATRIMONIO NETO
+    # PATRIMONIO NETO (Grupo 1 = Fondos Propios en PGC Pymes)
     capital = saldo_grupo_haber('100')
     reservas = saldo_grupo_haber('102')
     resultados_acumulados = saldo_grupo_haber('110')
-    resultado_ejercicio = saldo_grupo_haber('129')
+    resultado_ejercicio_conta = saldo_grupo_haber('129')
+
+    # Resultado del ejercicio = Ingresos (7xx) - Gastos (6xx)
+    # Sin asiento de cierre, calcular el resultado del PyG directamente
+    ingresos = saldo_grupo_haber('7')
+    gastos = saldo_grupo('6')
+    resultado_ejercicio_pyg = ingresos - gastos
+    
+    resultado_ejercicio = resultado_ejercicio_conta + resultado_ejercicio_pyg
     
     patrimonio_neto = capital + reservas + resultados_acumulados + resultado_ejercicio
     
@@ -200,6 +214,7 @@ def calcular_balance(fecha_corte):
             'corriente': {
                 'existencias': existencias,
                 'clientes': clientes,
+                'anticipos_clientes': anticipos_clientes,
                 'deudores': deudores,
                 'tesoreria': tesoreria,
                 'total': activo_corriente,
@@ -212,10 +227,11 @@ def calcular_balance(fecha_corte):
                 'acreedores': acreedores,
                 'iva_repercutido': iva_repercutido,
                 'iva_soportado': iva_soportado,
+                'retenciones': retenciones,
                 'total': pasivo_corriente,
             },
             'no_corriente': {
-                'financiacion': financiacion,
+                'financiacion': Decimal('0'),
                 'total': pasivo_no_corriente,
             },
             'total': total_pasivo,
