@@ -283,14 +283,15 @@ def conciliacion_upload(request):
                         tipo = r['bank_row']['tipo']
                         importe = r['bank_row']['importe']
                         fecha = r['bank_row']['fecha']
+                        tolerancia = importe * Decimal('0.10')
                         r['candidatos'] = BancoMovimiento.objects.filter(
                             banco_cuenta=banco_cuenta,
                             tipo=tipo,
-                            importe=importe,
                             conciliado=False,
-                        ).exclude(
-                            fecha__lt=fecha - timedelta(days=7),
-                            fecha__gt=fecha + timedelta(days=7),
+                            importe__gte=importe - tolerancia,
+                            importe__lte=importe + tolerancia,
+                            fecha__gte=fecha - timedelta(days=30),
+                            fecha__lte=fecha + timedelta(days=30),
                         ).order_by('fecha')[:10]
                     else:
                         r['candidatos'] = []
@@ -321,16 +322,27 @@ def conciliacion_confirmar(request):
     if request.method != 'POST':
         return redirect('bank:conciliacion_upload')
 
-    movimientos_ids = list(request.POST.getlist('movimientos_conciliar'))
+    movimientos_ids = []
+    manual_count = 0
 
-    # Recoger selecciones manuales del <select>
+    # Recoger selecciones manuales del <select> (value=PK)
     for key, val in request.POST.items():
         if key.startswith('conciliar_manual_') and val:
-            movimientos_ids.append(val)
+            if val.isdigit():
+                movimientos_ids.append(val)
+            else:
+                manual_count += 1
+
+    movimientos_ids.extend(request.POST.getlist('movimientos_conciliar'))
 
     if movimientos_ids:
         count = conciliacion_batch(movimientos_ids)
-        messages.success(request, f'{count} movimientos conciliados correctamente.')
+        msg = f'{count} movimientos conciliados correctamente.'
+        if manual_count:
+            msg += f' {manual_count} marcados como conciliación manual (sin ERP).'
+        messages.success(request, msg)
+    elif manual_count:
+        messages.success(request, f'{manual_count} movimientos marcados como conciliación manual (sin ERP).')
     else:
         messages.warning(request, 'No se seleccionaron movimientos para conciliar.')
 

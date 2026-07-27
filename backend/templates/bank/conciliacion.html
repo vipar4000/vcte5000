@@ -78,6 +78,10 @@
                             <option value="{{ c.pk }}">{{ c.fecha }} | {{ c.concepto|truncatewords:4 }} | €{{ c.importe|floatformat:2 }}</option>
                             {% endfor %}
                         </select>
+                        {% else %}
+                        <input type="checkbox" name="conciliar_manual_{{ forloop.counter0 }}" value="MANUAL"
+                               class="rounded text-eurocar-blue" title="Marcar como conciliado manualmente">
+                        <span class="text-xs text-gray-500">Manual</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 text-sm">{{ r.bank_row.fecha }}</td>
