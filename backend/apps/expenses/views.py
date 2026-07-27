@@ -264,7 +264,7 @@ def inversion_create(request):
         form = InversionInicialForm(request.POST, request.FILES)
         formset = LineaInversionInicialFormSet(request.POST, instance=InversionInicial())
         form.lineas_formset = formset
-        if form.is_valid() and formset.is_valid():
+        if formset.is_valid() and form.is_valid():
             inversion = form.save(commit=False)
             inversion.created_by = request.user
             inversion.save()
