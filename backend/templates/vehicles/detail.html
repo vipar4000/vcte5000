@@ -252,8 +252,8 @@
                     {% endif %}
                     {% if vehiculo.tipo_iva %}
                     <div class="flex justify-between">
-                        <span class="text-gray-500">IVA</span>
-                        <span>{{ vehiculo.tipo_iva }}%</span>
+                        <span class="text-gray-500">IVA soportado</span>
+                        <span>€{{ vehiculo.tipo_iva|floatformat:2 }}</span>
                     </div>
                     {% endif %}
                     {% if vehiculo.factura_compra_pdf %}

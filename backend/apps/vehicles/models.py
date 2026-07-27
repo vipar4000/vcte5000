@@ -2,6 +2,9 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Vehiculo(models.Model):
@@ -118,6 +121,58 @@ class Vehiculo(models.Model):
         verbose_name='coste inicial total'
     )
     
+    # Datos de factura de compra
+    proveedor = models.CharField(
+        max_length=150, blank=True,
+        verbose_name='proveedor / subasta',
+        help_text='Nombre del proveedor o casa de subastas',
+    )
+    cif_nif = models.CharField(
+        max_length=15, blank=True,
+        verbose_name='CIF/NIF proveedor',
+    )
+    numero_factura = models.CharField(
+        max_length=50, blank=True,
+        verbose_name='nº factura de compra',
+    )
+    factura_compra_pdf = models.FileField(
+        upload_to='facturas_compra/',
+        blank=True,
+        verbose_name='factura de compra (PDF)',
+    )
+    
+    # IVA de compra
+    tipo_iva = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        verbose_name='IVA soportado (€)',
+        help_text='Importe del IVA facturado. 0 si no factura IVA',
+    )
+    base_imponible = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='base imponible',
+    )
+    cuota_iva = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name='cuota IVA',
+    )
+    
+    # Pago y contabilidad
+    forma_pago = models.ForeignKey(
+        'accounting.CuentaContable',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='vehiculos_pago',
+        verbose_name='forma de pago (cuenta bancaria 572)',
+        limit_choices_to={'codigo__startswith': '572'},
+    )
+    asiento_contable = models.OneToOneField(
+        'accounting.AsientoContable',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='vehiculo_compra',
+        verbose_name='asiento contable',
+    )
+    
     # Precio de venta
     precio_venta = models.DecimalField(
         max_digits=10, 
@@ -158,13 +213,116 @@ class Vehiculo(models.Model):
         return f"{self.marca} {self.modelo} ({self.matricula})"
     
     def save(self, *args, **kwargs):
-        # Calcular coste inicial automáticamente
         self.coste_inicial = (
             self.precio_subasta + 
             self.tasas_sala + 
             self.logistica_grua
         )
+        self.base_imponible = self.tasas_sala + self.logistica_grua
+        self.cuota_iva = self.tipo_iva
         super().save(*args, **kwargs)
+    
+    def crear_asiento_contable(self):
+        """Genera el asiento contable de compra del vehículo.
+        
+        DEBE  310 Mercaderías  = coste_inicial
+        DEBE  472 IVA Soportado = cuota_iva  (si > 0)
+        HABER 572 Banco         = total      (si pago inmediato)
+        HABER 410 Proveedores   = total      (si compra a crédito)
+        """
+        from django.db import transaction
+        from apps.accounting.models import (
+            AsientoContable, MovimientoContable, CuentaContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        if self.asiento_contable:
+            return self.asiento_contable
+
+        total = self.coste_inicial + self.cuota_iva
+
+        with transaction.atomic():
+            for codigo in ['310', '472']:
+                if not CuentaContable.objects.filter(codigo=codigo).exists():
+                    raise ValueError(
+                        f'Falta la cuenta contable {codigo}. '
+                        f'Inicialice el plan en Contabilidad > Cuentas > Inicializar.'
+                    )
+
+            cuenta_mercancias = CuentaContable.objects.get(codigo='310')
+            cuenta_iva = CuentaContable.objects.get(codigo='472')
+
+            numero = generar_numero_asiento()
+
+            asiento = AsientoContable.objects.create(
+                numero=numero,
+                fecha=self.fecha_adquisicion,
+                concepto=f"Compra vehículo {self.marca} {self.modelo} ({self.matricula})",
+                estado='BORRADOR',
+                tipo_documento='CompraVehiculo',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_mercancias,
+                debe=self.coste_inicial, haber=Decimal('0'),
+                descripcion=f"Entrada inventario {self.marca} {self.modelo}",
+            )
+
+            if self.cuota_iva > 0:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_iva,
+                    debe=self.cuota_iva, haber=Decimal('0'),
+                    descripcion=f"IVA soportado {self.tipo_iva}%",
+                )
+
+            if self.forma_pago:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=self.forma_pago,
+                    debe=Decimal('0'), haber=total,
+                    descripcion=f"Pago banco: {self.proveedor or 'Subasta'}",
+                )
+            else:
+                if not CuentaContable.objects.filter(codigo='410').exists():
+                    raise ValueError('Falta la cuenta contable 410 (Proveedores).')
+                cuenta_proveedor = CuentaContable.objects.get(codigo='410')
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_proveedor,
+                    debe=Decimal('0'), haber=total,
+                    descripcion=f"Proveedor: {self.proveedor or 'Subasta'}",
+                )
+
+            self.asiento_contable = asiento
+            self.save(update_fields=['asiento_contable'])
+
+            if asiento.esta_cuadrado:
+                asiento.estado = 'POSTEADO'
+                asiento.save(update_fields=['estado'])
+
+        return asiento
+    
+    def registrar_movimiento_banco(self, asiento=None):
+        """Registra el egreso bancario de la compra del vehículo."""
+        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+
+        cuenta = self.forma_pago
+        if not cuenta:
+            cuenta = obtener_cuenta_banco_default()
+        if not cuenta:
+            logger.warning('No hay cuenta bancaria para registrar movimiento de compra.')
+            return None
+
+        total = self.coste_inicial + self.cuota_iva
+        return crear_movimiento_banco(
+            banco_cuenta=cuenta,
+            fecha=self.fecha_adquisicion,
+            concepto=f"Compra vehículo {self.marca} {self.modelo} ({self.matricula})",
+            tipo='EGRESO',
+            importe=total,
+            vehiculo=self,
+            asiento=asiento or self.asiento_contable,
+        )
     
     @property
     def coste_reparacion(self):
