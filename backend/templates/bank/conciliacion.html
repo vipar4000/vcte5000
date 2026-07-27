@@ -79,7 +79,7 @@
                             {% endfor %}
                         </select>
                         {% else %}
-                        <input type="checkbox" name="conciliar_manual_{{ forloop.counter0 }}" value="MANUAL"
+                        <input type="checkbox" name="conciliar_manual_{{ forloop.counter0 }}" value="CSV:{{ forloop.counter0 }}"
                                class="rounded text-eurocar-blue" title="Marcar como conciliado manualmente">
                         <span class="text-xs text-gray-500">Manual</span>
                         {% endif %}

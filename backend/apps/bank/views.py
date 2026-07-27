@@ -296,6 +296,20 @@ def conciliacion_upload(request):
                     else:
                         r['candidatos'] = []
 
+                # Guardar filas del CSV en sesión para conciliación manual
+                session_data = []
+                for i, r in enumerate(resultados):
+                    br = r['bank_row']
+                    session_data.append({
+                        'idx': i,
+                        'fecha': br['fecha'].isoformat() if hasattr(br['fecha'], 'isoformat') else str(br['fecha']),
+                        'concepto': br['concepto'],
+                        'tipo': br['tipo'],
+                        'importe': str(br['importe']),
+                    })
+                request.session['conciliacion_csv_rows'] = session_data
+                request.session['conciliacion_banco_cuenta_id'] = banco_cuenta.pk
+
                 context = {
                     'form': form,
                     'resultados': resultados,
@@ -323,26 +337,54 @@ def conciliacion_confirmar(request):
         return redirect('bank:conciliacion_upload')
 
     movimientos_ids = []
-    manual_count = 0
+    csv_rows_to_create = []
 
-    # Recoger selecciones manuales del <select> (value=PK)
     for key, val in request.POST.items():
         if key.startswith('conciliar_manual_') and val:
-            if val.isdigit():
+            if val.startswith('CSV:'):
+                idx = int(val.split(':')[1])
+                csv_rows_to_create.append(idx)
+            elif val.isdigit():
                 movimientos_ids.append(val)
-            else:
-                manual_count += 1
 
     movimientos_ids.extend(request.POST.getlist('movimientos_conciliar'))
 
+    from datetime import date as date_type
+    crear_count = 0
+
+    # Crear BancoMovimiento desde datos del CSV en sesión
+    if csv_rows_to_create:
+        session_rows = request.session.get('conciliacion_csv_rows', [])
+        cuenta_id = request.session.get('conciliacion_banco_cuenta_id')
+        if session_rows and cuenta_id:
+            for idx in csv_rows_to_create:
+                if idx < len(session_rows):
+                    row = session_rows[idx]
+                    from .models import BancoMovimiento, BancoCuenta
+                    BancoMovimiento.objects.get_or_create(
+                        banco_cuenta_id=cuenta_id,
+                        fecha=date_type.fromisoformat(row['fecha']),
+                        concepto=row['concepto'],
+                        tipo=row['tipo'],
+                        importe=Decimal(row['importe']),
+                        defaults={
+                            'conciliado': True,
+                            'notas': 'Conciliado desde extracto CSV (manual)',
+                        },
+                    )
+                    crear_count += 1
+        # Limpiar sesión
+        request.session.pop('conciliacion_csv_rows', None)
+        request.session.pop('conciliacion_banco_cuenta_id', None)
+
     if movimientos_ids:
         count = conciliacion_batch(movimientos_ids)
-        msg = f'{count} movimientos conciliados correctamente.'
-        if manual_count:
-            msg += f' {manual_count} marcados como conciliación manual (sin ERP).'
+        msg = f'{count} movimientos del ERP conciliados.'
+        if crear_count:
+            msg += f' {crear_count} creados y conciliados desde extracto.'
         messages.success(request, msg)
-    elif manual_count:
-        messages.success(request, f'{manual_count} movimientos marcados como conciliación manual (sin ERP).')
+    elif crear_count:
+        messages.success(request, f'{crear_count} movimientos creados y conciliados desde extracto.')
     else:
         messages.warning(request, 'No se seleccionaron movimientos para conciliar.')
 
