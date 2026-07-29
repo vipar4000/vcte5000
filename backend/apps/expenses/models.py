@@ -233,11 +233,22 @@ class InversionInicial(models.Model):
             AsientoContable, MovimientoContable, CuentaContable,
         )
         from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+        from apps.bank.services import (
+            crear_movimiento_banco, obtener_cuenta_banco_default,
+        )
 
         with transaction.atomic():
-            AsientoContable.objects.filter(
+            # Limpiar movimientos bancarios de asientos previos (idempotente)
+            old_asientos = AsientoContable.objects.filter(
                 tipo_documento='InversionInicial', documento_id=self.pk
-            ).delete()
+            )
+            old_asiento_ids = list(old_asientos.values_list('pk', flat=True))
+            if old_asiento_ids:
+                BancoMovimiento.objects.filter(
+                    asiento_asociado_id__in=old_asiento_ids
+                ).delete()
+            old_asientos.delete()
 
             asiento = AsientoContable.objects.create(
                 numero=generar_numero_asiento(),
@@ -276,6 +287,22 @@ class InversionInicial(models.Model):
                 haber=self.total_calculado,
                 descripcion=f"Pago (banco): {self.proveedor_acreedor}",
             )
+
+            # Crear movimiento bancario EGRESO vinculado al asiento
+            banco_cuenta = BancoCuenta.objects.filter(
+                cuenta_contable=self.forma_pago
+            ).first()
+            if not banco_cuenta:
+                banco_cuenta = obtener_cuenta_banco_default()
+            if banco_cuenta:
+                crear_movimiento_banco(
+                    banco_cuenta=banco_cuenta,
+                    fecha=self.fecha_emision,
+                    concepto=f"Inversión inicial {self.numero_factura}: {self.proveedor_acreedor}",
+                    tipo='EGRESO',
+                    importe=self.total_calculado,
+                    asiento=asiento,
+                )
 
             return asiento
 
