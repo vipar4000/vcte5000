@@ -134,7 +134,11 @@
                 <li><a href="#capitulo-18-11"><span class="chapter-num">18.11</span> Reparacion en Garantia</a></li>
             </ul>
         </li>
-        <li><a href="#capitulo-19"><span class="chapter-num">19.</span> Catalogo de Materiales</a></li>
+        <li><a href="#capitulo-19"><span class="chapter-num">19.</span> Catalogo de Materiales</a>
+            <ul>
+                <li><a href="#capitulo-19-1"><span class="chapter-num">19.1</span> Funcion del Catalogo de Materiales</a></li>
+            </ul>
+        </li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -4062,6 +4066,27 @@ USUARIO REGISTRA OPERACION
 <h1 id="capitulo-19">19. Catalogo de Materiales de Referencia</h1>
 
 <p>Catalogo recomendado para un taller de compraventa de vehiculos de ocasion. Cree estos materiales desde el ERP: <strong>Sidebar &rarr; 📋 Catalogo</strong>. Todos se crean con <code>stock_actual = 0</code>; el stock se incrementa al registrar compras con factura desde <strong>🛒 Compras</strong>.</p>
+
+<h2 id="capitulo-19-1">19.1 Funcion del Catalogo de Materiales</h2>
+
+<p>El Catalogo de Materiales es el registro de todos los insumos que el taller puede usar en las reparaciones (aceite, filtros, pastillas de freno, etc.). Su funcion es:</p>
+
+<ol>
+    <li><strong>Definir los materiales que existen</strong> &mdash; nombre, unidad de medida y precio unitario. Sin catalogo, el sistema no sabe que materiales existen.</li>
+    <li><strong>Servir como lista desplegable en OTs</strong> &mdash; al registrar "Material Usado" en una Orden de Trabajo, el sistema muestra un desplegable con los materiales del catalogo que tengan stock &gt; 0. Solo aparecen los que tienen stock disponible.</li>
+    <li><strong>Controlar stock</strong> &mdash; cada material tiene <code>stock_actual</code> y <code>stock_minimo</code>. Cuando <code>stock_actual &le; stock_minimo</code> salta una alerta visual roja en el Dashboard y en Inventario.</li>
+    <li><strong>Alimentar la contabilidad</strong> &mdash; al comprar material (🛒 Compras), el sistema genera automaticamente un asiento contable (DEBE 300/310/320/330 + 472, HABER 410) y aumenta el <code>stock_actual</code>. Al usar material en una OT, decrementa el stock y suma el coste a la OT.</li>
+</ol>
+
+<p><strong>Flujo completo:</strong></p>
+
+<pre>
+📋 Catalogo (crear materiales, stock=0)
+       ↓
+🛒 Compras (comprar con factura → stock++ → asiento contable automatico)
+       ↓
+🔧 Taller → OT → Material Usado (stock-- → coste a la OT)
+</pre>
 
 <table>
     <tr><th>Material</th><th>Descripcion</th><th>Unidad</th><th>Precio Unit. Ref.</th><th>Stock Minimo</th></tr>
