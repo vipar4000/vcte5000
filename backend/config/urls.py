@@ -17,10 +17,11 @@ urlpatterns = [
     path('erp/gastos/', include('apps.expenses.urls')),
     path('erp/banco/', include('apps.bank.urls')),
     path('api/', include('apps.api.urls')),
-    # Web pública (SPA Vue) - catch-all al final; /static, /erp, /api, /admin resuelven antes
-    re_path(r'^.*$', spa_index),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Web pública (SPA Vue) - catch-all SIEMPRE al final
+urlpatterns += [re_path(r'^.*$', spa_index)]

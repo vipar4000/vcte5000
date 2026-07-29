@@ -93,10 +93,21 @@ def vehiculo_create(request):
                     'Las imágenes solo se pueden subir cuando el vehículo está en estado EN_VENTA.'
                 )
                 return redirect('vehicles:detail', pk=vehiculo.pk)
-            messages.success(
-                request, 
-                f'Vehículo {vehiculo.marca} {vehiculo.modelo} creado correctamente.'
-            )
+
+            # Crear asiento contable y movimiento bancario
+            try:
+                asiento = vehiculo.crear_asiento_contable()
+                vehiculo.registrar_movimiento_banco(asiento=asiento)
+                messages.success(
+                    request,
+                    f'Vehículo creado. Asiento #{asiento.numero} registrado.'
+                )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Vehículo creado, pero no se pudo crear el asiento contable: {str(e)}'
+                )
+
             return redirect('vehicles:detail', pk=vehiculo.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
@@ -129,7 +140,6 @@ def vehiculo_update(request, pk):
         ) if estado_es_venta else None
         if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
             nuevo_estado = form.cleaned_data.get('estado')
-            # Si el vehículo deja de estar EN_VENTA, eliminar sus imágenes.
             if nuevo_estado != 'EN_VENTA':
                 if vehiculo.imagen_principal:
                     vehiculo.imagen_principal.delete(save=False)
@@ -145,10 +155,27 @@ def vehiculo_update(request, pk):
                     request,
                     'Las imágenes solo se pueden subir cuando el vehículo está en estado EN_VENTA.'
                 )
-            messages.success(
-                request, 
-                f'Vehículo {vehiculo.marca} {vehiculo.modelo} actualizado correctamente.'
-            )
+
+            # Regenerar asiento si los costes cambiaron
+            try:
+                if vehiculo.asiento_contable:
+                    vehiculo.asiento_contable.delete()
+                    vehiculo.asiento_contable = None
+                asiento = vehiculo.crear_asiento_contable()
+                # Regenerar movimiento bancario
+                from apps.bank.models import BancoMovimiento
+                BancoMovimiento.objects.filter(vehiculo_asociado=vehiculo).delete()
+                vehiculo.registrar_movimiento_banco(asiento=asiento)
+                messages.success(
+                    request,
+                    f'Vehículo actualizado. Asiento #{asiento.numero} regenerado.'
+                )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Vehículo actualizado, pero no se pudo regenerar el asiento: {str(e)}'
+                )
+
             return redirect('vehicles:detail', pk=vehiculo.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')

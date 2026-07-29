@@ -63,6 +63,11 @@
                 </a>
                 
                 {% if is_admin %}
+                <a href="{% url 'workshop:material_create' %}" 
+                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
+                    📋 Catálogo
+                </a>
+                
                 <a href="{% url 'workshop:compra_material_create' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
                     🛒 Compras

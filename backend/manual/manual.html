@@ -29,7 +29,15 @@
     <ul>
         <li><a href="#capitulo-1"><span class="chapter-num">1.</span> Introduccion y Primeros Pasos</a></li>
         <li><a href="#capitulo-2"><span class="chapter-num">2.</span> Dashboard Principal</a></li>
-        <li><a href="#capitulo-3"><span class="chapter-num">3.</span> Gestion de Vehiculos</a></li>
+        <li><a href="#capitulo-3"><span class="chapter-num">3.</span> Gestion de Vehiculos</a>
+            <ul>
+                <li><a href="#ciclo-vida-vehiculo">3.1 Ciclo de Vida del Vehiculo</a></li>
+                <li><a href="#crear-vehiculo">3.2 Crear un Vehiculo</a></li>
+                <li><a href="#analisis-costes">3.3 Analisis de Costes</a></li>
+                <li><a href="#cambiar-estado">3.4 Cambiar Estado del Vehiculo</a></li>
+                <li><a href="#admin-django">3.5 Administrador Django</a></li>
+            </ul>
+        </li>
         <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a></li>
         <li><a href="#capitulo-5"><span class="chapter-num">5.</span> Ventas y Documentacion</a></li>
         <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nomina</a></li>
@@ -109,6 +117,21 @@
                 <li><a href="#capitulo-17-8"><span class="chapter-num">17.8</span> Fase 6: Operacion Continua</a></li>
                 <li><a href="#capitulo-17-9"><span class="chapter-num">17.9</span> Fase 7: Cierre y Reporting</a></li>
                 <li><a href="#capitulo-17-10"><span class="chapter-num">17.10</span> Comandos de Utilidad</a></li>
+            </ul>
+        </li>
+        <li><a href="#capitulo-18"><span class="chapter-num">18.</span> Flujos Automaticos del Sistema</a>
+            <ul>
+                <li><a href="#capitulo-18-1"><span class="chapter-num">18.1</span> Resumen de Operaciones</a></li>
+                <li><a href="#capitulo-18-2"><span class="chapter-num">18.2</span> Diagrama de Flujos</a></li>
+                <li><a href="#capitulo-18-3"><span class="chapter-num">18.3</span> Crear Vehiculo con Factura de Compra</a></li>
+                <li><a href="#capitulo-18-4"><span class="chapter-num">18.4</span> Crear Primera Orden de Trabajo</a></li>
+                <li><a href="#capitulo-18-5"><span class="chapter-num">18.5</span> Registrar Compra de Material</a></li>
+                <li><a href="#capitulo-18-6"><span class="chapter-num">18.6</span> Registrar Venta (REBU)</a></li>
+                <li><a href="#capitulo-18-7"><span class="chapter-num">18.7</span> Registrar Gasto de Estructura</a></li>
+                <li><a href="#capitulo-18-8"><span class="chapter-num">18.8</span> Crear Reserva</a></li>
+                <li><a href="#capitulo-18-9"><span class="chapter-num">18.9</span> Crear Cuenta Bancaria con Deposito</a></li>
+                <li><a href="#capitulo-18-10"><span class="chapter-num">18.10</span> Cancelar Reserva</a></li>
+                <li><a href="#capitulo-18-11"><span class="chapter-num">18.11</span> Reparacion en Garantia</a></li>
             </ul>
         </li>
     </ul>
@@ -280,7 +303,7 @@
 <!-- ==================== CAPITULO 3 ==================== -->
 <h1 id="capitulo-3">3. Gestion de Vehiculos</h1>
 
-<h2>3.1 Ciclo de Vida del Vehiculo</h2>
+<h2 id="ciclo-vida-vehiculo">3.1 Ciclo de Vida del Vehiculo</h2>
 <div class="diagram">
     <div class="title">Flujo de Estados del Vehiculo</div>
     <div class="flow">
@@ -302,16 +325,24 @@ ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
     <tr><td><code>VENDIDO</code></td><td>Vendido y entregado</td><td>Automatico (al registrar venta)</td></tr>
 </table>
 
-<h2>3.2 Crear un Vehiculo</h2>
+<h2 id="crear-vehiculo">3.2 Crear un Vehiculo</h2>
 <ol class="steps">
     <li>Navegue a <strong>Vehiculos > Nuevo Vehiculo</strong></li>
     <li>Complete los datos basicos: matricula, bastidor, marca, modelo, anio</li>
     <li>Seleccione tipo de combustible y etiqueta ambiental</li>
     <li>Ingrese datos de adquisicion: plataforma, precio subasta, tasas, logistica</li>
     <li>El <strong>coste inicial</strong> se calcula automaticamente: <code>precio_subasta + tasas_sala + logistica_grua</code></li>
-    <li>Adjunte imagen principal del vehiculo</li>
+    <li>Complete los <strong>datos de factura de compra</strong>: proveedor, CIF/NIF, numero de factura, tipo IVA, forma de pago y factura PDF</li>
+    <li>Adjunte imagen principal del vehiculo (solo si estado = EN_VENTA)</li>
     <li>Haga clic en <strong>Crear Vehiculo</strong></li>
 </ol>
+
+<div class="success-box">
+    <strong>Automatismo contable y bancario:</strong> Al guardar, el sistema genera automaticamente:<br>
+    &bull; <strong>Asiento contable:</strong> DEBE 310 (Mercaderias) + DEBE 472 (IVA, si aplica) / HABER 572 (Banco) o HABER 410 (Proveedor)<br>
+    &bull; <strong>Movimiento bancario:</strong> EGRESO por el total de la compra (si hay forma de pago)<br>
+    &bull; El asiento se <strong>auto-postea</strong> si esta cuadrado
+</div>
 
 <div class="warning-box">
     <strong>IMPORTANTE:</strong> La matricula y el bastidor deben ser unicos en todo el sistema.
@@ -340,7 +371,26 @@ ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
     <tr><td><code>imagen_principal</code></td><td>Archivo</td><td>No</td><td> JPG/PNG</td></tr>
 </table>
 
-<h3>3.2.2 Ejemplo de Creacion</h3>
+<h3>3.2.2 Datos de Factura de Compra</h3>
+<p>El formulario incluye un fieldset dedicado para la informacion de la factura de compra del vehiculo. Estos campos son <strong>opcionales</strong>, pero si se rellenan, el sistema generara automaticamente el asiento contable y el movimiento bancario.</p>
+
+<table>
+    <tr><th>Campo</th><th>Tipo</th><th>Obligatorio</th><th>Ejemplo</th></tr>
+    <tr><td><code>proveedor</code></td><td>Texto</td><td>No</td><td><code>BCA Subastas</code></td></tr>
+    <tr><td><code>cif_nif</code></td><td>Texto (15 chars)</td><td>No</td><td><code>B12345678</code></td></tr>
+    <tr><td><code>numero_factura</code></td><td>Texto (20 chars)</td><td>No</td><td><code>FC-2026-001</code></td></tr>
+    <tr><td><code>tipo_iva</code></td><td>Select</td><td>No</td><td><code>GENERAL_21</code>, <code>REDUCIDO_10</code>, <code>SUPERREDUCIDO_4</code>, <code>EXENTO</code></td></tr>
+    <tr><td><code>base_imponible</code></td><td>Decimal</td><td>No</td><td><code>8000.00</code></td></tr>
+    <tr><td><code>cuota_iva</code></td><td>Decimal</td><td>No</td><td><code>1680.00</code></td></tr>
+    <tr><td><code>forma_pago</code></td><td>Select (CuentaContable)</td><td>No</td><td><code>Caja Chica</code>, <code>Banco Santander</code></td></tr>
+    <tr><td><code>factura_compra_pdf</code></td><td>Archivo PDF</td><td>No</td><td>Factura original escaneada</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Tipos de IVA disponibles:</strong> GENERAL_21, REDUCIDO_10, SUPERREDUCIDO_4, EXENTO. La cuota de IVA se calcula automaticamente al modificar la base imponible (se actualiza al perder el foco del campo).
+</div>
+
+<h3>3.2.3 Ejemplo de Creacion</h3>
 <pre><code>POST /erp/vehiculos/nuevo/
 
 matricula=1234ABC
@@ -357,7 +407,15 @@ fecha_adquisicion=2026-06-15
 precio_subasta=8000
 tasas_sala=500
 logistica_grua=300
-descripcion_dano=Golpe en paragolpes trasero</code></pre>
+descripcion_dano=Golpe en paragolpes trasero
+-- Datos de factura de compra --
+proveedor=BCA Subastas
+cif_nif=B12345678
+numero_factura=FC-2026-001
+tipo_iva=GENERAL_21
+base_imponible=8000
+cuota_iva=1680
+forma_pago=Caja Chica</code></pre>
 
 <div class="info-box">
     <strong>Calculo automatico del coste inicial:</strong><br>
@@ -365,7 +423,20 @@ descripcion_dano=Golpe en paragolpes trasero</code></pre>
     coste_inicial = 8.000 + 500 + 300 = <strong>8.800 EUR</strong>
 </div>
 
-<h3>3.2.3 Imagenes del Vehiculo</h3>
+<div class="success-box">
+    <strong>Asiento generado automaticamente:</strong><br>
+    DEBE 310 (Mercaderias) 8.000 + 472.41 (IVA soportado) 1.680<br>
+    HABER 572 (Banco Santander) 9.680<br>
+    <strong>Estado: POSTEADO</strong> (cuadrado automaticamente)
+</div>
+
+<div class="info-box">
+    <strong>Movimiento bancario:</strong><br>
+    Tipo: EGRESO | Importe: 9.680 EUR | Fecha: 15/06/2026<br>
+    Conciliado: NO | Vehiculo asociado: 1234ABC (Golf)
+</div>
+
+<h3>3.2.4 Imagenes del Vehiculo</h3>
 
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
@@ -463,7 +534,7 @@ descripcion_dano=Golpe en paragolpes trasero</code></pre>
     <strong>Donde colocar la imagen:</strong> El archivo origen puede estar en <strong>cualquier carpeta de su disco</strong> (p. ej. <code>C:/fotos/</code>). Solo indique su ruta en <code>--imagen</code>. El archivo NO se copia al repo; Django lo sube directamente al destino (local <code>media/vehiculos/</code> o R2 en produccion).
 </div>
 
-<h2>3.3 Analisis de Costes</h2>
+<h2 id="analisis-costes">3.3 Analisis de Costes</h2>
 <p>El sistema calcula automaticamente la cadena de costes:</p>
 
 <pre><code>Coste Inicial = Precio Subasta + Tasas Sala + Logistica Grua
@@ -485,7 +556,7 @@ Coste Total = Coste Inicial + Coste Reparacion</code></pre>
     <strong>Coste Total = 9.557,50 EUR</strong>
 </div>
 
-<h2>3.4 Cambiar Estado del Vehiculo</h2>
+<h2 id="cambiar-estado">3.4 Cambiar Estado del Vehiculo</h2>
 <p>Existen tres formas de cambiar el estado de un vehiculo:</p>
 
 <h3>Opcion 1: Desde el ERP (detalle del vehiculo)</h3>
@@ -524,7 +595,7 @@ Coste Total = Coste Inicial + Coste Reparacion</code></pre>
     <strong>Restriccion:</strong> No se pueden eliminar vehiculos con estado <code>VENDIDO</code>.
 </div>
 
-<h2>3.5 Administrador Django</h2>
+<h2 id="admin-django">3.5 Administrador Django</h2>
 <p>El Administrador Django (<code>/admin/</code>) ofrece una vista completa de todos los registros del sistema. Para vehiculos, incluye:</p>
 
 <ul>
@@ -3518,6 +3589,10 @@ DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
     <strong>Catalogo de materiales:</strong> Defina los tipos de material que el taller utilizara (aceite, filtros, frenos, etc.). Cada material tiene nombre, unidad de medida y precio unitario. El stock se incrementa automaticamente al registrar una compra de material en la Fase 3.
 </div>
 
+<div class="info-box">
+    <strong>Navegacion:</strong> Sidebar &rarr; <strong>📋 Catalogo</strong> (disponible solo para administradores, entre Inventario y Compras). Rellene nombre, unidad de medida y precio unitario. El stock se crea a 0 y se incrementa al registrar una compra.
+</div>
+
 <h2 id="capitulo-17-5">17.5 Fase 3: Taller (Diagnostico, Compra y Reparacion)</h2>
 
 <p>Diagnosticar el vehiculo, comprar los materiales necesarios segun el diagnostico, y reparar. El vehiculo transiciona automaticamente de ADQUIRIDO a TALLER al crear la primera OT.</p>
@@ -3761,6 +3836,225 @@ python manage.py backfill_asientos_banco
 
 <div class="info-box">
     <strong>Nota:</strong> El script <code>create_full_test.py</code> ejecuta los pasos 0.2 a 6.1 del pipeline en un solo comando, creando un conjunto completo de datos de prueba. Es ideal para verificar que todo funciona, pero no sustituye el understanding del flujo para operaciones reales.
+</div>
+
+<!-- ==================== CAPITULO 18 ==================== -->
+<h1 id="capitulo-18">18. Flujos Automaticos del Sistema</h1>
+
+<p>Cada operacion en el ERP desencadena una cadena de acciones automaticas: asientos contables, movimientos bancarios, cambios de estado y creacion de registros vinculados. Este capitulo consolida <strong>todos los flujos automaticos</strong> en un solo lugar para entender que ocurre "bajo el capo" despues de cada accion del usuario.</p>
+
+<div class="warning-box">
+    <strong>Regla general:</strong> El sistema <strong>nunca</strong> genera movimientos de banco manuales. Todos los movimientos se crean via <code>crear_movimiento_banco()</code> en <code>apps/bank/services.py</code>. Los asientos se auto-postean solo si estan cuadrados (DEBE = HABER).
+</div>
+
+<h2 id="capitulo-18-1">18.1 Resumen de Operaciones</h2>
+
+<table>
+    <tr><th>#</th><th>Operacion del Usuario</th><th>Asiento Contable</th><th>Mov. Bancario</th><th>Otros Efectos</th></tr>
+    <tr>
+        <td>1</td>
+        <td>Crear vehiculo (con factura de compra)</td>
+        <td>DEBE 310 + DEBE 472 / HABER 572 o 410</td>
+        <td>EGRESO</td>
+        <td>Coste inicial calculado</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>Crear primera OT (vehiculo ADQUIRIDO)</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>Estado cambia a TALLER</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>Registrar compra de material</td>
+        <td>DEBE 300-330 + DEBE 472 / HABER 410 (POSTEADO)</td>
+        <td>&mdash;</td>
+        <td>Stock++</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>Registrar venta</td>
+        <td>5 movimientos REBU (POSTEADO)</td>
+        <td>INGRESO</td>
+        <td>Estado VENDIDO + Garantia B2C</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>Registrar gasto de estructura</td>
+        <td>DEBE 6xx + DEBE 472 / HABER 410</td>
+        <td>EGRESO</td>
+        <td>&mdash;</td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <td>Crear reserva (senal/arras)</td>
+        <td>DEBE 572 / HABER 438 + 477</td>
+        <td>INGRESO</td>
+        <td>&mdash;</td>
+    </tr>
+    <tr>
+        <td>7</td>
+        <td>Crear cuenta bancaria (con deposito)</td>
+        <td>DEBE 572 / HABER 110 (POSTEADO)</td>
+        <td>INGRESO</td>
+        <td>&mdash;</td>
+    </tr>
+</table>
+
+<h2 id="capitulo-18-2">18.2 Diagrama de Flujos</h2>
+
+<div class="diagram">
+    <div class="title">Cadena de Flujos Automaticos del ERP</div>
+    <div class="flow">
+USUARIO REGISTRA OPERACION
+           |
+     +-----+-----+-----+-----+-----+-----+
+     |     |     |     |     |     |     |
+     v     v     v     v     v     v     v
+   [1]   [2]   [3]   [4]   [5]   [6]   [7]
+     |     |     |     |     |     |     |
+     v     v     v     v     v     v     v
+  Asiento  OT    Stock  Venta  Gasto Reserva Cuenta
+  + Banco  ->    ++     REBU  Asiento+Banco +Banco
+  compra  TALLER compra 5mov  struct anticipo deposito
+     |                    |
+     v                    v
+  Vehiculo            Garantia
+  EN_VENTA            (B2C auto)
+    </div>
+</div>
+
+<h2 id="capitulo-18-3">18.3 Crear Vehiculo con Factura de Compra</h2>
+<p><strong>Cuando:</strong> El usuario rellena los campos de factura de compra al crear/editar un vehiculo (seccion <a href="#crear-vehiculo">3.2.2</a>).</p>
+<p><strong>Detalles:</strong> Ver <a href="#crear-vehiculo">3.2 Crear un Vehiculo</a> y <a href="#analisis-costes">3.3 Analisis de Costes</a>.</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Coste inicial</strong></td><td><code>coste_inicial = precio_subasta + tasas_sala + logistica_grua</code></td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE 310 (Mercancias) + DEBE 472 (IVA soportado) / HABER 572 (Banco) o HABER 410 (Proveedor). Se auto-postea si esta cuadrado.</td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>EGRESO por el total de la compra (si hay forma de pago). Vinculado al vehiculo via <code>vehiculo_asociado</code>.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Condicion:</strong> Solo se genera si los campos de factura estan rellenos (proveedor, cif_nif, numero_factura, tipo_iva, base_imponible, cuota_iva, forma_pago). Sin factura, no hay asiento ni movimiento bancario.
+</div>
+
+<h2 id="capitulo-18-4">18.4 Crear Primera Orden de Trabajo</h2>
+<p><strong>Cuando:</strong> Se crea una OT para un vehiculo en estado <code>ADQUIRIDO</code> (seccion <a href="#capitulo-4">4.1</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Cambio de estado</strong></td><td>El vehiculo pasa automaticamente de <code>ADQUIRIDO</code> a <code>TALLER</code>.</td></tr>
+    <tr><td><strong>Asiento / Banco</strong></td><td>No genera asiento ni movimiento bancario. El coste de la OT se acumula en la OT y luego en el coste de reparacion del vehiculo.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Nota:</strong> Solo aplica a la primera OT. OTs posteriores para el mismo vehiculo no cambian el estado.
+</div>
+
+<h2 id="capitulo-18-5">18.5 Registrar Compra de Material</h2>
+<p><strong>Cuando:</strong> El usuario registra una compra con factura desde <strong>Inventario > Registrar Compra</strong> (seccion <a href="#capitulo-4">4.2</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Stock</strong></td><td>El <code>stock_actual</code> del material se incrementa en la cantidad comprada.</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de inventario (300/310/320/330) + DEBE 472 (IVA) / HABER 410 (Acreedores). Se crea y <strong>postea automaticamente</strong> (estado POSTEADO).</td></tr>
+    <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (o R2).</td></tr>
+</table>
+
+<div class="warning-box">
+    <strong>Stock solo por compra:</strong> El stock de materiales <strong>solamente</strong> se incrementa via compra con factura. No hay alta manual de stock suelta. El consumo en OT (MaterialUsado) decrementa el stock y suma al coste de la OT.
+</div>
+
+<h2 id="capitulo-18-6">18.6 Registrar Venta (REBU)</h2>
+<p><strong>Cuando:</strong> El usuario registra una venta desde <strong>Ventas > Nueva Venta</strong> (seccion <a href="#capitulo-5">5.1</a> y <a href="#capitulo-8-3">8.3</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Estado vehiculo</strong></td><td>Cambia automaticamente a <code>VENDIDO</code>.</td></tr>
+    <tr><td><strong>Asiento REBU</strong></td><td>5 movimientos, estado POSTEADO:
+        <ul>
+            <li>DEBE 572 (Banco) = precio de venta completo</li>
+            <li>DEBE 600 (Compras) = coste total del vehiculo</li>
+            <li>HABER 700 (Ventas) = base imponible (margen REBU)</li>
+            <li>HABER 471 (IVA Repercutido) = IVA sobre el margen</li>
+            <li>HABER 310 (Mercancias) = baja de inventario</li>
+        </ul>
+    </td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>INGRESO por el precio de venta.</td></tr>
+    <tr><td><strong>Garantia</strong></td><td>Si el cliente es <strong>PARTICULAR (B2C)</strong>, se crea automaticamente una garantia de 12 meses. Si es EMPRESA (B2B), 6 meses.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Calculo REBU:</strong> Base Imponible = (Precio Venta - Coste Total) / 1.21. Cuota IVA = Base x 21%. Ver <a href="#capitulo-8-3">8.3 REBU</a> para el ejemplo numerico completo.
+</div>
+
+<h2 id="capitulo-18-7">18.7 Registrar Gasto de Estructura</h2>
+<p><strong>Cuando:</strong> El usuario registra un gasto desde <strong>Gastos > Nuevo Gasto</strong> (seccion <a href="#capitulo-8-6">8.6</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de gasto (6xx: 621, 628, 629, 640, 642, etc.) + DEBE 472 (IVA) + DEBE/HABER 4751 (IRPF, si aplica) / HABER 410 (Acreedores).</td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>EGRESO por el total de la factura (si el gasto esta marcado como pagado).</td></tr>
+    <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (opcional).</td></tr>
+</table>
+
+<h2 id="capitulo-18-8">18.8 Crear Reserva</h2>
+<p><strong>Cuando:</strong> El usuario crea una reserva desde <strong>Reservas > Nueva Reserva</strong> (seccion <a href="#capitulo-10-1">10.1</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>INGRESO por el importe de la senal.</td></tr>
+    <tr><td><strong>Asiento anticipo</strong></td><td>DEBE 572 (Banco) / HABER 438 (Anticipos Clientes) + HABER 477 (HP IVA Repercutido). Base = importe / 1.21, IVA = base x 21%.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Al convertir en venta:</strong> El anticipo de 438 se compensa contablemente. Ver <a href="#capitulo-10-2">10.2 Convertir en Venta</a>.
+</div>
+
+<h2 id="capitulo-18-9">18.9 Crear Cuenta Bancaria con Deposito</h2>
+<p><strong>Cuando:</strong> El usuario crea una cuenta bancaria con deposito inicial desde <strong>Banco > Nueva Cuenta</strong> (seccion <a href="#capitulo-9-4">9.4</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>INGRESO por el importe del deposito inicial.</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE 572 (Banco) / HABER 110 (Resultados no asignados). Estado POSTEADO.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Depositos subsiguientes:</strong> Desde el detalle de la cuenta, el boton <strong>"+ Agregar Deposito"</strong> crea un nuevo INGRESO + asiento automatico. Ver <a href="#capitulo-9-4">9.4 Depositos Bancarios</a>.
+</div>
+
+<h2 id="capitulo-18-10">18.10 Cancelar Reserva</h2>
+<p><strong>Cuando:</strong> El usuario cancela una reserva activa desde <strong>Reservas</strong> (seccion <a href="#capitulo-10-3">10.3</a>).</p>
+
+<table>
+    <tr><th>Accion</th><th>Mov. Bancario</th><th>Asiento Contable</th></tr>
+    <tr>
+        <td><strong>Devolver senal</strong></td>
+        <td>EGRESO (el dinero vuelve al cliente)</td>
+        <td>DEBE 438 (Anticipos) + DEBE 477 (IVA) / HABER 572 (Banco)</td>
+    </tr>
+    <tr>
+        <td><strong>Penalizar</strong></td>
+        <td>No se crea movimiento</td>
+        <td>El anticipo queda como ingreso para la empresa</td>
+    </tr>
+</table>
+
+<h2 id="capitulo-18-11">18.11 Reparacion en Garantia</h2>
+<p><strong>Cuando:</strong> Se registra una reparacion en una garantia vigente (seccion <a href="#capitulo-7">7.3</a> y <a href="#capitulo-8-6">8.6.4</a>).</p>
+
+<table>
+    <tr><th>Efecto</th><th>Detalle</th></tr>
+    <tr><td><strong>Gasto automatico</strong></td><td>El sistema crea un gasto de estructura con categoria <code>LIMPIEZA_SERV</code> por el coste de la reparacion.</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>Asociado al gasto creado (DEBE 629 / HABER 410).</td></tr>
+    <tr><td><strong>Valor del vehiculo</strong></td><td>El coste NO incrementa el valor del vehiculo (cuenta 300). Son gastos internos (Art. 114 TRLGDCU).</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Nota:</strong> La integracion con garantias es automatica. No se requiere accion manual adicional al registrar la reparacion.
 </div>
 
 </body>

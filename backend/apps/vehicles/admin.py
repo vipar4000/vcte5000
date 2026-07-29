@@ -19,7 +19,7 @@ class VehiculoAdmin(admin.ModelAdmin):
     ]
     list_filter = ['estado', 'marca', 'anio', 'combustible', 'tipo_dano']
     search_fields = ['matricula', 'bastidor', 'marca', 'modelo']
-    readonly_fields = ['coste_inicial', 'created_at', 'updated_at', 'detalle_link', 'documentos_venta']
+    readonly_fields = ['coste_inicial', 'base_imponible', 'cuota_iva', 'created_at', 'updated_at', 'detalle_link', 'documentos_venta']
     inlines = [ImagenVehiculoInline]
     
     fieldsets = (
@@ -37,6 +37,12 @@ class VehiculoAdmin(admin.ModelAdmin):
                 'precio_subasta', 'tasas_sala', 'logistica_grua', 'coste_inicial'
             )
         }),
+        ('Factura de Compra', {
+            'fields': (
+                'proveedor', 'cif_nif', 'numero_factura', 'factura_compra_pdf',
+                'tipo_iva', 'base_imponible', 'cuota_iva', 'forma_pago',
+            )
+        }),
         ('Precio de Venta', {
             'fields': ('precio_venta',)
         }),
@@ -47,7 +53,7 @@ class VehiculoAdmin(admin.ModelAdmin):
             'fields': ('imagen_principal',)
         }),
         ('Auditoría', {
-            'fields': ('created_by', 'created_at', 'updated_at'),
+            'fields': ('created_by', 'created_at', 'updated_at', 'asiento_contable'),
             'classes': ('collapse',)
         }),
         ('Documentos de Venta', {

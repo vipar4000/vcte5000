@@ -9,6 +9,7 @@ urlpatterns = [
     path('cuentas/nueva/', views.cuenta_create, name='cuenta_create'),
     path('cuentas/<int:pk>/', views.cuenta_detail, name='cuenta_detail'),
     path('cuentas/<int:pk>/editar/', views.cuenta_edit, name='cuenta_edit'),
+    path('cuentas/<int:cuenta_pk>/deposito/', views.deposito_create, name='deposito_create'),
 
     # Movimientos
     path('movimientos/', views.movimiento_list, name='movimiento_list'),

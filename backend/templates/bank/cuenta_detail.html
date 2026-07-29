@@ -10,7 +10,13 @@
             </h1>
             <p class="text-gray-600">Saldo: <span class="font-bold {% if cuenta.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">€{{ cuenta.saldo|floatformat:2 }}</span></p>
         </div>
-        <a href="{% url 'bank:cuenta_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
+        <div class="flex gap-3">
+            <a href="{% url 'bank:deposito_create' cuenta_pk=cuenta.pk %}"
+               class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                + Agregar Deposito
+            </a>
+            <a href="{% url 'bank:cuenta_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
+        </div>
     </div>
 </div>
 
@@ -67,6 +73,7 @@
                 <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Tipo</th>
                 <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Importe</th>
                 <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Estado</th>
+                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Soporte</th>
                 <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Acciones</th>
             </tr>
         </thead>
@@ -93,12 +100,19 @@
                     {% endif %}
                 </td>
                 <td class="px-4 py-3 text-center text-sm">
+                    {% if mov.soporte %}
+                    <a href="{{ mov.soporte.url }}" target="_blank" class="text-eurocar-blue hover:underline">📄 Ver</a>
+                    {% else %}
+                    <span class="text-gray-400">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-center text-sm">
                     <a href="{% url 'bank:movimiento_detail' pk=mov.pk %}" class="text-eurocar-blue hover:underline">Ver</a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay movimientos</td>
+                <td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay movimientos</td>
             </tr>
             {% endfor %}
         </tbody>
