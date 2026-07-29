@@ -134,6 +134,7 @@
                 <li><a href="#capitulo-18-11"><span class="chapter-num">18.11</span> Reparacion en Garantia</a></li>
             </ul>
         </li>
+        <li><a href="#capitulo-19"><span class="chapter-num">19.</span> Catalogo de Materiales</a></li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -4055,6 +4056,35 @@ USUARIO REGISTRA OPERACION
 
 <div class="info-box">
     <strong>Nota:</strong> La integracion con garantias es automatica. No se requiere accion manual adicional al registrar la reparacion.
+</div>
+
+<!-- ==================== CAPITULO 19 ==================== -->
+<h1 id="capitulo-19">19. Catalogo de Materiales de Referencia</h1>
+
+<p>Catalogo recomendado para un taller de compraventa de vehiculos de ocasion. Cree estos materiales desde el ERP: <strong>Sidebar &rarr; 📋 Catalogo</strong>. Todos se crean con <code>stock_actual = 0</code>; el stock se incrementa al registrar compras con factura desde <strong>🛒 Compras</strong>.</p>
+
+<table>
+    <tr><th>Material</th><th>Descripcion</th><th>Unidad</th><th>Precio Unit. Ref.</th><th>Stock Minimo</th></tr>
+    <tr><td>Aceite motor 5W30</td><td>Aceite sintetico para motores diesel y gasolina</td><td>litros</td><td>8.50 &euro;</td><td>10</td></tr>
+    <tr><td>Filtros de aire</td><td>Filtro de aire para vehiculos compactos</td><td>unidades</td><td>12.00 &euro;</td><td>2</td></tr>
+    <tr><td>Filtros de aceite</td><td>Filtro de aceite rosca 3/4</td><td>unidades</td><td>8.00 &euro;</td><td>3</td></tr>
+    <tr><td>Filtros de combustible</td><td>Filtro de combustible diesel</td><td>unidades</td><td>15.00 &euro;</td><td>2</td></tr>
+    <tr><td>Pastillas de freno</td><td>Juego de pastillas de freno delanteras ceramica</td><td>juegos</td><td>35.00 &euro;</td><td>3</td></tr>
+    <tr><td>Discos de freno</td><td>Disco de freno delantero ventilado</td><td>unidades</td><td>45.00 &euro;</td><td>2</td></tr>
+    <tr><td>Bomba de agua</td><td>Bomba de agua con junta para motores TDI</td><td>unidades</td><td>85.00 &euro;</td><td>2</td></tr>
+    <tr><td>Correa distribucion</td><td>Kit correa de distribucion con tensor</td><td>unidades</td><td>45.00 &euro;</td><td>3</td></tr>
+    <tr><td>Kit de embrague</td><td>Kit de embrague completo (disco + plat + release)</td><td>unidades</td><td>120.00 &euro;</td><td>1</td></tr>
+    <tr><td>Refrigerante G12</td><td>Refrigerante G12 violeta preparado</td><td>litros</td><td>6.50 &euro;</td><td>5</td></tr>
+    <tr><td>Liquido de frenos</td><td>Liquido de frenos DOT 4</td><td>litros</td><td>5.00 &euro;</td><td>3</td></tr>
+    <tr><td>Neumaticos 205/55R16</td><td>Neumaticos verano 4 estaciones</td><td>unidades</td><td>75.00 &euro;</td><td>4</td></tr>
+    <tr><td>Limpiaparabrisas</td><td>Kit limpiaparabrisas delantero universal</td><td>unidades</td><td>8.00 &euro;</td><td>3</td></tr>
+    <tr><td>Bateria 12V</td><td>Bateria de arranque 12V 60Ah</td><td>unidades</td><td>60.00 &euro;</td><td>2</td></tr>
+    <tr><td>Lamparas LED</td><td>Lampara LED H7 12V</td><td>unidades</td><td>4.00 &euro;</td><td>5</td></tr>
+    <tr><td>Junta de culata</td><td>Junta de culata metalica multicapa</td><td>unidades</td><td>25.00 &euro;</td><td>1</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Nota:</strong> Los precios son orientativos. Ajuste el precio unitario segun su proveedor. El stock minimo activa la alerta visual (<span class="text-red-600">&nbsp;⚠️ Stock Bajo&nbsp;</span>) cuando <code>stock_actual &lt;= stock_minimo</code>.
 </div>
 
 </body>
