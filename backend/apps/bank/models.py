@@ -58,6 +58,11 @@ class BancoCuenta(models.Model):
         ).aggregate(total=models.Sum('importe'))['total'] or Decimal('0')
         return ingresos - egresos
 
+    @property
+    def saldo_sin_conciliar(self):
+        """Movimientos pendientes de conciliar (saldo_pendiente - saldo)."""
+        return self.saldo_pendiente - self.saldo
+
 
 class BancoMovimiento(models.Model):
     """Espejo del extracto bancario real."""

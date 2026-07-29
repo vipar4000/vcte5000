@@ -139,6 +139,15 @@
                 <li><a href="#capitulo-19-1"><span class="chapter-num">19.1</span> Funcion del Catalogo de Materiales</a></li>
             </ul>
         </li>
+        <li><a href="#capitulo-20"><span class="chapter-num">20.</span> Prueba del Sistema</a>
+            <ul>
+                <li><a href="#capitulo-20-1"><span class="chapter-num">20.1</span> Objetivo</a></li>
+                <li><a href="#capitulo-20-2"><span class="chapter-num">20.2</span> Flujo Completo Paso a Paso</a></li>
+                <li><a href="#capitulo-20-3"><span class="chapter-num">20.3</span> Ejemplo Numerico del Vehiculo</a></li>
+                <li><a href="#capitulo-20-4"><span class="chapter-num">20.4</span> Verificacion Post-Prueba</a></li>
+                <li><a href="#capitulo-20-5"><span class="chapter-num">20.5</span> Limpieza (Reinicio para Produccion)</a></li>
+            </ul>
+        </li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -4110,6 +4119,512 @@ USUARIO REGISTRA OPERACION
 
 <div class="info-box">
     <strong>Nota:</strong> Los precios son orientativos. Ajuste el precio unitario segun su proveedor. El stock minimo activa la alerta visual (<span class="text-red-600">&nbsp;⚠️ Stock Bajo&nbsp;</span>) cuando <code>stock_actual &lt;= stock_minimo</code>.
+</div>
+
+<!-- ==================== CAPITULO 20 ==================== -->
+<h1 id="capitulo-20">20. Prueba del Sistema</h1>
+
+<p>Este capitulo es una guia paso a paso para que el aprobador verifique el sistema completo en el entorno de staging, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado).</p>
+
+<div class="info-box">
+    <strong>Entorno de staging:</strong><br>
+    URL: <code>https://eurocar-staging.onrender.com/erp/</code><br>
+    Usuario: <code>tester</code> / Contrasena: <code>TestMadrid2024!</code><br>
+    Rol: ADMIN (<code>puede_eliminar=True</code>)
+</div>
+
+<div class="warning-box">
+    <strong>Requisito previo:</strong> Asegurese de que el sistema tiene el PGC inicializado (<strong>Contabilidad &gt; Cuentas &gt; Inicializar PGC</strong>). Sin las cuentas contables, los asientos automaticos fallaran con <code>CuentaContable.DoesNotExist</code>. Ver <a href="#capitulo-17-2">Fase 0</a>.
+</div>
+
+<h2 id="capitulo-20-1">20.1 Objetivo</h2>
+
+<p>Verificar que el sistema ERP funciona correctamente en todas sus capas:</p>
+<ul>
+    <li><strong>Datos:</strong> creacion de vehiculos, materiales, OTs, ventas y asientos contables</li>
+    <li><strong>Automatismos:</strong> asientos contables, movimientos bancarios y cambios de estado auto-generados</li>
+    <li><strong>Informes:</strong> PyG, Balance, Libro de IVA con datos reales posteados</li>
+    <li><strong>Integridad:</strong> los asientos cuadran (DEBE = HABER) y los saldos bancarios son correctos</li>
+</ul>
+
+<p>El flujo completo recorre las fases 0 a 5 del pipeline usando un unico vehiculo ejemplo. Todos los valores son inventados pero realistas.</p>
+
+<table>
+    <tr><th>Concepto</th><th>Vehiculo de Prueba</th></tr>
+    <tr><td>Marca/Modelo</td><td>Volkswagen Golf 1.6 TDI 2018</td></tr>
+    <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Precio subasta</td><td>7.500,00 EUR</td></tr>
+    <tr><td>Tasas sala</td><td>400,00 EUR</td></tr>
+    <tr><td>Logistica/grua</td><td>250,00 EUR</td></tr>
+    <tr><td>Coste inicial</td><td><strong>8.150,00 EUR</strong></td></tr>
+    <tr><td>Coste reparacion</td><td><strong>182,50 EUR</strong> (materiales + mano de obra)</td></tr>
+    <tr><td>Coste total</td><td><strong>8.332,50 EUR</strong></td></tr>
+    <tr><td>Precio venta</td><td><strong>11.900,00 EUR</strong></td></tr>
+    <tr><td>Margen REBU</td><td><strong>3.567,50 EUR</strong></td></tr>
+</table>
+
+<h2 id="capitulo-20-2">20.2 Flujo Completo Paso a Paso</h2>
+
+<p>Cada paso sigue la numeracion de la Pipeline de Datos (§17). Complete los pasos en orden; cada uno depende del anterior.</p>
+
+<h3>Paso 0.3 &mdash; Inicializar Plan Contable</h3>
+<table>
+    <tr><th>Accion</th><th>Datos</th><th>Resultado esperado</th></tr>
+    <tr>
+        <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
+        <td>1 clic en "Inicializar Plan"</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean ~33 cuentas (100-799)</td>
+    </tr>
+</table>
+<div class="success-box">
+    <strong>Verificacion:</strong> Navegue a Contabilidad &gt; Cuentas. Debe ver cuentas como 572 (Banco), 310 (Mercancias), 410 (Proveedores), 472 (IVA soportado), 471 (IVA repercutido), 700 (Ventas), 600 (Compras), etc.
+</div>
+
+<h3>Paso 1.1 &mdash; Crear Cuenta Bancaria con Deposito Inicial</h3>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Nombre</td><td>Banco Santander</td></tr>
+    <tr><td>IBAN</td><td><code>ES78 0049 1234 5678 9012 3456</code></td></tr>
+    <tr><td>Cuenta contable</td><td><code>572</code> (Banco)</td></tr>
+    <tr><td>Deposito inicial</td><td><strong>50.000,00 EUR</strong></td></tr>
+</table>
+<div class="success-box">
+    <strong>Asiento contable generado automaticamente:</strong><br>
+    DEBE 572 (Banco) &mdash; 50.000,00 EUR<br>
+    HABER 110 (Resultados no asignados) &mdash; 50.000,00 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
+<div class="info-box">
+    <strong>Movimiento bancario:</strong> INGRESO 50.000,00 EUR &mdash; Concepto: "Deposito inicial" &mdash; Conciliado: No
+</div>
+
+<h4>Verificacion posterior</h4>
+<p>Despues de crear la cuenta bancaria, revise estos 4 puntos en el sistema para confirmar que el deposito se refleja correctamente en todas las capas:</p>
+<table>
+    <tr><th>#</th><th>Donde ir</th><th>Que comprobar</th></tr>
+    <tr>
+        <td>1</td>
+        <td><strong>🏦 Banco &gt; Cuentas &gt; Banco Santander</strong></td>
+        <td>Saldo = <strong>50.000,00 EUR</strong>. Movimiento INGRESO por 50.000€ visible con concepto "Deposito inicial". Conciliado = No.</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
+        <td>Asiento auto-generado: DEBE 572 (50.000€) / HABER 110 (50.000€). <strong>Estado: POSTEADO</strong>.</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Balance de Situacion</strong></td>
+        <td>Activo (572 Banco) = 50.000€. Patrimonio Neto (110 Resultados no asignados) = 50.000€. <strong>Cuadra: Activo = Pasivo + PNN</strong>.</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td><strong>📉 Contabilidad &gt; Informes &gt; PyG</strong></td>
+        <td>El deposito <strong>NO aparece</strong> en la cuenta de resultados. No es un ingreso del ejercicio, sino una aportacion de capital/tesoreria.</td>
+    </tr>
+</table>
+<div class="info-box">
+    <strong>Nota sobre conciliacion bancaria:</strong> La conciliacion se realiza cuando se disponga de un extracto bancario real. Por ahora el movimiento queda como <strong>No conciliado</strong>. Para conciliar, vaya a <strong>Banco &gt; Conciliacion</strong>, suba el extracto (.xlsx o .csv) y el sistema hara el matching automatico por importe y fecha (+/-2 dias).
+</div>
+
+<h3>Paso 1.2 &mdash; Inversion Inicial (Sidebar &rarr; 🏗️ Inversion Inicial)</h3>
+<p>Use el asistente dedicado desde el sidebar <strong>🏗️ Inversion Inicial &rarr; ➕ Nueva Inversion</strong> (<code>/erp/gastos/inversion/nueva/</code>). Este wizard permite registrar facturas de equipamiento con desglose multilinea (Split Billing) y genera automaticamente el asiento contable y los registros de <strong>ActivoFijo</strong> con tabla de amortizacion para lineas &gt; 300€ en cuentas de inmovilizado.</p>
+
+<h4>Seccion 1 &mdash; Datos de la Factura (Cabecera)</h4>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Proveedor/Acreedor</td><td>Taller Equipamiento S.L.</td></tr>
+    <tr><td>CIF/NIF</td><td>B87654321</td></tr>
+    <tr><td>Nº Factura</td><td>INV-2026-001</td></tr>
+    <tr><td>Fecha emision</td><td>01/07/2026</td></tr>
+    <tr><td>Forma de pago</td><td>Banco Santander (572)</td></tr>
+    <tr><td>Total factura (fisico)</td><td><strong>2.480,50 EUR</strong></td></tr>
+    <tr><td>Documento PDF</td><td><em>Obligatorio.</em> Use el generado en <code>backend/manual/ejemplos/factura_compresor_escaner.pdf</code></td></tr>
+</table>
+
+<h4>Seccion 2 &mdash; Desglose de Lineas (Split Billing)</h4>
+<p>Anada 2 lineas con el boton <strong>+ Anadir Linea</strong>:</p>
+<table>
+    <tr><th>Linea</th><th>Categoria</th><th>Concepto</th><th>Base</th><th>IVA%</th></tr>
+    <tr>
+        <td>1</td>
+        <td><code>HERRAMIENTAS</code></td>
+        <td>Compresor industrial 500L</td>
+        <td>1.200,00 EUR</td>
+        <td>21</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><code>HERRAMIENTAS</code></td>
+        <td>Escaner diagnostico OBD2</td>
+        <td>850,00 EUR</td>
+        <td>21</td>
+    </tr>
+</table>
+
+<div class="info-box">
+    <strong>Calculo del sistema:</strong><br>
+    Total calculado = (1.200 + 850) base + (252 + 178,50) IVA = 2.050 + 430,50 = <strong>2.480,50 EUR</strong><br>
+    Total fisico declarado = <strong>2.480,50 EUR</strong><br>
+    <strong>✅ Cuadrado</strong> &mdash; El sistema validara que coincidan.
+</div>
+
+<div class="success-box">
+    <strong>Asiento contable generado automaticamente al guardar:</strong><br>
+    DEBE 214 (Herramientas/Utillaje) &mdash; 2.050,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 430,50 EUR<br>
+    HABER 572 (Banco Santander) &mdash; 2.480,50 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
+
+<div class="info-box">
+    <strong>Efectos adicionales:</strong><br>
+    &bull; Cada linea &gt; 300€ en cuenta de inmovilizado (214) genera un <strong>ActivoFijo</strong> con tabla de amortizacion lineal (5 años para herramientas).<br>
+    &bull; El saldo del banco se reduce: 50.000 - 2.480,50 = <strong>47.519,50 EUR</strong><br>
+    &bull; Movimiento bancario: EGRESO 2.480,50 EUR &mdash; Conciliado: No
+</div>
+
+<h4>Verificacion posterior</h4>
+<p>Revise estos puntos para confirmar que la inversion se registro correctamente:</p>
+<table>
+    <tr><th>#</th><th>Donde ir</th><th>Que comprobar</th></tr>
+    <tr>
+        <td>1</td>
+        <td><strong>🏗️ Inversiones Iniciales &gt; Detalle</strong></td>
+        <td>La inversion aparece con estado <strong>Cuadrado: Si</strong>. Las 2 lineas visibles con sus importes.</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
+        <td>Asiento auto-generado #000002 (o el que corresponda). DEBE 214 + 472 / HABER 572. <strong>POSTEADO</strong>.</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>🏦 Banco &gt; Cuentas &gt; Banco Santander</strong></td>
+        <td>Saldo actualizado: <strong>47.519,50 EUR</strong> (50.000 - 2.480,50). Movimiento EGRESO visible.</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
+        <td>Activo: 572 (47.519,50) + 214 (2.050) = 49.569,50. PNN: 110 (50.000). Diferencia por el gasto + IVA reflejado en resultados.</td>
+    </tr>
+</table>
+
+<h3>Paso 1.3 &mdash; Mejoras en Banco: Saldo sin Conciliar y Validacion</h3>
+<p>Se implementaron dos mejoras en el modulo bancario para evitar sobregiros y dar visibilidad del saldo real:</p>
+
+<h4>a) Saldo sin conciliar</h4>
+<p>Cada cuenta bancaria ahora muestra tres metricas en lista y detalle:</p>
+<table>
+    <tr><th>Etiqueta</th><th>Formula</th><th>Descripcion</th></tr>
+    <tr><td><strong>Saldo real (conciliado)</strong></td><td><code>saldo</code></td><td>Solo movimientos conciliados (confirmados por el banco). Color verde si &ge; 0, rojo si &lt; 0.</td></tr>
+    <tr><td><strong>Saldo sin conciliar</strong></td><td><code>saldo_pendiente - saldo</code></td><td>Movimientos pendientes de confirmar bancaria. Color amarillo, con signo (+/-).</td></tr>
+    <tr><td><strong>Saldo total (con pendientes)</strong></td><td><code>saldo_pendiente</code></td><td>Saldo global incluyendo pendientes. Color verde/rojo segun signo.</td></tr>
+</table>
+<p><strong>Verificacion:</strong> En <strong>Banco &gt; Cuentas &gt; Banco Santander</strong>, deben aparecer las tres lineas:
+  Conciliado = 47.519,50 &euro; | Sin conciliar = 0,00 &euro; (aun no hay extracto bancario) | Total = 47.519,50 &euro;.</p>
+
+<h4>b) Validacion de saldo en egresos</h4>
+<p>Al registrar cualquier <strong>EGRESO</strong>, el sistema valida que el importe no supere el <code>saldo_pendiente</code> disponible. Si se intenta registrar un pago superior, muestra el error:
+<em>"Saldo insuficiente en [cuenta]. Disponible: &euro;X, solicitado: &euro;Y"</em>.</p>
+<div class="info-box">
+    <strong>Nota:</strong> Esta validacion aplica a todos los modulos que crean movimientos bancarios (compras, ventas, reservas, gastos, inversiones). No se puede desactivar por separado.
+</div>
+
+<h3>Paso 2.1 &mdash; Crear Vehiculo (Adquisicion)</h3>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Marca</td><td>Volkswagen</td></tr>
+    <tr><td>Modelo</td><td>Golf 1.6 TDI</td></tr>
+    <tr><td>Anio</td><td>2018</td></tr>
+    <tr><td>Combustible</td><td>DIESEL</td></tr>
+    <tr><td>Kilometraje</td><td>95.000</td></tr>
+    <tr><td>Tipo dano</td><td>ACCIDENTAL</td></tr>
+    <tr><td>Etiqueta ambiental</td><td>C</td></tr>
+    <tr><td>Estado</td><td>ADQUIRIDO</td></tr>
+    <tr><td>Fecha adquisicion</td><td>01/07/2026</td></tr>
+    <tr><td>Plataforma subasta</td><td>BCA</td></tr>
+    <tr><td>Precio subasta</td><td>7.500,00 EUR</td></tr>
+    <tr><td>Tasas sala</td><td>400,00 EUR</td></tr>
+    <tr><td>Logistica/grua</td><td>250,00 EUR</td></tr>
+</table>
+<p><strong>Datos de factura de compra (rellenar en el mismo formulario):</strong></p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Proveedor</td><td>Subastas Online S.A.</td></tr>
+    <tr><td>CIF/NIF</td><td>B12345678</td></tr>
+    <tr><td>Numero factura</td><td>FC-2026-001</td></tr>
+    <tr><td>Tipo IVA</td><td>Seleccionar <strong>21%</strong> en el desplegable</td></tr>
+    <tr><td>IVA soportado (&euro;)</td><td><strong>136,50 EUR</strong> (se auto-calc desde tasas_sala + logistica_grua &times; 21%)</td></tr>
+    <tr><td>Forma pago</td><td>Banco Santander (572)</td></tr>
+</table>
+<div class="info-box">
+    <strong>Auto-calculo IVA:</strong> Al seleccionar 21% en el desplegable "Tipo IVA", el campo "IVA soportado" se rellena automaticamente con <strong>136,50 EUR</strong> (base = 400 + 250 = 650 &times; 0,21). Puede sobrescribirlo manualmente si es necesario.
+</div>
+<div class="success-box">
+    <strong>Asiento contable generado automaticamente:</strong><br>
+    DEBE 310 (Mercaderias) &mdash; 8.150,00 EUR (coste_inicial)<br>
+    DEBE 472 (IVA soportado) &mdash; 136,50 EUR<br>
+    HABER 572 (Banco Santander) &mdash; 8.286,50 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
+<div class="info-box">
+    <strong>Movimiento bancario:</strong> EGRESO 8.286,50 EUR &mdash; Concepto: "Compra VW Golf 1234ABC" &mdash; Conciliado: No<br>
+    <strong>Coste inicial calculado:</strong> 7.500 + 400 + 250 = <strong>8.150,00 EUR</strong>
+</div>
+
+<h3>Paso 2.2 &mdash; Crear Catalogo de Materiales</h3>
+<p>Navegue a <strong>Sidebar &gt; 📋 Catalogo</strong> y cree los siguientes materiales (stock inicial = 0).</p>
+<table>
+    <tr><th>Material</th><th>Unidad</th><th>Precio Unit.</th></tr>
+    <tr><td>Aceite motor 5W30</td><td>litros</td><td>8,50 EUR</td></tr>
+    <tr><td>Pastillas de freno</td><td>juegos</td><td>35,00 EUR</td></tr>
+    <tr><td>Filtro de aire</td><td>unidades</td><td>12,00 EUR</td></tr>
+    <tr><td>Refrigerante G12</td><td>litros</td><td>6,50 EUR</td></tr>
+    <tr><td>Neumaticos 205/55R16</td><td>unidades</td><td>75,00 EUR</td></tr>
+</table>
+
+<h3>Paso 3.1 &mdash; Crear OT de Diagnostico</h3>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Vehiculo</td><td>VW Golf 1234ABC</td></tr>
+    <tr><td>Operario</td><td>mecanico1</td></tr>
+    <tr><td>Titulo</td><td>Diagnostico general y reparacion</td></tr>
+    <tr><td>Descripcion</td><td>Revision general: cambio aceite, filtros, frenos</td></tr>
+    <tr><td>Horas estimadas</td><td>4</td></tr>
+</table>
+<div class="success-box">
+    <strong>Efecto automatico:</strong> El vehiculo cambia de ADQUIRIDO a <strong>TALLER</strong>. No genera asiento contable ni movimiento bancario.
+</div>
+
+<h3>Paso 3.2 &mdash; Comprar Material (Entrada a Inventario)</h3>
+<p>Navegue a <strong>🛒 Compras</strong> y registre dos compras con factura:</p>
+<table>
+    <tr><th>Compra</th><th>Material</th><th>Cant.</th><th>P. Unit.</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Proveedor</th></tr>
+    <tr>
+        <td>#1</td>
+        <td>Aceite motor 5W30</td>
+        <td>20 L</td>
+        <td>8,50 EUR</td>
+        <td>170,00 EUR</td>
+        <td>35,70 EUR</td>
+        <td>205,70 EUR</td>
+        <td>Distribuciones Auto S.L.</td>
+    </tr>
+    <tr>
+        <td>#2</td>
+        <td>Pastillas de freno</td>
+        <td>3 juegos</td>
+        <td>35,00 EUR</td>
+        <td>105,00 EUR</td>
+        <td>22,05 EUR</td>
+        <td>127,05 EUR</td>
+        <td>Recambios Martinez S.L.</td>
+    </tr>
+</table>
+<div class="success-box">
+    <strong>Asiento contable (Compra #1 - Aceite):</strong><br>
+    DEBE 300 (Compras) &mdash; 170,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 35,70 EUR<br>
+    HABER 410 (Acreedores) &mdash; 205,70 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
+<div class="success-box">
+    <strong>Asiento contable (Compra #2 - Pastillas):</strong><br>
+    DEBE 300 (Compras) &mdash; 105,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 22,05 EUR<br>
+    HABER 410 (Acreedores) &mdash; 127,05 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
+<div class="info-box">
+    <strong>Stock resultante:</strong> Aceite = 20 litros | Pastillas = 3 juegos<br>
+    <strong>Nota:</strong> En REBU, el IVA de las compras NO es deducible (IVA no deducible en cuenta 623 al consumirse en OT). Ver <a href="#capitulo-8-3">§8.3 REBU</a>.
+</div>
+
+<h3>Paso 3.3 &mdash; Usar Material en OT</h3>
+<p>Edite la OT del VW Golf y agregue los materiales usados:</p>
+<table>
+    <tr><th>Material</th><th>Cantidad</th><th>Coste</th></tr>
+    <tr><td>Aceite motor 5W30</td><td>5 litros</td><td>42,50 EUR</td></tr>
+    <tr><td>Pastillas de freno</td><td>1 juego</td><td>35,00 EUR</td></tr>
+</table>
+<div class="info-box">
+    <strong>Efecto:</strong> El stock se decrementa automaticamente: Aceite = 20-5 = <strong>15 litros</strong> | Pastillas = 3-1 = <strong>2 juegos</strong><br>
+    <strong>Coste materiales acumulado en OT:</strong> 42,50 + 35,00 = <strong>77,50 EUR</strong><br>
+    No genera asiento contable. El coste se reflejara al completar la OT y posteriormente en la venta REBU.
+</div>
+
+<h3>Paso 3.4 &mdash; Completar OT</h3>
+<p>Cambie el estado de la OT a COMPLETADA e ingrese las horas reales:</p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Horas reales</td><td>3</td></tr>
+    <tr><td>Estado</td><td>COMPLETADA</td></tr>
+</table>
+<div class="info-box">
+    <strong>Coste total de la OT:</strong><br>
+    Mano de obra: 3h &times; 35,00 EUR/h = <strong>105,00 EUR</strong><br>
+    Materiales: <strong>77,50 EUR</strong><br>
+    <strong>Total OT = 182,50 EUR</strong><br><br>
+    Este coste se suma al coste de reparacion del vehiculo.
+</div>
+
+<h3>Paso 3.5 &mdash; Pasar a ACONDICIONADO</h3>
+<p>Desde la ficha del vehiculo, seccion "Cambiar Estado", seleccione <strong>ACONDICIONADO</strong>.</p>
+<div class="success-box">
+    <strong>Efecto:</strong> Vehiculo listo para preparar para venta. Coste total del vehiculo: 8.150,00 (inicial) + 182,50 (reparacion) = <strong>8.332,50 EUR</strong>
+</div>
+
+<h3>Paso 4.1 &mdash; Poner EN_VENTA</h3>
+<p>Cambie el estado del vehiculo a <strong>EN_VENTA</strong> y fije el precio:</p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Estado</td><td>EN_VENTA</td></tr>
+    <tr><td>Precio venta</td><td>11.900,00 EUR</td></tr>
+</table>
+<div class="info-box">
+    <strong>Ahora puede subir imagenes</strong> (maximo 8). El vehiculo aparece en la web publica (SPA Vue).
+</div>
+
+<h3>Paso 5.1 &mdash; Venta REBU (B2C)</h3>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Vehiculo</td><td>VW Golf 1234ABC (EN_VENTA)</td></tr>
+    <tr><td>Tipo cliente</td><td>PARTICULAR (B2C)</td></tr>
+    <tr><td>Nombre</td><td>Antonio Perez Martin</td></tr>
+    <tr><td>DNI</td><td>12345678Z</td></tr>
+    <tr><td>Direccion</td><td>Calle Mayor 10, 4oA</td></tr>
+    <tr><td>Poblacion</td><td>Alcala de Henares</td></tr>
+    <tr><td>Provincia</td><td>Madrid</td></tr>
+    <tr><td>CP</td><td>28801</td></tr>
+    <tr><td>Telefono</td><td>612345678</td></tr>
+    <tr><td>Email</td><td>antonio.perez@email.com</td></tr>
+    <tr><td>Precio venta</td><td><strong>11.900,00 EUR</strong></td></tr>
+    <tr><td>Metodo pago</td><td>TRANSFERENCIA</td></tr>
+    <tr><td>Fecha venta</td><td>15/07/2026</td></tr>
+</table>
+
+<div class="success-box">
+    <strong>Asiento contable REBU generado (5 movimientos, POSTEADO):</strong><br><br>
+    <table>
+        <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+        <tr><td>572 (Banco Santander)</td><td>11.900,00</td><td></td></tr>
+        <tr><td>600 (Compras)</td><td>8.332,50</td><td></td></tr>
+        <tr><td>700 (Ventas mercancias)</td><td></td><td>2.948,35</td></tr>
+        <tr><td>471 (IVA Repercutido)</td><td></td><td>619,15</td></tr>
+        <tr><td>310 (Mercancias)</td><td></td><td>8.332,50</td></tr>
+        <tr><td colspan="3"><strong>DEBE = HABER = 20.232,50 EUR</strong></td></tr>
+    </table>
+</div>
+
+<div class="info-box">
+    <strong>Calculo REBU:</strong><br>
+    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
+    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
+    Cuota IVA = 2.948,35 &times; 21% = <strong>619,15 EUR</strong><br>
+    El cliente paga <strong>11.900 EUR</strong> (IVA incluido en el precio)
+</div>
+
+<div class="info-box">
+    <strong>Movimiento bancario:</strong> INGRESO 11.900,00 EUR &mdash; Concepto: "Cobro venta VW Golf - Antonio Perez" &mdash; Conciliado: No
+</div>
+
+<div class="success-box">
+    <strong>Efectos adicionales automaticos:</strong><br>
+    1. Vehiculo cambia a estado <strong>VENDIDO</strong><br>
+    2. Se crea <strong>Garantia de 12 meses</strong> (B2C - Particular)<br>
+    3. Se puede generar factura REBU con cadena VeriFactu<br>
+    4. Se puede generar contrato de compraventa y mandato DGT
+</div>
+
+<h2 id="capitulo-20-3">20.3 Ejemplo Numerico del Vehiculo</h2>
+
+<div class="warning-box">
+    <strong>Resumen financiero completo del VW Golf 1234ABC:</strong><br><br>
+    <strong>ADQUISICION:</strong><br>
+    &nbsp;&nbsp;- Precio subasta: 7.500,00 EUR<br>
+    &nbsp;&nbsp;- Tasas sala: 400,00 EUR<br>
+    &nbsp;&nbsp;- Logistica/grua: 250,00 EUR<br>
+    &nbsp;&nbsp;- <strong>Coste inicial = 8.150,00 EUR</strong><br><br>
+    <strong>REPARACION (OT):</strong><br>
+    &nbsp;&nbsp;- Aceite motor 5W30 (5L &times; 8,50): 42,50 EUR<br>
+    &nbsp;&nbsp;- Pastillas de freno (1 juego &times; 35,00): 35,00 EUR<br>
+    &nbsp;&nbsp;- Mano de obra (3h &times; 35,00): 105,00 EUR<br>
+    &nbsp;&nbsp;- <strong>Coste reparacion = 182,50 EUR</strong><br><br>
+    <strong>COSTE TOTAL = 8.150,00 + 182,50 = 8.332,50 EUR</strong><br><br>
+    <strong>VENTA:</strong><br>
+    &nbsp;&nbsp;- Precio venta: 11.900,00 EUR<br>
+    &nbsp;&nbsp;- Margen bruto: 3.567,50 EUR (42,4%)<br>
+    &nbsp;&nbsp;- Base imponible REBU: 2.948,35 EUR<br>
+    &nbsp;&nbsp;- IVA REBU (21%): 619,15 EUR<br><br>
+    <strong>Beneficio neto aproximado: 2.948,35 EUR</strong> (antes de gastos de estructura)
+</div>
+
+<h2 id="capitulo-20-4">20.4 Verificacion Post-Prueba</h2>
+
+<p>Despues de completar todos los pasos, verifique los siguientes indicadores:</p>
+
+<h3>Dashboard (KPIs)</h3>
+<table>
+    <tr><th>Indicador</th><th>Valor esperado</th></tr>
+    <tr><td>Total Vehiculos</td><td>1</td></tr>
+    <tr><td>En Venta</td><td>0 (el unico fue vendido)</td></tr>
+    <tr><td>Vendidos</td><td>1 (VW Golf)</td></tr>
+    <tr><td>OTs Pendientes</td><td>0</td></tr>
+    <tr><td>OTs Completadas</td><td>1</td></tr>
+    <tr><td>Valor Inventario</td><td>170 + 105 - 77,50 consumido = <strong>197,50 EUR</strong></td></tr>
+</table>
+
+<h3>Banco</h3>
+<div class="info-box">
+    <strong>Calculo del saldo final:</strong><br>
+    (+50.000) Deposito inicial<br>
+    (-2.480,50) Inversion taller (incluye IVA)<br>
+    (-8.286,50) Pago factura vehiculo (incluye IVA)<br>
+    = <strong>39.233,00 EUR</strong> (saldo pendiente de conciliar)
+</div>
+<p><strong>Nota:</strong> Cada cuenta bancaria muestra ahora tres metricas: <strong>Saldo real (conciliado)</strong>, <strong>Saldo sin conciliar</strong> (pendientes) y <strong>Saldo total</strong>. Vea <a href="#paso-1-3">Paso 1.3</a> para mas detalle.</p>
+
+<h3>Contabilidad</h3>
+<table>
+    <tr><th>Informe</th><th>Que verificar</th></tr>
+    <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto</td></tr>
+    <tr><td>PyG</td><td>Ingresos (700): 2.948,35 EUR | Gastos (600): 8.332,50 EUR</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 619,15 EUR | IVA Soportado (472): 1.575 + 35,70 + 22,05 = 1.632,75 EUR</td></tr>
+    <tr><td>Asientos</td><td>6 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, venta REBU. Todos POSTEADOS</td></tr>
+</table>
+
+<h3>Garantia</h3>
+<div class="info-box">
+    Al ser venta B2C (Particular), se creo automaticamente una <strong>garantia de 12 meses</strong> para el VW Golf. Verifique en Garantias que el registro existe y tiene estado VIGENTE.
+</div>
+
+<h2 id="capitulo-20-5">20.5 Limpieza (Reinicio para Produccion)</h2>
+
+<p>Una vez completada la prueba, puede limpiar el sistema para dejarlo listo para datos reales:</p>
+
+<h3>Opcion A: Eliminar usuario tester (recomendado)</h3>
+<pre><code># Desde la consola de Render (Shell)
+python create_tester_user.py --delete</code></pre>
+
+<h3>Opcion B: Reset completo de la base de datos</h3>
+<p>Esto borra TODOS los datos de prueba pero mantiene la estructura de tablas:</p>
+<pre><code>python manage.py flush --noinput
+python manage.py migrate
+python create_test_users.py</code></pre>
+
+<div class="warning-box">
+    <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.
+</div>
+
+<h3>Opcion C: Reset de contrasena del tester (si se queda)</h3>
+<pre><code>python create_tester_user.py --reset-password</code></pre>
+
+<div class="info-box">
+    <strong>Nota:</strong> Si el tester se queda en el sistema para produccion, cambie su contrasena por una segura y ajuste <code>puede_eliminar</code> segun la politica de la empresa.
 </div>
 
 </body>

@@ -11,6 +11,7 @@
 
     var FIELD_IDS = ['id_precio_subasta', 'id_tasas_sala', 'id_logistica_grua'];
     var PERCENTAGE_FIELD_IDS = ['id_tipo_iva'];
+    var IVA_RATE_ID = 'id_tipo_iva_rate';
     var display;
 
     /* ── Formateo espanol ─────────────────────────────────────────── */
@@ -78,6 +79,22 @@
         display.textContent = '\u20AC' + total.toFixed(2).replace('.', ',');
     }
 
+    /* ── Auto-calcular IVA desde base_imponible (tasas + logistica) x tasa ── */
+
+    function calcularIVA() {
+        var tasasEl = document.getElementById('id_tasas_sala');
+        var logisEl = document.getElementById('id_logistica_grua');
+        var rateEl = document.getElementById(IVA_RATE_ID);
+        var ivaEl = document.getElementById('id_tipo_iva');
+        if (!tasasEl || !logisEl || !rateEl || !ivaEl) return;
+
+        var base = (parseFloat(parseSpanish(tasasEl.value)) || 0) +
+                   (parseFloat(parseSpanish(logisEl.value)) || 0);
+        var tasa = parseFloat(rateEl.value) || 0;
+        var iva = base * tasa / 100;
+        ivaEl.value = formatSpanish(iva.toFixed(2));
+    }
+
     /* ── Formatear al escribir ────────────────────────────────────── */
 
     function handleInput(e) {
@@ -96,6 +113,7 @@
         el.setSelectionRange(newCursorPos, newCursorPos);
 
         calculateTotal();
+        calcularIVA();
     }
 
     /* ── Pre-cargar formato al iniciar ────────────────────────────── */
@@ -112,6 +130,7 @@
             }
         }
         calculateTotal();
+        calcularIVA();
     }
 
     /* ── Limpiar formato antes de enviar ──────────────────────────── */
@@ -138,6 +157,14 @@
                 el.addEventListener('input', handleInput);
                 el.addEventListener('change', handleInput);
             }
+        }
+
+        // Evento para cambio de tasa IVA
+        var rateEl = document.getElementById(IVA_RATE_ID);
+        if (rateEl) {
+            rateEl.addEventListener('change', function () {
+                calcularIVA();
+            });
         }
 
         precacheFormat();

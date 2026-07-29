@@ -3,6 +3,7 @@ Servicios del módulo bancario.
 Lógica de creación automatizada de movimientos y conciliación.
 """
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Sum
 from difflib import SequenceMatcher
@@ -19,6 +20,14 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
     Prohibido insertar movimientos de banco manuales — solo vía servicios.
     """
     from .models import BancoMovimiento
+
+    if tipo == 'EGRESO':
+        disponible = banco_cuenta.saldo_pendiente
+        if importe > disponible:
+            raise ValidationError(
+                f'Saldo insuficiente en {banco_cuenta.nombre}. '
+                f'Disponible: €{disponible:.2f}, solicitado: €{importe:.2f}'
+            )
 
     movimiento = BancoMovimiento.objects.create(
         banco_cuenta=banco_cuenta,

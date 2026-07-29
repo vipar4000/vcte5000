@@ -8,7 +8,26 @@
             <h1 class="text-2xl font-bold text-gray-800">
                 {{ cuenta.nombre }} (*{{ cuenta.iban|slice:"-4:" }})
             </h1>
-            <p class="text-gray-600">Saldo: <span class="font-bold {% if cuenta.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">€{{ cuenta.saldo|floatformat:2 }}</span></p>
+            <div class="flex flex-wrap gap-4 mt-1">
+                <p class="text-sm text-gray-600">
+                    Conciliado:
+                    <span class="font-bold {% if cuenta.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        €{{ cuenta.saldo|floatformat:2 }}
+                    </span>
+                </p>
+                <p class="text-sm text-gray-600">
+                    Sin conciliar:
+                    <span class="font-medium text-yellow-600">
+                        {% if cuenta.saldo_sin_conciliar >= 0 %}+{% endif %}€{{ cuenta.saldo_sin_conciliar|floatformat:2 }}
+                    </span>
+                </p>
+                <p class="text-sm text-gray-600">
+                    Total:
+                    <span class="font-bold {% if cuenta.saldo_pendiente >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        €{{ cuenta.saldo_pendiente|floatformat:2 }}
+                    </span>
+                </p>
+            </div>
         </div>
         <div class="flex gap-3">
             <a href="{% url 'bank:deposito_create' cuenta_pk=cuenta.pk %}"

@@ -37,15 +37,21 @@
             <p class="font-mono text-sm">{{ cuenta.cuenta_contable }}</p>
         </div>
 
-        <div class="border-t pt-4">
+        <div class="border-t pt-4 space-y-2">
             <div class="flex justify-between">
-                <span class="text-sm text-gray-600">Saldo conciliado:</span>
+                <span class="text-sm text-gray-600">Saldo real (conciliado):</span>
                 <span class="font-bold {% if cuenta.saldo >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                     €{{ cuenta.saldo|floatformat:2 }}
                 </span>
             </div>
-            <div class="flex justify-between mt-1">
-                <span class="text-sm text-gray-600">Saldo total:</span>
+            <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Saldo sin conciliar:</span>
+                <span class="text-sm text-yellow-600 font-medium">
+                    {% if cuenta.saldo_sin_conciliar >= 0 %}+{% endif %}€{{ cuenta.saldo_sin_conciliar|floatformat:2 }}
+                </span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Saldo total (con pendientes):</span>
                 <span class="text-sm {% if cuenta.saldo_pendiente >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
                     €{{ cuenta.saldo_pendiente|floatformat:2 }}
                 </span>
