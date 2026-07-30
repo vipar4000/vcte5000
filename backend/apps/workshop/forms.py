@@ -1,5 +1,7 @@
+from decimal import Decimal
 from django import forms
 from django.contrib.auth import get_user_model
+from django.forms import formset_factory
 from .models import OrdenTrabajo, Material, MaterialUsado, CompraMaterial
 from apps.vehicles.models import Vehiculo
 
@@ -159,12 +161,61 @@ MaterialUsadoFormSet = forms.inlineformset_factory(
 )
 
 
-class CompraMaterialForm(forms.ModelForm):
-    """Formulario para registrar la compra de material de inventario.
+class CompraFacturaForm(forms.Form):
+    """Cabecera de factura — datos compartidos por todas las líneas de material."""
 
-    El campo "Material" es un desplegable con los materiales del catálogo.
-    El material debe existir previamente en inventario.
-    """
+    proveedor = forms.CharField(
+        max_length=150, label='Proveedor *',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': 'Nombre del proveedor',
+        }),
+    )
+    cif_nif = forms.CharField(
+        max_length=15, label='CIF/NIF *',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': 'B12345678',
+        }),
+    )
+    fecha_compra = forms.DateField(
+        label='Fecha de compra *',
+        widget=forms.DateInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'type': 'date',
+        }),
+    )
+    numero_factura = forms.CharField(
+        max_length=50, required=False, label='Número de factura',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': 'Ej: FAC-2026-0011',
+        }),
+    )
+    tipo_inventario = forms.ChoiceField(
+        choices=CompraMaterial.TIPOS_INVENTARIO, label='Cuenta de inventario *',
+        widget=forms.Select(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+        }),
+    )
+    tipo_iva = forms.DecimalField(
+        max_digits=4, decimal_places=2, initial=Decimal('21.00'),
+        label='Tipo IVA (%)',
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'step': '0.01', 'min': '0', 'max': '100',
+        }),
+    )
+    documento_pdf = forms.FileField(
+        required=False, label='Factura PDF',
+        widget=forms.FileInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+        }),
+    )
+
+
+class CompraMaterialLineaForm(forms.Form):
+    """Una línea de material dentro de una factura de compra."""
 
     material = forms.ModelChoiceField(
         queryset=Material.objects.all(),
@@ -173,47 +224,26 @@ class CompraMaterialForm(forms.ModelForm):
             'class': 'w-full px-3 py-2 border rounded-lg',
         }),
     )
+    cantidad = forms.DecimalField(
+        max_digits=8, decimal_places=2, min_value=0.01, label='Cantidad *',
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'step': '0.01', 'min': '0.01',
+        }),
+    )
+    precio_unitario = forms.DecimalField(
+        max_digits=8, decimal_places=2, min_value=0, label='Precio unitario (€) *',
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'step': '0.01', 'min': '0',
+        }),
+    )
 
-    class Meta:
-        model = CompraMaterial
-        fields = [
-            'material', 'cantidad', 'precio_unitario',
-            'fecha_compra', 'proveedor', 'cif_nif', 'numero_factura',
-            'tipo_inventario', 'tipo_iva', 'documento_pdf',
-        ]
-        widgets = {
-            'cantidad': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01', 'min': '0.01',
-            }),
-            'precio_unitario': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01', 'min': '0',
-            }),
-            'fecha_compra': forms.DateInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'type': 'date',
-            }),
-            'proveedor': forms.TextInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'placeholder': 'Nombre del proveedor',
-            }),
-            'cif_nif': forms.TextInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'placeholder': 'B12345678', 'maxlength': '15',
-            }),
-            'numero_factura': forms.TextInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'placeholder': 'Ej: FAC-2026-0011',
-            }),
-            'tipo_inventario': forms.Select(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-            }),
-            'tipo_iva': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01', 'min': '0', 'max': '100',
-            }),
-            'documento_pdf': forms.FileInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-            }),
-        }
+
+CompraMaterialLineaFormSet = formset_factory(
+    CompraMaterialLineaForm,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True,
+)
