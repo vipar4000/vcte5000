@@ -304,9 +304,14 @@ class Vehiculo(models.Model):
     
     def registrar_movimiento_banco(self, asiento=None):
         """Registra el egreso bancario de la compra del vehículo."""
+        from apps.bank.models import BancoCuenta
         from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
 
-        cuenta = self.forma_pago
+        cuenta = None
+        if self.forma_pago:
+            cuenta = BancoCuenta.objects.filter(
+                cuenta_contable=self.forma_pago
+            ).first()
         if not cuenta:
             cuenta = obtener_cuenta_banco_default()
         if not cuenta:
