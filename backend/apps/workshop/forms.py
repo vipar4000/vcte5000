@@ -116,9 +116,10 @@ class MaterialSelectWidget(forms.Select):
     
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex, attrs)
-        if value:
+        pk_value = getattr(value, 'value', value)
+        if pk_value:
             try:
-                material = Material.objects.get(pk=value)
+                material = Material.objects.get(pk=pk_value)
                 option['attrs']['data-precio'] = str(material.precio_unitario)
             except (Material.DoesNotExist, ValueError):
                 pass
