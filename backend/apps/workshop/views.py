@@ -143,6 +143,8 @@ def orden_trabajo_create(request):
 @login_required
 def orden_trabajo_update(request, pk):
     """Actualizar una orden de trabajo."""
+    from apps.accounts.models import User
+    from apps.vehicles.models import Vehiculo
     ot = get_object_or_404(OrdenTrabajo, pk=pk)
     
     if not request.user.is_admin and request.user != ot.operario:

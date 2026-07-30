@@ -79,7 +79,7 @@ class User(AbstractUser):
     @property
     def coste_hora(self):
         """Calcula el coste real por hora incluyendo SS patronal."""
-        if not self.salario_base_mensual:
+        if not self.salario_base_mensual or self.porcentaje_ss_patronal is None:
             return 0
         coste_mensual = self.salario_base_mensual * (1 + self.porcentaje_ss_patronal / 100)
         horas_mensuales = 22 * 8  # 22 días × 8 horas
