@@ -31,9 +31,9 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Material *</label>
-                {{ form.material_nombre }}
+                {{ form.material }}
                 <p class="text-sm text-gray-500 mt-1">
-                    Escriba el nombre. Si ya existe en inventario se reutiliza; si no, se crea uno nuevo.
+                    Seleccione un material del catálogo. Debe existir previamente en inventario.
                 </p>
             </div>
             <div>
@@ -41,21 +41,6 @@
                 {{ form.cantidad }}
             </div>
         </div>
-
-        <!-- Unidad solo para material nuevo -->
-        <details class="border rounded-lg p-4 bg-gray-50">
-            <summary class="cursor-pointer font-medium text-gray-700">
-                ¿El material es nuevo? Indicar su unidad de medida
-            </summary>
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Unidad de medida (solo si es material nuevo)</label>
-                {{ form.unidad_material_nuevo }}
-                <p class="text-sm text-gray-500 mt-2">
-                    Si el material ya existe en inventario, su unidad se respeta. Si es nuevo y deja esto en
-                    blanco, se usará <code>ud</code> por defecto.
-                </p>
-            </div>
-        </details>
 
         <div class="grid grid-cols-2 gap-4">
             <div>

@@ -162,42 +162,22 @@ MaterialUsadoFormSet = forms.inlineformset_factory(
 class CompraMaterialForm(forms.ModelForm):
     """Formulario para registrar la compra de material de inventario.
 
-    El campo "Material" es de texto libre: al guardar se resuelve contra un
-    Material existente (match insensible a mayusculas/minusculas) o se crea
-    uno nuevo. Se mantiene la FK a Material y la integridad del inventario.
+    El campo "Material" es un desplegable con los materiales del catálogo.
+    El material debe existir previamente en inventario.
     """
 
-    material_nombre = forms.CharField(
-        required=True, max_length=100, label='Material *',
-        widget=forms.TextInput(attrs={
+    material = forms.ModelChoiceField(
+        queryset=Material.objects.all(),
+        required=True, label='Material *',
+        widget=forms.Select(attrs={
             'class': 'w-full px-3 py-2 border rounded-lg',
-            'placeholder': 'Escriba el nombre (p. ej. Aceite motor 5W30)',
-            'autocomplete': 'off',
         }),
     )
-    unidad_material_nuevo = forms.CharField(
-        required=False, max_length=20,
-        label='Unidad de medida (solo si es material nuevo)',
-        widget=forms.TextInput(attrs={
-            'class': 'w-full px-3 py-2 border rounded-lg',
-            'placeholder': 'Ej: ud, L, kg',
-        }),
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        nombre = (cleaned_data.get('material_nombre') or '').strip()
-        if not nombre:
-            raise forms.ValidationError(
-                'Indique el nombre del material.'
-            )
-        cleaned_data['material_nombre'] = nombre
-        return cleaned_data
 
     class Meta:
         model = CompraMaterial
         fields = [
-            'cantidad', 'precio_unitario',
+            'material', 'cantidad', 'precio_unitario',
             'fecha_compra', 'proveedor', 'cif_nif', 'numero_factura',
             'tipo_inventario', 'tipo_iva', 'documento_pdf',
         ]
