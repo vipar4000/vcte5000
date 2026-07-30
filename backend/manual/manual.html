@@ -4377,6 +4377,34 @@ USUARIO REGISTRA OPERACION
     <strong>Coste inicial calculado:</strong> 7.500 + 400 + 250 = <strong>8.150,00 EUR</strong>
 </div>
 
+<h3>Incidencias y Correcciones aplicadas durante la prueba</h3>
+<p>Durante la ejecucion del pipeline de pruebas se detectaron y corrigieron los siguientes bugs:</p>
+
+<table>
+    <tr><th>#</th><th>Incidencia</th><th>Sintoma</th><th>Solucion</th><th>Archivo</th></tr>
+    <tr>
+        <td>1</td>
+        <td><strong>BancoMovimiento no creado en Inversión Inicial</strong></td>
+        <td>Saldo bancario no reflejaba el EGRESO de 2.480,50€ de la inversion del Paso 1.2. <code>saldo_pendiente</code> mostraba 50.000€ en vez de 47.519,50€.</td>
+        <td>Se agregó llamada a <code>crear_movimiento_banco()</code> dentro de <code>InversionInicial.crear_asiento_contable()</code> en <code>expenses/models.py</code>. Para la inversion existente se ejecutó script <code>fix_inversion_banco.py</code>.</td>
+        <td><code>apps/expenses/models.py</code></td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>Type mismatch en vehiculo <code>registrar_movimiento_banco</code></strong></td>
+        <td>Al crear vehiculo con "Forma de pago" = Banco Santander, no se generaba el EGRESO bancario. El asiento contable se creaba correctamente pero el banco no reflejaba el pago.</td>
+        <td>Se cambi&oacute; <code>cuenta = self.forma_pago</code> (CuentaContable) por <code>BancoCuenta.objects.filter(cuenta_contable=self.forma_pago).first()</code> en <code>vehicles/models.py</code>.</td>
+        <td><code>apps/vehicles/models.py</code></td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>Error 500 al editar OT de Taller</strong></td>
+        <td>Al hacer clic en "Editar" en una Orden de Trabajo, se mostraba <strong>Server Error (500)</strong>. Impedia modificar cualquier OT.</td>
+        <td>Se agreg&oacute; guarda <code>and op.porcentaje_ss_patronal is not None</code> en el calculo de coste/hora de operarios en <code>workshop/views.py</code>. El usuario tester (ADMIN) no tiene ese campo definido, causando <code>TypeError</code>.</td>
+        <td><code>apps/workshop/views.py</code></td>
+    </tr>
+</table>
+
 <h3>Paso 2.2 &mdash; Crear Catalogo de Materiales</h3>
 <p>Navegue a <strong>Sidebar &gt; 📋 Catalogo</strong> y cree los siguientes materiales (stock inicial = 0).</p>
 <table>
