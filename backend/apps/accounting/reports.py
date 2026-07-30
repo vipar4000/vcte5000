@@ -167,7 +167,7 @@ def calcular_balance(fecha_corte):
     
     # ACTIVO
     inmovilizado = saldo_grupo('2')
-    existencias = saldo_grupo('310') + saldo_grupo('320') + saldo_grupo('330')
+    existencias = saldo_grupo('300') + saldo_grupo('310') + saldo_grupo('320') + saldo_grupo('330')
     clientes = saldo_grupo('430')
     anticipos_clientes = saldo_grupo('438')
     deudores = saldo_grupo('440')
