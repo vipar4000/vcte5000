@@ -124,7 +124,7 @@ def orden_trabajo_create(request):
     operarios = User.objects.filter(rol='OPERARIO', is_active=True)
     operarios_coste_hora = {}
     for op in operarios:
-        if op.salario_base_mensual:
+        if op.salario_base_mensual and op.porcentaje_ss_patronal is not None:
             from decimal import Decimal
             coste_mensual = op.salario_base_mensual * (1 + op.porcentaje_ss_patronal / Decimal('100'))
             operarios_coste_hora[op.pk] = float(coste_mensual / 176)
@@ -187,7 +187,7 @@ def orden_trabajo_update(request, pk):
     operarios = User.objects.filter(rol='OPERARIO', is_active=True)
     operarios_coste_hora = {}
     for op in operarios:
-        if op.salario_base_mensual:
+        if op.salario_base_mensual and op.porcentaje_ss_patronal is not None:
             from decimal import Decimal
             coste_mensual = op.salario_base_mensual * (1 + op.porcentaje_ss_patronal / Decimal('100'))
             operarios_coste_hora[op.pk] = float(coste_mensual / 176)
