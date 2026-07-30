@@ -4400,8 +4400,8 @@ USUARIO REGISTRA OPERACION
         <td>3</td>
         <td><strong>Error 500 al editar OT de Taller</strong></td>
         <td>Al hacer clic en "Editar" en una Orden de Trabajo, se mostraba <strong>Server Error (500)</strong>. Impedia modificar cualquier OT.</td>
-        <td>Se agreg&oacute; guarda <code>and op.porcentaje_ss_patronal is not None</code> en el calculo de coste/hora de operarios en <code>workshop/views.py</code>. El usuario tester (ADMIN) no tiene ese campo definido, causando <code>TypeError</code>.</td>
-        <td><code>apps/workshop/views.py</code></td>
+        <td>Se agreg&oacute; <code>from apps.accounts.models import User</code> dentro de <code>orden_trabajo_update()</code> en <code>workshop/views.py</code>. El <code>User</code> se usaba sin importar (<code>NameError</code>). Tambi&eacute;n se agreg&oacute; guarda <code>porcentaje_ss_patronal is not None</code> en <code>User.coste_hora</code> en <code>accounts/models.py</code>.</td>
+        <td><code>apps/workshop/views.py</code><br><code>apps/accounts/models.py</code></td>
     </tr>
 </table>
 
