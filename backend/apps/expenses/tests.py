@@ -13,6 +13,10 @@ class GastoEstructuraModelTest(TestCase):
 
     def setUp(self):
         PlanContableDefault.crear_plan_base()
+        CuentaContable.objects.get_or_create(
+            codigo='4751.115',
+            defaults={'nombre': 'Retenciones IRPF', 'tipo': 'P'},
+        )
         self.user = User.objects.create_user(
             username='testadmin',
             password='testpass123!',
