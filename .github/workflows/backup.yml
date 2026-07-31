@@ -22,22 +22,15 @@ jobs:
     - name: Diagnóstico de conexión
       shell: bash
       run: |
-        echo "=== FINGERPRINT SHA256 del secret ==="
-        printf '%s' "$DATABASE_URL" | sha256sum | cut -d' ' -f1
-        echo "Esperado (URL correcta): c6c7f8752f1dc54e4db92ecf1a2bb5ee31462d7bdde84b0cf4070dc00dbf8f6d"
-        echo ""
-        echo "=== URL saneada (password oculto) ==="
-        printf '%s' "$DATABASE_URL" | sed -E 's#(postgres(ql)?://[^:]+:)[^@]+@#\1****@#'
-        echo ""
-        echo "=== Versión de pg_dump ==="
-        pg_dump --version
+        echo "=== Versión de pg_dump (v18) ==="
+        /usr/lib/postgresql/18/bin/pg_dump --version
         echo ""
         echo "=== Test de conexión psql ==="
         psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT version();" 2>&1 || echo "PSQL_FALLO (error real arriba)"
 
     - name: Realizar copia de seguridad (pg_dump)
       run: |
-        pg_dump "$DATABASE_URL" -F c -b -v -f backup_django_$(date +%Y%m%d).sql
+        /usr/lib/postgresql/18/bin/pg_dump "$DATABASE_URL" -F c -b -v -f backup_django_$(date +%Y%m%d).sql
 
     - name: Subir respaldo a almacenamiento seguro
       uses: actions/upload-artifact@v4
