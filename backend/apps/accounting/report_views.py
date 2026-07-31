@@ -32,12 +32,46 @@ def balance_view(request):
     except ValueError:
         fecha_corte = date.today()
     
-    from .reports import calcular_balance
+    from .reports import calcular_balance, obtener_saldo_cuenta
     balance = calcular_balance(fecha_corte)
     
+    # Desglose de cuentas individuales por grupo
+    from decimal import Decimal
+    from django.db.models import Sum
+    from django.db.models.functions import Coalesce
+    from apps.accounting.models import MovimientoContable
+
+    cuentas_balance = {
+        'activo_no_corriente': MovimientoContable.objects.filter(
+            cuenta__codigo__startswith='2', asiento__fecha__lte=fecha_corte, asiento__estado='POSTEADO',
+        ).values('cuenta__codigo', 'cuenta__nombre').annotate(
+            total_debe=Coalesce(Sum('debe'), Decimal('0')), total_haber=Coalesce(Sum('haber'), Decimal('0')),
+        ).order_by('cuenta__codigo'),
+        'existencias': MovimientoContable.objects.filter(
+            cuenta__codigo__in=['300','310','320','330'], asiento__fecha__lte=fecha_corte, asiento__estado='POSTEADO',
+        ).values('cuenta__codigo', 'cuenta__nombre').annotate(
+            total_debe=Coalesce(Sum('debe'), Decimal('0')), total_haber=Coalesce(Sum('haber'), Decimal('0')),
+        ).order_by('cuenta__codigo'),
+        'clientes': MovimientoContable.objects.filter(
+            cuenta__codigo__startswith='430', asiento__fecha__lte=fecha_corte, asiento__estado='POSTEADO',
+        ).values('cuenta__codigo', 'cuenta__nombre').annotate(
+            total_debe=Coalesce(Sum('debe'), Decimal('0')), total_haber=Coalesce(Sum('haber'), Decimal('0')),
+        ).order_by('cuenta__codigo'),
+        'proveedores': MovimientoContable.objects.filter(
+            cuenta__codigo__startswith='400', asiento__fecha__lte=fecha_corte, asiento__estado='POSTEADO',
+        ).values('cuenta__codigo', 'cuenta__nombre').annotate(
+            total_debe=Coalesce(Sum('debe'), Decimal('0')), total_haber=Coalesce(Sum('haber'), Decimal('0')),
+        ).order_by('cuenta__codigo'),
+    }
+
+    for key in cuentas_balance:
+        for c in cuentas_balance[key]:
+            c['saldo'] = c['total_debe'] - c['total_haber']
+
     context = {
         'balance': balance,
         'fecha_corte': fecha_corte,
+        'cuentas_balance': cuentas_balance,
     }
     return render(request, 'accounting/reports/balance.html', context)
 
@@ -85,7 +119,6 @@ def comparativa_view(request):
 @login_required
 def informes_list(request):
     """Panel principal de informes financieros."""
-    from datetime import date
     anio = date.today().year
     
     context = {
@@ -139,6 +172,95 @@ def facturas_compra_view(request):
         'n_facturas': len(facturas),
     }
     return render(request, 'accounting/reports/facturas_compras.html', context)
+
+
+@login_required
+def libro_diario_view(request):
+    """Libro Diario: asientos en orden cronológico con filtro de fechas."""
+    desde = request.GET.get('desde', date.today().replace(month=1, day=1).isoformat())
+    hasta = request.GET.get('hasta', date.today().isoformat())
+    try:
+        fecha_desde = date.fromisoformat(desde)
+        fecha_hasta = date.fromisoformat(hasta)
+    except ValueError:
+        fecha_desde = date.today().replace(month=1, day=1)
+        fecha_hasta = date.today()
+
+    from .reports import obtener_asientos_diario
+    diario = obtener_asientos_diario(fecha_desde, fecha_hasta)
+
+    context = {
+        'diario': diario,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+    }
+    return render(request, 'accounting/reports/libro_diario.html', context)
+
+
+@login_required
+def libro_mayor_view(request):
+    """Libro Mayor: movimientos de una cuenta con saldo corrido."""
+    codigo = request.GET.get('cuenta', '')
+    desde = request.GET.get('desde', date.today().replace(month=1, day=1).isoformat())
+    hasta = request.GET.get('hasta', date.today().isoformat())
+
+    cuenta_obj = None
+    movimientos = None
+    total_debe = 0
+    total_haber = 0
+    saldo_final = 0
+    error = None
+
+    if codigo:
+        try:
+            fecha_desde = date.fromisoformat(desde)
+            fecha_hasta = date.fromisoformat(hasta)
+        except ValueError:
+            fecha_desde = date.today().replace(month=1, day=1)
+            fecha_hasta = date.today()
+
+        from .reports import obtener_movimientos_cuenta
+        resultado = obtener_movimientos_cuenta(codigo, fecha_desde, fecha_hasta)
+        if resultado is None:
+            error = f"Cuenta {codigo} no encontrada"
+        else:
+            cuenta_obj = resultado['cuenta']
+            movimientos = resultado['movimientos']
+            total_debe = resultado['total_debe']
+            total_haber = resultado['total_haber']
+            saldo_final = resultado['saldo_final']
+    else:
+        fecha_desde = date.today().replace(month=1, day=1)
+        fecha_hasta = date.today()
+
+    from apps.accounting.models import CuentaContable
+    cuentas = CuentaContable.objects.all().order_by('codigo')
+
+    context = {
+        'codigo': codigo,
+        'cuenta': cuenta_obj,
+        'movimientos': movimientos,
+        'total_debe': total_debe,
+        'total_haber': total_haber,
+        'saldo_final': saldo_final,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'cuentas': cuentas,
+        'error': error,
+    }
+    return render(request, 'accounting/reports/libro_mayor.html', context)
+
+
+@login_required
+def existencias_view(request):
+    """Informe de valoración de existencias."""
+    from .reports import obtener_valor_existencias
+    data = obtener_valor_existencias()
+
+    context = {
+        'data': data,
+    }
+    return render(request, 'accounting/reports/existencias.html', context)
 
 
 def _filtrar_compras(request):

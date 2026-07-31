@@ -95,6 +95,9 @@
                 <li><a href="#capitulo-15-2"><span class="chapter-num">15.2</span> Balance de Situacion</a></li>
                 <li><a href="#capitulo-15-3"><span class="chapter-num">15.3</span> Libro de IVA (Modelo 303/390)</a></li>
                 <li><a href="#capitulo-15-4"><span class="chapter-num">15.4</span> Comparativa Interanual</a></li>
+                <li><a href="#capitulo-15-5"><span class="chapter-num">15.5</span> Libro Diario</a></li>
+                <li><a href="#capitulo-15-6"><span class="chapter-num">15.6</span> Libro Mayor</a></li>
+                <li><a href="#capitulo-15-7"><span class="chapter-num">15.7</span> Valoracion de Existencias</a></li>
             </ul>
         </li>
         <li><a href="#capitulo-16"><span class="chapter-num">16.</span> Exportacion Fiscal</a>
@@ -3069,7 +3072,7 @@ Para corregir: emitir factura rectificativa (R1/R4)
 
 <p>El informe de <strong>Perdidas y Ganancias</strong> sigue el formato Pymes del PGC espanol. Calcula el resultado del ejercicio a partir de los movimientos contables posteados.</p>
 
-<h3>13.1.1 Estructura del PyG</h3>
+<h3>15.1.1 Estructura del PyG</h3>
 <div class="diagram">
     <div class="title">Estructura Cuenta de Resultados (PyG Pymes)</div>
     <div class="flow">
@@ -3111,7 +3114,7 @@ INGRESOS (Cuenta 700 - Ventas)
     </div>
 </div>
 
-<h3>13.1.2 Ejemplo Numerico Completo</h3>
+<h3>15.1.2 Ejemplo Numerico Completo</h3>
 <div class="warning-box">
     <strong>Ejemplo: PyG Trimestral Q3 2026 (Julio - Septiembre)</strong><br><br>
     <strong>INGRESOS:</strong><br>
@@ -3135,7 +3138,7 @@ INGRESOS (Cuenta 700 - Ventas)
     Margen Neto = 13,8%
 </div>
 
-<h3>13.1.3 Acceder al PyG</h3>
+<h3>15.1.3 Acceder al PyG</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad > Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
     <li>Haga clic en <strong>"Cuenta de Resultados (PyG)"</strong></li>
@@ -3147,7 +3150,7 @@ INGRESOS (Cuenta 700 - Ventas)
 
 <p>El <strong>Balance de Situacion</strong> muestra la posicion financiera de la empresa en un momento dado. Sigue el formato Pymes del PGC con validacion de cuadre (Activo = Pasivo + Patrimonio Neto).</p>
 
-<h3>13.2.1 Estructura del Balance</h3>
+<h3>15.2.1 Estructura del Balance</h3>
 <div class="diagram">
     <div class="title">Balance de Situacion - Estructura Pymes</div>
     <div class="flow">
@@ -3172,7 +3175,7 @@ ACTIVO CORRIENTE                | PASIVO CORRIENTE
     </div>
 </div>
 
-<h3>13.2.2 Ejemplo Numerico</h3>
+<h3>15.2.2 Ejemplo Numerico</h3>
 <div class="warning-box">
     <strong>Ejemplo: Balance a 30 Septiembre 2026</strong><br><br>
     <strong>ACTIVO:</strong><br>
@@ -3200,7 +3203,7 @@ ACTIVO CORRIENTE                | PASIVO CORRIENTE
     <strong>Cuadre correcto</strong>
 </div>
 
-<h3>13.2.3 Validacion de Cuadre</h3>
+<h3>15.2.3 Validacion de Cuadre</h3>
 <p>El sistema valida automaticamente que el balance cuadre:</p>
 <pre><code>Total Activo = Total Pasivo + Patrimonio Neto
 
@@ -3211,7 +3214,7 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
 
 <p>El informe de IVA genera los datos necesarios para la declaracion trimestral (Modelo 303) y el resumen anual (Modelo 390).</p>
 
-<h3>13.3.1 Datos del Informe</h3>
+<h3>15.3.1 Datos del Informe</h3>
 <table>
     <tr><th>Concepto</th><th>Cuenta</th><th>Formula</th></tr>
     <tr><td>IVA Repercutido</td><td>471</td><td>HABER - DEBE</td></tr>
@@ -3221,7 +3224,7 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     <tr><td><strong>Cuota a Liquidar</strong></td><td>-</td><td>IVA Repercutido - IVA Soportado</td></tr>
 </table>
 
-<h3>13.3.2 Ejemplo Numerico</h3>
+<h3>15.3.2 Ejemplo Numerico</h3>
 <div class="warning-box">
     <strong>Ejemplo: Libro IVA Q3 2026</strong><br><br>
     <strong>IVA Repercutido (471):</strong><br>
@@ -3236,7 +3239,7 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     (Se debe 6.500 EUR a Hacienda)
 </div>
 
-<h3>13.3.3 Acceder al Informe</h3>
+<h3>15.3.3 Acceder al Informe</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad > Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
     <li>Haga clic en <strong>"Libro de IVA"</strong></li>
@@ -3249,7 +3252,7 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
 
 <p>El informe de comparativa muestra la evolucion del PyG de un ano a otro, calculando la variacion porcentual de cada linea.</p>
 
-<h3>13.4.1 Metricas Comparadas</h3>
+<h3>15.4.1 Metricas Comparadas</h3>
 <table>
     <tr><th>Metrica</th><th>Ano Actual</th><th>Ano Anterior</th><th>Variacion</th></tr>
     <tr><td>Ventas</td><td>400.000 EUR</td><td>350.000 EUR</td><td>+14,3%</td></tr>
@@ -3259,11 +3262,114 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     <tr><td>Resultado Neto</td><td>55.300 EUR</td><td>47.250 EUR</td><td>+17,0%</td></tr>
 </table>
 
-<h3>13.4.2 Formula de Variacion</h3>
+<h3>15.4.2 Formula de Variacion</h3>
 <pre><code>Variacion % = ((Actual - Anterior) / Abs(Anterior)) x 100
 
 Si Anterior = 0 y Actual = 0 -> Variacion = 0%
 Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
+
+<h2 id="capitulo-15-5">15.5 Libro Diario</h2>
+
+<p>El <strong>Libro Diario</strong> registra de forma cronologica todos los asientos contables posteados, con el detalle de cada movimiento (cuenta, debe y haber). Es la fuente primaria de la contabilidad y la base del resto de informes.</p>
+
+<h3>15.5.1 Informacion que Muestra</h3>
+<table>
+    <tr><th>Campo</th><th>Descripcion</th></tr>
+    <tr><td>Numero de asiento</td><td>Identificador correlativo del asiento</td></tr>
+    <tr><td>Fecha</td><td>Fecha del asiento</td></tr>
+    <tr><td>Concepto</td><td>Texto descriptivo del asiento</td></tr>
+    <tr><td>Movimientos</td><td>Detalle por cuenta: codigo, nombre, descripcion, debe y haber</td></tr>
+    <tr><td>Totales</td><td>Suma de debe y haber por asiento y total del periodo</td></tr>
+</table>
+
+<h3>15.5.2 Filtros</h3>
+<p>Permite acotar el periodo con <strong>fecha desde</strong> y <strong>fecha hasta</strong>. Solo se muestran asientos en estado <code>POSTEADO</code> (los borradores no aparecen).</p>
+
+<h3>15.5.3 Ejemplo</h3>
+<div class="warning-box">
+    <strong>Ejemplo: Asiento de venta de vehiculo (15.000 EUR + IVA 21%)</strong><br><br>
+    <table>
+        <tr><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th></tr>
+        <tr><td>570 (Tesorer&iacute;a)</td><td>Cobro de la venta</td><td>18.150 EUR</td><td></td></tr>
+        <tr><td>700 (Ventas)</td><td>Importe de la venta</td><td></td><td>15.000 EUR</td></tr>
+        <tr><td>477 (IVA Repercutido)</td><td>IVA 21%</td><td></td><td>3.150 EUR</td></tr>
+        <tr><td><strong>Totales</strong></td><td></td><td><strong>18.150 EUR</strong></td><td><strong>18.150 EUR</strong></td></tr>
+    </table>
+    <br>
+    El asiento queda <strong>cuadrado</strong> (DEBE = HABER) y aparece en el Libro Diario con su fecha y concepto.
+</div>
+
+<h3>15.5.4 Acceder al Libro Diario</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Contabilidad &gt; Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
+    <li>Haga clic en <strong>"Libro Diario"</strong></li>
+    <li>Seleccione el rango de fechas</li>
+    <li>El informe lista todos los asientos con sus movimientos y totales</li>
+</ol>
+
+<h2 id="capitulo-15-6">15.6 Libro Mayor</h2>
+
+<p>El <strong>Libro Mayor</strong> muestra los movimientos de una cuenta concreta dentro de un periodo, con su <strong>saldo corrido</strong> (saldo acumulado despues de cada movimiento).</p>
+
+<h3>15.6.1 Informacion que Muestra</h3>
+<table>
+    <tr><th>Campo</th><th>Descripcion</th></tr>
+    <tr><td>Cuenta</td><td>Codigo y nombre de la cuenta seleccionada</td></tr>
+    <tr><td>Fecha / Asiento</td><td>Fecha y numero del asiento</td></tr>
+    <tr><td>Concepto</td><td>Concepto del asiento y descripcion del movimiento</td></tr>
+    <tr><td>Debe / Haber</td><td>Importes del movimiento</td></tr>
+    <tr><td>Saldo</td><td>Saldo acumulado (saldo corrido) tras cada movimiento</td></tr>
+</table>
+
+<h3>15.6.2 Filtros</h3>
+<p>Seleccione una <strong>cuenta contable</strong> del desplegable y un rango de fechas. Si no hay movimientos en el periodo, el informe muestra un aviso.</p>
+
+<h3>15.6.3 Ejemplo</h3>
+<div class="warning-box">
+    <strong>Ejemplo: Cuenta 570 (Tesorer&iacute;a) durante el tercer trimestre</strong><br><br>
+    <table>
+        <tr><th>Fecha</th><th>Asiento</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr>
+        <tr><td>01/07</td><td>#12</td><td>5.000 EUR</td><td></td><td>5.000 EUR</td></tr>
+        <tr><td>15/07</td><td>#18</td><td></td><td>2.000 EUR</td><td>3.000 EUR</td></tr>
+        <tr><td>30/09</td><td>#45</td><td>18.150 EUR</td><td></td><td>21.150 EUR</td></tr>
+    </table>
+    <br>
+    El saldo final de la cuenta (21.150 EUR) es el que se traslada al Balance de Situacion.
+</div>
+
+<h3>15.6.4 Acceder al Libro Mayor</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Contabilidad &gt; Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
+    <li>Haga clic en <strong>"Libro Mayor"</strong></li>
+    <li>Seleccione la cuenta contable y el periodo</li>
+    <li>El informe muestra los movimientos con el saldo corrido</li>
+</ol>
+
+<h2 id="capitulo-15-7">15.7 Valoracion de Existencias</h2>
+
+<p>El informe de <strong>valoracion de existencias</strong> calcula el valor del inventario actual multiplicando el <strong>stock</strong> de cada material por su <strong>precio unitario</strong>, y lo compara con el saldo contable de las cuentas de existencias (300, 310, 320 y 330).</p>
+
+<h3>15.7.1 Informacion que Muestra</h3>
+<table>
+    <tr><th>Campo</th><th>Descripcion</th></tr>
+    <tr><td>Detalle por material</td><td>Nombre, unidad, stock actual, precio unitario y valor</td></tr>
+    <tr><td>Valor total del stock</td><td>Suma de stock x precio de todos los materiales</td></tr>
+    <tr><td>Saldo contable</td><td>Saldo de las cuentas 300-330 segun los asientos posteados</td></tr>
+    <tr><td>Diferencia</td><td>Valor del stock menos saldo contable</td></tr>
+</table>
+
+<h3>15.7.2 Interpretacion de la Diferencia</h3>
+<ul>
+    <li>Si el <strong>valor del stock</strong> supera el saldo contable, puede haber compras sin contabilizar o ajustes pendientes.</li>
+    <li>Si el <strong>saldo contable</strong> supera el valor del stock, puede haber asientos de ajuste sin regularizar.</li>
+</ul>
+
+<h3>15.7.3 Acceder al Informe</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Contabilidad &gt; Informes</strong> (<code>/erp/contabilidad/informes/</code>)</li>
+    <li>Haga clic en <strong>"Valoracion Existencias"</strong></li>
+    <li>El informe muestra el detalle por material y la comparacion con contabilidad</li>
+</ol>
 
 <!-- ==================== CAPITULO 14 ==================== -->
 <h1 id="capitulo-16">16. Exportacion Fiscal</h1>
@@ -4359,7 +4465,7 @@ USUARIO REGISTRA OPERACION
     <tr><td>Numero factura</td><td>FC-2026-001</td></tr>
     <tr><td>Tipo IVA</td><td>Seleccionar <strong>21%</strong> en el desplegable</td></tr>
     <tr><td>IVA soportado (&euro;)</td><td><strong>136,50 EUR</strong> (se auto-calc desde tasas_sala + logistica_grua &times; 21%)</td></tr>
-    <tr><td>Factura PDF</td><td><code>backend/manual/ejemplos/factura_vehiculo_golf.pdf</code> (adjuntar archivo)</td></tr>
+    <tr><td>Factura PDF</td><td><code>backend/manual/ejemplos/factura_vehiculo.pdf</code> (adjuntar archivo)</td></tr>
     <tr><td>Forma pago</td><td>Banco Santander (572)</td></tr>
 </table>
 <div class="info-box">

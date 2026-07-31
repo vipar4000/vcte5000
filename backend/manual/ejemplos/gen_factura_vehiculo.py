@@ -1,5 +1,5 @@
 # Genera un PDF mínimo para la factura de compra del vehículo (Paso 2.1)
-path = r'C:\eurocar\backend\manual\ejemplos\factura_vehiculo_golf.pdf'
+path = r'C:\eurocar\backend\manual\ejemplos\factura_vehiculo.pdf'
 
 objects = []
 

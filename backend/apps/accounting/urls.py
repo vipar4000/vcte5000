@@ -26,6 +26,9 @@ urlpatterns = [
     path('informes/iva/', report_views.iva_view, name='iva'),
     path('informes/comparativa/', report_views.comparativa_view, name='comparativa'),
     path('informes/facturas-compras/', report_views.facturas_compra_view, name='facturas_compras'),
+    path('informes/libro-diario/', report_views.libro_diario_view, name='libro_diario'),
+    path('informes/libro-mayor/', report_views.libro_mayor_view, name='libro_mayor'),
+    path('informes/existencias/', report_views.existencias_view, name='existencias'),
     path('exportar/facturas-compra-csv/', export_views.exportar_facturas_compra_csv, name='export_facturas_compra_csv'),
     
     # Exportación fiscal

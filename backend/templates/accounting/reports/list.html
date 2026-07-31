@@ -6,72 +6,86 @@
 <div class="max-w-5xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-gray-800 mb-6">Informes Financieros</h1>
     
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-3 gap-4">
         <!-- PyG -->
         <a href="{% url 'accounting:pyg' %}?anio={{ anio }}" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">📊</div>
-            <h2 class="text-lg font-bold text-gray-800">Pérdidas y Ganancias</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                PyG Pymes con cascada EBIT. Ingresos, costes, EBITDA, resultado neto.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📊</div>
+            <h2 class="text-base font-bold text-gray-800">Pérdidas y Ganancias</h2>
+            <p class="text-xs text-gray-600 mt-1">PyG Pymes con cascada EBIT. Ingresos, costes, EBITDA, resultado neto.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
         </a>
         
         <!-- Balance -->
         <a href="{% url 'accounting:balance' %}?fecha={{ anio }}-12-31" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">⚖️</div>
-            <h2 class="text-lg font-bold text-gray-800">Balance de Situación</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                Activo, pasivo y patrimonio neto. Pymes según PGC.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">⚖️</div>
+            <h2 class="text-base font-bold text-gray-800">Balance de Situación</h2>
+            <p class="text-xs text-gray-600 mt-1">Activo, pasivo y patrimonio neto. Pymes según PGC. Desglose por cuentas.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
         </a>
         
         <!-- IVA -->
         <a href="{% url 'accounting:iva' %}?anio={{ anio }}" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">📑</div>
-            <h2 class="text-lg font-bold text-gray-800">Libro IVA / Modelo 303</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                IVA repercutido y soportado por trimestre. Base para Modelo 303 y 390.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📑</div>
+            <h2 class="text-base font-bold text-gray-800">Libro IVA / Modelo 303</h2>
+            <p class="text-xs text-gray-600 mt-1">IVA repercutido y soportado por trimestre. Base para Modelo 303 y 390.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
         </a>
         
         <!-- Comparativa -->
         <a href="{% url 'accounting:comparativa' %}?anio_actual={{ anio }}" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">📈</div>
-            <h2 class="text-lg font-bold text-gray-800">Comparativa Año a Año</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                Evolución de ventas, costes y resultados vs. año anterior.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📈</div>
+            <h2 class="text-base font-bold text-gray-800">Comparativa Año a Año</h2>
+            <p class="text-xs text-gray-600 mt-1">Evolución de ventas, costes y resultados vs. año anterior.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
         </a>
         
         <!-- Facturas de Compra -->
         <a href="{% url 'accounting:facturas_compras' %}" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">🧾</div>
-            <h2 class="text-lg font-bold text-gray-800">Facturas de Compra</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                Agrupa las compras de material por nº de factura y proveedor, con base, IVA y totales.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver informe →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">🧾</div>
+            <h2 class="text-base font-bold text-gray-800">Facturas de Compra</h2>
+            <p class="text-xs text-gray-600 mt-1">Agrupa las compras de material por nº de factura y proveedor, con base, IVA y totales.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
         </a>
         
-
+        <!-- Libro Diario -->
+        <a href="{% url 'accounting:libro_diario' %}" 
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📓</div>
+            <h2 class="text-base font-bold text-gray-800">Libro Diario</h2>
+            <p class="text-xs text-gray-600 mt-1">Todos los asientos en orden cronológico. Filtrable por rango de fechas.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
+        </a>
+        
+        <!-- Libro Mayor -->
+        <a href="{% url 'accounting:libro_mayor' %}" 
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📒</div>
+            <h2 class="text-base font-bold text-gray-800">Libro Mayor</h2>
+            <p class="text-xs text-gray-600 mt-1">Movimientos de una cuenta con saldo corrido. Seleccione cuenta y periodo.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
+        </a>
+        
+        <!-- Existencias -->
+        <a href="{% url 'accounting:existencias' %}" 
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">📦</div>
+            <h2 class="text-base font-bold text-gray-800">Valoración Existencias</h2>
+            <p class="text-xs text-gray-600 mt-1">Stock actual valorado a precio unitario. Comparación con saldos contables.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver informe →</p>
+        </a>
+        
         <!-- Tareas programadas -->
         <a href="{% url 'accounting:tareas' %}" 
-           class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div class="text-3xl mb-3">⏰</div>
-            <h2 class="text-lg font-bold text-gray-800">Tareas Programadas</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                Liquidación IVA, cierre anual, archivos fiscales, SII, cuotas SS.
-            </p>
-            <p class="text-xs text-blue-600 mt-3">Ver tareas →</p>
+           class="block bg-white rounded-lg shadow p-5 hover:shadow-lg transition">
+            <div class="text-2xl mb-2">⏰</div>
+            <h2 class="text-base font-bold text-gray-800">Tareas Programadas</h2>
+            <p class="text-xs text-gray-600 mt-1">Liquidación IVA, cierre anual, archivos fiscales, SII, cuotas SS.</p>
+            <p class="text-xs text-blue-600 mt-2">Ver tareas →</p>
         </a>
     </div>
 </div>

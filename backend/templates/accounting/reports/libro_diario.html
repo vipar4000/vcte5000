@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Libro Diario{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Libro Diario</h1>
+        <form method="get" class="flex gap-2 items-center">
+            <label class="text-sm text-gray-600">Desde:</label>
+            <input type="date" name="desde" value="{{ fecha_desde|date:'Y-m-d' }}"
+                   class="px-3 py-1 border rounded">
+            <label class="text-sm text-gray-600">Hasta:</label>
+            <input type="date" name="hasta" value="{{ fecha_hasta|date:'Y-m-d' }}"
+                   class="px-3 py-1 border rounded">
+            <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Ver</button>
+        </form>
+    </div>
+
+    <p class="text-sm text-gray-500 mb-4">
+        Periodo: {{ fecha_desde|date:"d/m/Y" }} → {{ fecha_hasta|date:"d/m/Y" }}
+        · {{ diario.n_asientos }} asientos
+    </p>
+
+    {% for asiento in diario.asientos %}
+    <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+        <div class="bg-gray-50 px-6 py-3 border-b flex justify-between items-center">
+            <div>
+                <span class="font-bold text-gray-800">Asiento #{{ asiento.numero }}</span>
+                <span class="text-sm text-gray-500 ml-3">{{ asiento.fecha|date:"d/m/Y" }}</span>
+            </div>
+            <span class="text-sm text-gray-600">{{ asiento.concepto }}</span>
+        </div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-100 text-gray-600 uppercase text-xs">
+                    <th class="px-4 py-2 text-left">Cuenta</th>
+                    <th class="px-4 py-2 text-left">Nombre</th>
+                    <th class="px-4 py-2 text-left">Descripción</th>
+                    <th class="px-4 py-2 text-right">Debe</th>
+                    <th class="px-4 py-2 text-right">Haber</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in asiento.movimientos %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2 font-mono">{{ m.cuenta.codigo }}</td>
+                    <td class="px-4 py-2">{{ m.cuenta.nombre }}</td>
+                    <td class="px-4 py-2 text-gray-500">{{ m.descripcion|default:"" }}</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ m.debe|floatformat:2 }}</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ m.haber|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="bg-gray-50 font-bold border-t-2 border-gray-300">
+                    <td colspan="3" class="px-4 py-2 text-right">Totales</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ asiento.total_debe|floatformat:2 }}</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ asiento.total_haber|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% empty %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <p class="text-sm text-yellow-700">No hay asientos en el período seleccionado.</p>
+    </div>
+    {% endfor %}
+
+    {% if diario.asientos %}
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
+        <p class="text-sm text-blue-700">
+            <strong>Sumas:</strong> Debe €{{ diario.total_debe|floatformat:2 }} · Haber €{{ diario.total_haber|floatformat:2 }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="mt-6">
+        <a href="{% url 'accounting:informes' %}" class="text-blue-600 hover:underline">← Volver a informes</a>
+    </div>
+</div>
+{% endblock %}

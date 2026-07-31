@@ -388,3 +388,113 @@ def calcular_comparativa(anio_actual, anio_anterior):
             'variacion': variacion(pyg_actual['resultado_neto'], pyg_anterior['resultado_neto']),
         },
     }
+
+
+def obtener_asientos_diario(fecha_desde, fecha_hasta):
+    """Libro Diario: todos los asientos posteados en orden cronológico."""
+    from apps.accounting.models import AsientoContable, MovimientoContable
+
+    asientos = AsientoContable.objects.filter(
+        fecha__gte=fecha_desde, fecha__lte=fecha_hasta,
+        estado='POSTEADO',
+    ).order_by('fecha', 'numero')
+
+    resultado = []
+    for a in asientos:
+        movs = MovimientoContable.objects.filter(asiento=a).select_related('cuenta').order_by('pk')
+        total_debe = sum(m.debe for m in movs)
+        total_haber = sum(m.haber for m in movs)
+        resultado.append({
+            'numero': a.numero,
+            'fecha': a.fecha,
+            'concepto': a.concepto,
+            'movimientos': movs,
+            'total_debe': total_debe,
+            'total_haber': total_haber,
+        })
+
+    total_general_debe = sum(r['total_debe'] for r in resultado)
+    total_general_haber = sum(r['total_haber'] for r in resultado)
+
+    return {
+        'periodo': {'desde': fecha_desde, 'hasta': fecha_hasta},
+        'asientos': resultado,
+        'total_debe': total_general_debe,
+        'total_haber': total_general_haber,
+        'n_asientos': len(resultado),
+    }
+
+
+def obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta):
+    """Libro Mayor: movimientos de una cuenta con saldo corrido."""
+    from apps.accounting.models import MovimientoContable, CuentaContable
+
+    try:
+        cuenta = CuentaContable.objects.get(codigo=codigo_cuenta)
+    except CuentaContable.DoesNotExist:
+        return None
+
+    movs = MovimientoContable.objects.filter(
+        cuenta=cuenta,
+        asiento__fecha__gte=fecha_desde,
+        asiento__fecha__lte=fecha_hasta,
+        asiento__estado='POSTEADO',
+    ).order_by('asiento__fecha', 'asiento__numero').select_related('asiento')
+
+    saldo = Decimal('0')
+    resultado = []
+    for m in movs:
+        saldo += m.debe - m.haber
+        resultado.append({
+            'fecha': m.asiento.fecha,
+            'numero_asiento': m.asiento.numero,
+            'concepto_asiento': m.asiento.concepto,
+            'debe': m.debe,
+            'haber': m.haber,
+            'saldo': saldo,
+            'descripcion': m.descripcion,
+        })
+
+    total_debe = sum(r['debe'] for r in resultado)
+    total_haber = sum(r['haber'] for r in resultado)
+
+    return {
+        'cuenta': {'codigo': cuenta.codigo, 'nombre': cuenta.nombre},
+        'periodo': {'desde': fecha_desde, 'hasta': fecha_hasta},
+        'movimientos': resultado,
+        'total_debe': total_debe,
+        'total_haber': total_haber,
+        'saldo_final': saldo,
+    }
+
+
+def obtener_valor_existencias():
+    """Existencias valoradas: stock actual x precio unitario por material."""
+    from apps.workshop.models import Material
+
+    materiales = Material.objects.all().order_by('nombre')
+    total_valor = Decimal('0')
+    items = []
+    for m in materiales:
+        valor = m.stock_actual * m.precio_unitario
+        total_valor += valor
+        items.append({
+            'nombre': m.nombre,
+            'unidad': m.unidad,
+            'stock': m.stock_actual,
+            'precio': m.precio_unitario,
+            'valor': valor,
+        })
+
+    debe_300, haber_300 = obtener_saldo_cuenta('300', fecha_hasta=date.today())
+    debe_310, haber_310 = obtener_saldo_cuenta('310', fecha_hasta=date.today())
+    debe_320, haber_320 = obtener_saldo_cuenta('320', fecha_hasta=date.today())
+    debe_330, haber_330 = obtener_saldo_cuenta('330', fecha_hasta=date.today())
+    saldo_contable = (debe_300 - haber_300) + (debe_310 - haber_310) + (debe_320 - haber_320) + (debe_330 - haber_330)
+
+    return {
+        'materiales': items,
+        'total_valor': total_valor,
+        'saldo_contable': saldo_contable,
+        'diferencia': total_valor - saldo_contable,
+    }

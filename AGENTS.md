@@ -46,6 +46,30 @@ Test users from `create_test_users.py`:
 
 `backend/create_test_users.py` is stale (hardcoded SQLite path); use the root one.
 
+## Financial Reports
+
+All report logic lives in `apps/accounting/reports.py`; views are in `apps/accounting/report_views.py`. URLs are `/erp/contabilidad/informes/<name>/`.
+
+| Report | URL | Generator function | Template |
+|--------|-----|-------------------|----------|
+| PyG | `pyg/` | `calcular_pyg()` | `pyg.html` |
+| Balance | `balance/` | `calcular_balance()` | `balance.html` |
+| IVA / Modelo 303 | `iva/` | `calcular_libro_iva()` | `iva.html` |
+| Comparativa anual | `comparativa/` | `calcular_comparativa()` | `comparativa.html` |
+| Facturas de compra | `facturas-compras/` | (view logic) | `facturas_compras.html` |
+| Libro Diario | `libro-diario/` | `obtener_asientos_diario()` | `libro_diario.html` |
+| Libro Mayor | `libro-mayor/` | `obtener_movimientos_cuenta()` | `libro_mayor.html` |
+| Valoración existencias | `existencias/` | `obtener_valor_existencias()` | `existencias.html` |
+
+**Key functions in `reports.py`:**
+- `obtener_saldo_cuenta(codigo, fecha_desde, fecha_hasta)` — core helper, returns `(debe, haber)` for any account prefix, filtered by date and posted status.
+- `obtener_asientos_diario(fecha_desde, fecha_hasta)` — returns all posted `AsientoContable` with their `MovimientoContable` rows, ordered chronologically.
+- `obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta)` — returns all movements for a specific `CuentaContable` with running balance (saldo corrido).
+- `obtener_valor_existencias()` — values stock at `stock_actual × precio_unitario` for each `Material`, compares against accounting balance in accounts 300-330.
+- `calcular_balance()` — now also passes `cuentas_balance` context with per-account detail for activo no corriente, existencias, clientes, and proveedores.
+
+**Balance template** (`balance.html`) has expandable `<details>` sections showing individual account balances under each category.
+
 ## Gotchas
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
