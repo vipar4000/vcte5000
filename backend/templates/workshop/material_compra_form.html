@@ -96,21 +96,21 @@
             {{ linea_formset.management_form }}
 
             <div class="overflow-x-auto mt-2">
-                <table id="lineas-table" class="w-full text-sm">
+                <table id="lineas-table" class="w-full text-sm border-collapse">
                     <thead>
-                        <tr class="border-b text-left text-gray-600">
-                            <th class="py-2 pr-2 w-2/5">Material</th>
-                            <th class="py-2 px-2 w-1/6">Cantidad</th>
-                            <th class="py-2 px-2 w-1/6">Precio Ud. (€)</th>
-                            <th class="py-2 px-2 w-1/6">Base (€)</th>
-                            <th class="py-2 px-2 w-1/6">Cuota IVA (€)</th>
-                            <th class="py-2 pl-2 w-10"></th>
+                        <tr class="border-b text-left text-gray-600 text-xs uppercase tracking-wide">
+                            <th class="py-2 pr-3 w-2/5">Material</th>
+                            <th class="py-2 px-2 w-20 text-right">Cant.</th>
+                            <th class="py-2 px-2 w-28 text-right">Precio Ud. (€)</th>
+                            <th class="py-2 px-2 w-28 text-right">Base (€)</th>
+                            <th class="py-2 px-2 w-28 text-right">Cuota IVA (€)</th>
+                            <th class="py-2 pl-2 w-8 text-center"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for form in linea_formset %}
-                        <tr class="linea-row border-b hover:bg-gray-50">
-                            <td class="py-2 pr-2">{{ form.material }}</td>
+                        <tr class="linea-row border-b hover:bg-gray-50 align-middle">
+                            <td class="py-2 pr-3">{{ form.material }}</td>
                             <td class="py-2 px-2">{{ form.cantidad }}</td>
                             <td class="py-2 px-2">{{ form.precio_unitario }}</td>
                             <td class="py-2 px-2 text-right base-imponible font-mono text-gray-700">0,00 €</td>
@@ -119,7 +119,7 @@
                                 {% if form.DELETE %}
                                 <input type="checkbox" name="{{ form.DELETE.name }}"
                                        id="{{ form.DELETE.id_for_label }}" class="delete-checkbox hidden">
-                                <button type="button" class="delete-linea text-red-500 hover:text-red-700 text-lg"
+                                <button type="button" class="delete-linea text-red-500 hover:text-red-700 text-lg leading-none"
                                         title="Eliminar línea">&times;</button>
                                 {% endif %}
                             </td>
@@ -129,7 +129,7 @@
                 </table>
             </div>
 
-            <div class="mt-4 flex justify-end items-center gap-6 text-sm">
+            <div class="mt-4 flex justify-end items-center gap-6 text-sm bg-gray-50 rounded-lg px-4 py-3 border">
                 <span class="font-medium text-gray-600">Total Base: <span id="total-base" class="font-mono font-bold">0,00 €</span></span>
                 <span class="font-medium text-gray-600">Total Cuota IVA: <span id="total-cuota" class="font-mono font-bold">0,00 €</span></span>
                 <span class="font-medium text-gray-800">Total Factura: <span id="total-factura" class="font-mono font-bold text-lg">0,00 €</span></span>
