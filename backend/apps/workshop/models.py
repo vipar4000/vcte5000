@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class OrdenTrabajo(models.Model):
@@ -82,18 +82,23 @@ class OrdenTrabajo(models.Model):
     def coste_mano_obra(self):
         """Calcula el coste de mano de obra."""
         if self.operario and self.operario.salario_base_mensual:
-            return self.horas_reales * self.operario.coste_hora
+            return (self.horas_reales * self.operario.coste_hora).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
         return Decimal('0')
     
     @property
     def coste_materiales(self):
         """Calcula el coste total de materiales."""
-        return sum(mo.subtotal for mo in self.materiales_usados.all())
+        total = sum(mo.subtotal for mo in self.materiales_usados.all())
+        return total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     @property
     def coste_total(self):
         """Coste total de la OT."""
-        return self.coste_mano_obra + self.coste_materiales
+        return (self.coste_mano_obra + self.coste_materiales).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
 
     def crear_asiento_contable(self):
         """Capitaliza el coste de reparación en inventario al completar la OT.

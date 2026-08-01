@@ -156,10 +156,21 @@ def orden_trabajo_update(request, pk):
         formset = MaterialUsadoFormSet(request.POST, instance=ot)
         
         if form.is_valid():
+            estado_anterior = ot.estado
             ot = form.save()
             
             if formset.is_valid():
                 formset.save()
+            
+            # Si se completó la OT desde este formulario, capitalizar reparación
+            if ot.estado == 'COMPLETADA' and estado_anterior != 'COMPLETADA':
+                try:
+                    ot.crear_asiento_contable()
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f'OT completada, pero no se pudo capitalizar el coste: {str(e)}'
+                    )
             
             # Si se completó la OT, verificar si el vehículo está listo
             if ot.estado == 'COMPLETADA':
