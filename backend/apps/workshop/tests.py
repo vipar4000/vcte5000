@@ -207,6 +207,13 @@ class OrdenTrabajoCosteTests(TestCase):
         self.assertEqual(total_debe, total_haber)
         self.assertEqual(total_debe, ot.coste_total)
 
+        # La mano de obra debe ir a 611 (Variación de existencias), no a 610
+        codigos = [m.cuenta.codigo for m in movimientos]
+        self.assertIn('611', codigos)
+        self.assertNotIn('610', codigos)
+        mov_611 = [m for m in movimientos if m.cuenta.codigo == '611'][0]
+        self.assertEqual(mov_611.haber, ot.coste_mano_obra)
+
 
 class CompraMaterialTests(TestCase):
     def setUp(self):

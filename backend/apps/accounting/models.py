@@ -212,6 +212,7 @@ class PlanContableDefault(models.Model):
             ('606', 'Repuestos', 'G'),
             ('607', 'Trabajos realizados por otras empresas', 'G'),
             ('610', 'Compras de materias primas', 'G'),
+            ('611', 'Variación de existencias', 'G'),
             ('620', 'Otros gastos exteriores', 'G'),
             ('621', 'Arrendamientos y cánones', 'G'),
             ('622', 'Notaría y Registro', 'G'),

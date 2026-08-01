@@ -1,5 +1,5 @@
 """
-Comando de gestión para la regularización anual de existencias (PGC 300/610).
+Comando de gestión para la regularización anual de existencias (PGC 300/611).
 Ejecutar con: python manage.py regularizar_existencias --ano 2025
 """
 from django.core.management.base import BaseCommand
@@ -11,7 +11,7 @@ from apps.core.formatting import format_euros
 
 
 class Command(BaseCommand):
-    help = 'Regularización anual de existencias no vendidas (asiento 300/610)'
+    help = 'Regularización anual de existencias no vendidas (asiento 300/611)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -31,7 +31,7 @@ def regularizar_existencias_anual(ano):
 
     Asiento contable:
         DEBE  300 (Existencias / Mercaderías) → valor del stock no vendido
-        HABER 610 (Variación de existencias)   → mismo importe
+        HABER 611 (Variación de existencias)   → mismo importe
 
     Args:
         ano: int, año a regularizar
@@ -69,7 +69,7 @@ def regularizar_existencias_anual(ano):
         # Verificar cuentas
         try:
             cuenta_300 = CuentaContable.objects.get(codigo='300')
-            cuenta_610 = CuentaContable.objects.get(codigo='610')
+            cuenta_611 = CuentaContable.objects.get(codigo='611')
         except CuentaContable.DoesNotExist as e:
             return (
                 f'Error: falta la cuenta contable {e} en el plan. '
@@ -115,13 +115,13 @@ def regularizar_existencias_anual(ano):
         )
 
         MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_610,
+            asiento=asiento, cuenta=cuenta_611,
             debe=Decimal('0'), haber=valor_total,
             descripcion=f'Variación de existencias {ano}',
         )
 
         return (
             f'Regularización {ano}: asiento {asiento.numero} creado. '
-            f'DEBE 300 / HABER 610 por {format_euros(valor_total)} '
+            f'DEBE 300 / HABER 611 por {format_euros(valor_total)} '
             f'({stock_no_vendido.count()} vehículos en stock).'
         )

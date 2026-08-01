@@ -105,7 +105,7 @@ class OrdenTrabajo(models.Model):
 
         DEBE  310 Mercaderías  = coste_total (mano de obra + materiales)
         HABER 300 Compras      = coste_materiales (consumo de inventario)
-        HABER 610 Variación    = coste_mano_obra
+        HABER 611 Variación de existencias = coste_mano_obra
         """
         from django.db import transaction
         from apps.accounting.models import (
@@ -123,7 +123,7 @@ class OrdenTrabajo(models.Model):
         with transaction.atomic():
             cuenta_mercancias = CuentaContable.objects.get(codigo='310')
             cuenta_compras = CuentaContable.objects.get(codigo='300')
-            cuenta_variacion = CuentaContable.objects.get(codigo='610')
+            cuenta_variacion = CuentaContable.objects.get(codigo='611')
 
             asiento = AsientoContable.objects.create(
                 numero=generar_numero_asiento(),
