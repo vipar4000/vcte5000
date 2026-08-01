@@ -217,11 +217,21 @@ function eliminarMaterial(btn) {
     calcularCostes();
 }
 
+function parseSpanishNumber(value) {
+    if (!value) return 0;
+    value = String(value);
+    if (value.includes(',')) {
+        value = value.replace(/\./g, '').replace(',', '.');
+    }
+    var parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+}
+
 function calcularCostes() {
     // Mano de obra
     var horasInput = document.getElementById('id_horas_reales');
     var operarioSelect = document.getElementById('id_operario');
-    var horas = parseFloat(horasInput.value) || 0;
+    var horas = parseSpanishNumber(horasInput.value);
     var operarioId = operarioSelect.value;
     var costeHora = operariosCosteHora[operarioId] || 0;
     var costeManoObra = horas * costeHora;
@@ -242,12 +252,12 @@ function calcularCostes() {
         var cantidadInput = row.querySelector('input[name$="-cantidad"]');
         if (select && cantidadInput) {
             var materialId = select.value;
-            var cantidad = parseFloat(cantidadInput.value) || 0;
+            var cantidad = parseSpanishNumber(cantidadInput.value);
             // Try to get price from option dataset
             var selectedOption = select.options[select.selectedIndex];
             var precio = 0;
             if (selectedOption && selectedOption.dataset && selectedOption.dataset.precio) {
-                precio = parseFloat(selectedOption.dataset.precio);
+                precio = parseSpanishNumber(selectedOption.dataset.precio);
             }
             if (materialId && cantidad > 0 && precio > 0) {
                 costeMateriales += cantidad * precio;
