@@ -8,6 +8,7 @@ from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionami
 from .forms import VentaVehiculoForm, CostoAcondicionamientoForm
 from apps.vehicles.models import Vehiculo
 from apps.warranty.models import GarantiaVehiculo
+from apps.core.formatting import format_euros
 
 
 @login_required
@@ -114,7 +115,7 @@ def venta_create(request):
             
             messages.success(
                 request, 
-                f'Venta registrada correctamente. Beneficio: €{venta.beneficio:.2f}'
+                f'Venta registrada correctamente. Beneficio: {format_euros(venta.beneficio)}'
             )
             return redirect('sales:detail', pk=venta.pk)
         else:
@@ -365,7 +366,7 @@ def costo_acondicionamiento_create(request, vehiculo_pk):
             
             messages.success(
                 request,
-                f'Costo de acondicionamiento registrado: €{costo.total}'
+                f'Costo de acondicionamiento registrado: {format_euros(costo.total)}'
             )
             return redirect('sales:costos_list', vehiculo_pk=vehiculo_pk)
     else:
@@ -439,7 +440,7 @@ def cobro_create(request, venta_pk):
 
         messages.success(
             request,
-            f'Plazo {siguiente_plazo} creado: €{importe} - vence {fecha_vencimiento}'
+            f'Plazo {siguiente_plazo} creado: {format_euros(importe)} - vence {fecha_vencimiento}'
         )
         return redirect('sales:cobro_list', venta_pk=venta.pk)
 
@@ -469,7 +470,7 @@ def cobro_recibir(request, venta_pk, pk):
         cobro.recibir(request.user)
         messages.success(
             request,
-            f'Plazo {cobro.numero_plazo} recibido: €{cobro.importe}'
+            f'Plazo {cobro.numero_plazo} recibido: {format_euros(cobro.importe)}'
         )
     except Exception as e:
         messages.error(request, f'Error al recibir el cobro: {str(e)}')

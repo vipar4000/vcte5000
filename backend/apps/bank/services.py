@@ -9,6 +9,8 @@ from django.db.models import Q, Sum
 from difflib import SequenceMatcher
 import logging
 
+from apps.core.formatting import format_euros
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +28,7 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
         if importe > disponible:
             raise ValidationError(
                 f'Saldo insuficiente en {banco_cuenta.nombre}. '
-                f'Disponible: €{disponible:.2f}, solicitado: €{importe:.2f}'
+                f'Disponible: {format_euros(disponible)}, solicitado: {format_euros(importe)}'
             )
 
     movimiento = BancoMovimiento.objects.create(

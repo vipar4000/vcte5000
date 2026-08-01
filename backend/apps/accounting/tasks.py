@@ -7,6 +7,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 import logging
 
+from apps.core.formatting import format_euros
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +43,7 @@ def liquidar_iva_trimestral():
         asiento = AsientoContable.objects.create(
             numero=generar_numero_asiento(),
             fecha=hoy,
-            concepto=f'Liquidación IVA T{trimestre}/{anio} - Cuota: €{cuota}',
+            concepto=f'Liquidación IVA T{trimestre}/{anio} - Cuota: {format_euros(cuota)}',
             estado='BORRADOR',
             tipo_documento='LiquidacionIVA',
             documento_id=trimestre,
@@ -73,7 +75,7 @@ def liquidar_iva_trimestral():
                 descripcion=f'Liquidación IVA T{trimestre}/{anio} - Compensación',
             )
         
-        logger.info(f'IVA trimestre T{trimestre}/{anio}: asiento {asiento.numero} creado, cuota €{cuota}')
+        logger.info(f'IVA trimestre T{trimestre}/{anio}: asiento {asiento.numero} creado, cuota {format_euros(cuota)}')
         return {'status': 'ok', 'asiento': asiento.numero, 'cuota': float(cuota)}
         
     except Exception as e:
@@ -108,7 +110,7 @@ def cierre_anual():
         asiento = AsientoContable.objects.create(
             numero=generar_numero_asiento(),
             fecha=hoy,
-            concepto=f'Cierre ejercicio {anio} - Resultado: €{resultado_neto}',
+            concepto=f'Cierre ejercicio {anio} - Resultado: {format_euros(resultado_neto)}',
             estado='BORRADOR',
             tipo_documento='CierreAnual',
             documento_id=anio,
@@ -140,7 +142,7 @@ def cierre_anual():
                 descripcion=f'Cierre ejercicio {anio} - Pérdida',
             )
         
-        logger.info(f'Cierre {anio}: asiento {asiento.numero}, resultado €{resultado_neto}')
+        logger.info(f'Cierre {anio}: asiento {asiento.numero}, resultado {format_euros(resultado_neto)}')
         return {'status': 'ok', 'asiento': asiento.numero, 'resultado': float(resultado_neto)}
         
     except Exception as e:

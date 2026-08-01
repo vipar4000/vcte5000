@@ -131,6 +131,10 @@ TIME_ZONE = 'Europe/Madrid'
 USE_I18N = True
 USE_TZ = True
 
+# Formatos numéricos españoles: punto para miles, coma para decimales (8.294,00)
+USE_THOUSAND_SEPARATOR = True
+FORMAT_MODULE_PATH = ['config.formats']
+
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

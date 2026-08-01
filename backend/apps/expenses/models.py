@@ -1,6 +1,8 @@
 from django.db import models
 from decimal import Decimal
 
+from apps.core.formatting import format_euros
+
 
 class GastoEstructura(models.Model):
     """Gastos generales del ejercicio no imputables al inventario de vehículos (Cuenta 300 PGC)."""
@@ -56,7 +58,7 @@ class GastoEstructura(models.Model):
         ordering = ['-fecha_factura', '-created_at']
 
     def __str__(self):
-        return f"{self.get_categoria_display()} - {self.proveedor_acreedor} ({self.total_factura} EUR)"
+        return f"{self.get_categoria_display()} - {self.proveedor_acreedor} ({format_euros(self.total_factura)})"
 
     def save(self, *args, **kwargs):
         from decimal import Decimal
@@ -453,4 +455,4 @@ class AmortizacionAnual(models.Model):
         unique_together = ['activo', 'año']
 
     def __str__(self):
-        return f"{self.activo} - {self.año}: {self.cuota} €"
+        return f"{self.activo} - {self.año}: {format_euros(self.cuota)}"
