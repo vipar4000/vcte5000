@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import Vehiculo, ImagenVehiculo
 from apps.sales.models import VentaVehiculo
+from apps.core.formatting import format_euros
 
 
 class ImagenVehiculoInline(admin.TabularInline):
@@ -63,7 +64,7 @@ class VehiculoAdmin(admin.ModelAdmin):
     )
     
     def coste_inicial_display(self, obj):
-        return f"€{obj.coste_inicial:,.2f}"
+        return format_euros(obj.coste_inicial)
     coste_inicial_display.short_description = 'Coste Inicial'
     
     def detalle_link(self, obj):

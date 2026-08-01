@@ -14,6 +14,7 @@ from .services import (
     crear_movimiento_banco, obtener_cuenta_banco_default,
     conciliar_extracto, marcar_conciliado, conciliacion_batch,
 )
+from apps.core.formatting import format_euros
 
 
 # =============================================================================
@@ -521,7 +522,7 @@ def reserva_create(request):
 
             messages.success(
                 request,
-                f'Reserva creada: €{reserva.importe_reserva} - {reserva.vehiculo}'
+                f'Reserva creada: {format_euros(reserva.importe_reserva)} - {reserva.vehiculo}'
             )
             return redirect('bank:reserva_detail', pk=reserva.pk)
     else:
@@ -575,7 +576,7 @@ def reserva_convertir(request, pk):
     # Redirigir al formulario de venta con datos pre-cargados
     messages.info(
         request,
-        f'Reserva de €{reserva.importe_reserva} será descontada del precio de venta.'
+        f'Reserva de {format_euros(reserva.importe_reserva)} será descontada del precio de venta.'
     )
     return redirect(
         f'/erp/ventas/nueva/?vehiculo={reserva.vehiculo.pk}'

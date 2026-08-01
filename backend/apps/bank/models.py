@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from decimal import Decimal
 
+from apps.core.formatting import format_euros
+
 
 class BancoCuenta(models.Model):
     """Cuenta bancaria corporativa de la S.L."""
@@ -127,7 +129,7 @@ class BancoMovimiento(models.Model):
 
     def __str__(self):
         signo = '+' if self.tipo == 'INGRESO' else '-'
-        return f"{self.fecha} {signo}€{self.importe} - {self.concepto[:50]}"
+        return f"{self.fecha} {signo} {format_euros(self.importe)} - {self.concepto[:50]}"
 
 
 class Reserva(models.Model):
@@ -186,7 +188,7 @@ class Reserva(models.Model):
         ordering = ['-fecha_reserva']
 
     def __str__(self):
-        return f"Reserva {self.vehiculo} - {self.cliente_nombre} (€{self.importe_reserva})"
+        return f"Reserva {self.vehiculo} - {self.cliente_nombre} ({format_euros(self.importe_reserva)})"
 
     @property
     def base_imponible(self):

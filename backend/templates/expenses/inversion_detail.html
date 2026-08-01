@@ -59,10 +59,10 @@
                 <tr class="border-t">
                     <td class="px-2 py-2">{{ l.get_categoria_display }}</td>
                     <td class="px-2 py-2">{{ l.concepto }}</td>
-                    <td class="px-2 py-2">{{ l.base_imponible }} €</td>
-                    <td class="px-2 py-2">{{ l.tipo_iva }}</td>
-                    <td class="px-2 py-2">{{ l.cuota_iva }} €</td>
-                    <td class="px-2 py-2">{{ l.total_linea }} €</td>
+                    <td class="px-2 py-2">{{ l.base_imponible|floatformat:2 }} €</td>
+                    <td class="px-2 py-2">{{ l.tipo_iva|floatformat:2 }} %</td>
+                    <td class="px-2 py-2">{{ l.cuota_iva|floatformat:2 }} €</td>
+                    <td class="px-2 py-2">{{ l.total_linea|floatformat:2 }} €</td>
                     <td class="px-2 py-2">{{ l.cuenta_contable_destino }}</td>
                 </tr>
                 {% if l.activo_fijo %}
@@ -88,8 +88,8 @@
                 <tr class="border-t">
                     <td class="px-2 py-2">{{ m.cuenta }}</td>
                     <td class="px-2 py-2">{{ m.descripcion }}</td>
-                    <td class="px-2 py-2">{{ m.debe }} €</td>
-                    <td class="px-2 py-2">{{ m.haber }} €</td>
+                    <td class="px-2 py-2">{{ m.debe|floatformat:2 }} €</td>
+                    <td class="px-2 py-2">{{ m.haber|floatformat:2 }} €</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -4,6 +4,8 @@ from decimal import Decimal
 import hashlib
 import json
 
+from apps.core.formatting import format_euros
+
 
 class VentaVehiculo(models.Model):
     """Modelo de venta de vehículo."""
@@ -326,7 +328,7 @@ class FacturaVenta(models.Model):
         ordering = ['-fecha_operacion', '-codigo_factura']
     
     def __str__(self):
-        return f"{self.codigo_factura} - {self.cliente_nombre} (€{self.precio_venta_total})"
+        return f"{self.codigo_factura} - {self.cliente_nombre} ({format_euros(self.precio_venta_total)})"
     
     def save(self, *args, **kwargs):
         if not self.hash_verifactu:
@@ -397,7 +399,7 @@ class DetalleRebu(models.Model):
         verbose_name_plural = 'detalles REBU'
     
     def __str__(self):
-        return f"REBU {self.vehiculo} - Margen: €{self.margen_bruto}"
+        return f"REBU {self.vehiculo} - Margen: {format_euros(self.margen_bruto)}"
     
     @property
     def margen_bruto(self):
@@ -485,7 +487,7 @@ class CostoAcondicionamiento(models.Model):
         ordering = ['-fecha']
     
     def __str__(self):
-        return f"{self.get_categoria_display()} - {self.vehiculo} (€{self.total})"
+        return f"{self.get_categoria_display()} - {self.vehiculo} ({format_euros(self.total)})"
     
     def save(self, *args, **kwargs):
         # IVA no deducible: se suma al total, NO va a cuenta 472
@@ -595,7 +597,7 @@ class CobroFraccionado(models.Model):
         unique_together = ['venta', 'numero_plazo']
 
     def __str__(self):
-        return f"Plazo {self.numero_plazo} - {self.venta} (€{self.importe})"
+        return f"Plazo {self.numero_plazo} - {self.venta} ({format_euros(self.importe)})"
 
     def recibir(self, user):
         """

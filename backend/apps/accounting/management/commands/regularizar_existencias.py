@@ -7,6 +7,8 @@ from django.db import transaction
 from decimal import Decimal
 from datetime import date
 
+from apps.core.formatting import format_euros
+
 
 class Command(BaseCommand):
     help = 'Regularización anual de existencias no vendidas (asiento 300/610)'
@@ -97,7 +99,7 @@ def regularizar_existencias_anual(ano):
             fecha=date(ano, 12, 31),
             concepto=(
                 f'Regularización existencias {ano} - '
-                f'Stock no vendido: €{valor_total:.2f} '
+                f'Stock no vendido: {format_euros(valor_total)} '
                 f'({stock_no_vendido.count()} vehículos)'
             ),
             estado='BORRADOR',
@@ -120,6 +122,6 @@ def regularizar_existencias_anual(ano):
 
         return (
             f'Regularización {ano}: asiento {asiento.numero} creado. '
-            f'DEBE 300 / HABER 610 por €{valor_total:.2f} '
+            f'DEBE 300 / HABER 610 por {format_euros(valor_total)} '
             f'({stock_no_vendido.count()} vehículos en stock).'
         )

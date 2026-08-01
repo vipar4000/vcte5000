@@ -11,6 +11,7 @@ from .forms import (
     AsientoContableForm, MovimientoContableFormSet, FiltroAsientosForm,
     CuentaContableForm
 )
+from apps.core.formatting import format_euros
 
 
 @login_required
@@ -81,7 +82,7 @@ def asiento_create(request):
             if not asiento.esta_cuadrado:
                 messages.warning(
                     request,
-                    f'Asiento creado pero NO cuadrado (Debe: €{asiento.total_debe} / Haber: €{asiento.total_haber})'
+                    f'Asiento creado pero NO cuadrado (Debe: {format_euros(asiento.total_debe)} / Haber: {format_euros(asiento.total_haber)})'
                 )
             else:
                 messages.success(request, 'Asiento contable creado correctamente')
@@ -161,7 +162,7 @@ def asiento_postear(request, pk):
     if not asiento.esta_cuadrado:
         messages.error(
             request,
-            f'El asiento no está cuadrado (Debe: €{asiento.total_debe} / Haber: €{asiento.total_haber})'
+            f'El asiento no está cuadrado (Debe: {format_euros(asiento.total_debe)} / Haber: {format_euros(asiento.total_haber)})'
         )
         return redirect('accounting:detail', pk=asiento.pk)
     

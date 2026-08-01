@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import GastoEstructura, InversionInicial, LineaInversionInicial
+from apps.core.formatting import format_euros
 
 
 class GastoEstructuraForm(forms.ModelForm):
@@ -160,8 +161,8 @@ class InversionInicialForm(forms.ModelForm):
         )
         if total_calculado != Decimal(str(total_fisico)).quantize(Decimal('0.01')):
             raise forms.ValidationError(
-                f'Descuadre: el total calculado de las líneas ({total_calculado} €) '
-                f'no coincide con el Total Factura Físico ({total_fisico} €).'
+                f'Descuadre: el total calculado de las líneas ({format_euros(total_calculado)}) '
+                f'no coincide con el Total Factura Físico ({format_euros(total_fisico)}).'
             )
         return cleaned
 

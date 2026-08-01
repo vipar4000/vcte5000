@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from apps.warranty.models import GarantiaVehiculo
+from apps.core.formatting import format_euros
 
 
 @admin.register(VentaVehiculo)
@@ -52,8 +53,8 @@ class VentaVehiculoAdmin(admin.ModelAdmin):
         beneficio = obj.beneficio
         color = 'green' if beneficio > 0 else 'red'
         return format_html(
-            '<span style="color: {};">€{}</span>',
-            color, f'{beneficio:,.2f}'
+            '<span style="color: {};">{}</span>',
+            color, format_euros(beneficio)
         )
     beneficio_display.short_description = 'Beneficio'
     

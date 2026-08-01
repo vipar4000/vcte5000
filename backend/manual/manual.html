@@ -795,7 +795,7 @@ Material (stock: 100)
 </div>
 
 <pre><code>Margen = Precio de Venta - Coste Total del Vehiculo
-Base Imponible = Margen / 1.21
+Base Imponible = Margen / 1,21
 Cuota IVA = Base Imponible x 21% (si Base Imponible > 0)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
@@ -911,7 +911,7 @@ Coste/Hora = Coste Mensual Total / 176 horas (22 dias x 8 horas)
 
 Ejemplo con Convenio del Metal de Madrid:
   Salario Base: 1.800 EUR/mes
-  SS Patronal: 31.50%
+  SS Patronal: 31,50%
   Coste Mensual = 1.800 x 1,315 = 2.367 EUR
   Coste/Hora = 2.367 / 176 = 13,45 EUR/hora</code></pre>
 
@@ -1128,7 +1128,7 @@ Verificacion: DEBE (150,00) = HABER (150,00) -> CUADRADO</code></pre>
   = Margen de Beneficio
        |
        v
-  / 1.21 (para extraer base del IVA incluido)
+  / 1,21 (para extraer base del IVA incluido)
        |
        v
   = Base Imponible
@@ -1138,7 +1138,7 @@ Verificacion: DEBE (150,00) = HABER (150,00) -> CUADRADO</code></pre>
     </div>
 </div>
 
-<pre><code>Base Imponible = Margen / 1.21
+<pre><code>Base Imponible = Margen / 1,21
 Cuota IVA = Base Imponible x 21%
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
@@ -1154,7 +1154,7 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
     - Precio de venta al cliente: 11.900 EUR<br><br>
     <strong>Calculo REBU:</strong><br>
     - Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    - Base Imponible = 3.567,50 / 1.21 = <strong>2.948,35 EUR</strong><br>
+    - Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
     - Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
     - Beneficio neto = 2.948,35 EUR<br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
@@ -1235,7 +1235,7 @@ NOTA: El IVA de 105,00 EUR NO es deducible -> va a la cuenta 623, NO a 472.</cod
     - <strong>Coste Total = 12.927,50 EUR</strong><br><br>
     Si se vende a 16.500 EUR:<br>
     - Margen = 16.500 - 12.927,50 = 3.572,50 EUR<br>
-    - Base Imponible = 3.572,50 / 1.21 = 2.952,48 EUR<br>
+    - Base Imponible = 3.572,50 / 1,21 = 2.952,48 EUR<br>
     - Cuota IVA = 2.952,48 x 21% = 620,02 EUR
 </div>
 
@@ -2042,7 +2042,7 @@ CREAR CUENTA BANCARIA
             </tbody>
         </table>
         <p class="mt-2">
-            Base = 500 / 1.21 = 413,22 EUR<br>
+            Base = 500 / 1,21 = 413,22 EUR<br>
             IVA = 413,22 x 21% = 86,78 EUR
         </p>
     </div>
@@ -2629,7 +2629,7 @@ Total: 6 vehiculos
         |
         v
 4. VENDIDO (1 Jul 2026 - Carlos Garcia Lopez, PARTICULAR)
-   REBU: Base = (16.500 - 12.020) / 1.21 = 3.702,48 EUR
+   REBU: Base = (16.500 - 12.020) / 1,21 = 3.702,48 EUR
    IVA = 3.702,48 x 21% = 777,52 EUR
    Beneficio bruto = 4.480,00 EUR
         |
@@ -2970,7 +2970,7 @@ de la Ley del IVA.
     <strong>Factura rectificativa R1:</strong><br>
     - Precio corregido: 11.500 EUR<br>
     - Diferencia: 12.000 - 11.500 = -500 EUR<br>
-    - Base Imponible rectificada: 500 / 1.21 = 413,22 EUR<br>
+    - Base Imponible rectificada: 500 / 1,21 = 413,22 EUR<br>
     - IVA rectificado: 413,22 x 21% = 86,78 EUR<br><br>
     El cliente recibe un abono de 500 EUR
 </div>
@@ -4103,7 +4103,7 @@ USUARIO REGISTRA OPERACION
 </table>
 
 <div class="info-box">
-    <strong>Calculo REBU:</strong> Base Imponible = (Precio Venta - Coste Total) / 1.21. Cuota IVA = Base x 21%. Ver <a href="#capitulo-8-3">8.3 REBU</a> para el ejemplo numerico completo.
+    <strong>Calculo REBU:</strong> Base Imponible = (Precio Venta - Coste Total) / 1,21. Cuota IVA = Base x 21%. Ver <a href="#capitulo-8-3">8.3 REBU</a> para el ejemplo numerico completo.
 </div>
 
 <h2 id="capitulo-18-7">18.7 Registrar Gasto de Estructura</h2>
@@ -4122,7 +4122,7 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
     <tr><td><strong>Movimiento bancario</strong></td><td>INGRESO por el importe de la senal.</td></tr>
-    <tr><td><strong>Asiento anticipo</strong></td><td>DEBE 572 (Banco) / HABER 438 (Anticipos Clientes) + HABER 477 (HP IVA Repercutido). Base = importe / 1.21, IVA = base x 21%.</td></tr>
+    <tr><td><strong>Asiento anticipo</strong></td><td>DEBE 572 (Banco) / HABER 438 (Anticipos Clientes) + HABER 477 (HP IVA Repercutido). Base = importe / 1,21, IVA = base x 21%.</td></tr>
 </table>
 
 <div class="info-box">
