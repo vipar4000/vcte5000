@@ -780,11 +780,11 @@ Material (stock: 100)
 
 <div class="info-box">
     <strong>Calculos automaticos al guardar:</strong><br>
-    coste_total = copiado del vehiculo (ej: 8.332,50 EUR)<br>
-    margen = precio_venta - coste_total = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    base_imponible = margen / 1,21 = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    cuota_iva = base_imponible x 21% = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>42,82%</strong><br><br>
+    coste_total = copiado del vehiculo (ej: 8.267,85 EUR)<br>
+    margen = precio_venta - coste_total = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    base_imponible = margen / 1,21 = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    cuota_iva = base_imponible x 21% = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>43,93%</strong><br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -804,12 +804,12 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 
 <div class="warning-box">
     <strong>Ejemplo numerico:</strong><br>
-    Coste Total del vehiculo: 8.332,50 EUR<br>
+    Coste Total del vehiculo: 8.267,85 EUR<br>
     Precio de Venta: 11.900 EUR<br><br>
-    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    Beneficio = 2.948,35 EUR<br><br>
+    Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    Cuota IVA (21%) = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    Beneficio = 3.001,78 EUR<br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -1149,15 +1149,15 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
     <strong>Ejemplo numerico completo:</strong><br><br>
     <strong>Datos del vehiculo:</strong><br>
     - Coste adquisicion: 8.150,00 EUR (precio subasta + tasas + grua)<br>
-    - Reparaciones (OT): 182,50 EUR<br>
-    - <strong>Coste Total = 8.332,50 EUR</strong><br><br>
+    - Reparaciones (OT): 117,85 EUR<br>
+    - <strong>Coste Total = 8.267,85 EUR</strong><br><br>
     <strong>Datos de la venta:</strong><br>
     - Precio de venta al cliente: 11.900 EUR<br><br>
     <strong>Calculo REBU:</strong><br>
-    - Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    - Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    - Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    - Beneficio neto = 2.948,35 EUR<br><br>
+    - Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    - Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    - Cuota IVA (21%) = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    - Beneficio neto = 3.001,78 EUR<br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -1167,20 +1167,20 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 <div class="diagram">
     <div class="title">Flujo del Asiento de Venta REBU</div>
     <div class="flow">
-Venta Registrada (precio: 11.900 EUR, coste: 8.332,50 EUR)
+Venta Registrada (precio: 11.900 EUR, coste: 8.267,85 EUR)
          |
          v
 Calcular REBU:
-  Margen = 3.567,50
-  Base = 2.948,35
-  IVA  = 619,15
+  Margen = 3.632,15
+  Base = 3.001,78
+  IVA  = 630,37
          |
          v
 Crear Asiento Contable (4 movimientos):
   DEBE  572 (Banco)        11.900,00  <-- Cobro del cliente
-  HABER 700 (Ventas)        2.948,35  <-- Ingresos (margen REBU)
-  HABER 471 (IVA Repercutido) 619,15  <-- IVA sobre el margen
-  HABER 310 (Mercancias)    8.332,50  <-- Baja de inventario (coste del vehiculo)
+  HABER 700 (Ventas)        3.001,78  <-- Ingresos (margen REBU)
+  HABER 471 (IVA Repercutido) 630,37  <-- IVA sobre el margen
+  HABER 310 (Mercancias)    8.267,85  <-- Baja de inventario (coste del vehiculo)
          |
          v
 Verificar: DEBE (11.900,00) = HABER (11.900,00) -> CUADRADO
@@ -1190,12 +1190,12 @@ Verificar: DEBE (11.900,00) = HABER (11.900,00) -> CUADRADO
 <pre><code>Asiento de Venta REBU - Vehiculo (11.900 EUR)
 
 Cuenta 572 (Banco)              - DEBE:  11.900,00 EUR
-Cuenta 700 (Ventas mercancias)  - HABER:  2.948,35 EUR
-Cuenta 471 (IVA Repercutido)    - HABER:    619,15 EUR
-Cuenta 310 (Mercancias)         - HABER:  8.332,50 EUR
+Cuenta 700 (Ventas mercancias)  - HABER:  3.001,78 EUR
+Cuenta 471 (IVA Repercutido)    - HABER:    630,37 EUR
+Cuenta 310 (Mercancias)         - HABER:  8.267,85 EUR
 
 DEBE:  11.900,00 EUR
-HABER: 2.948,35 + 619,15 + 8.332,50 = 11.900,00 EUR
+HABER: 3.001,78 + 630,37 + 8.267,85 = 11.900,00 EUR
 Verificacion: CUADRADO</code></pre>
 
 <div class="info-box">
@@ -4261,10 +4261,10 @@ USUARIO REGISTRA OPERACION
     <tr><td>Tasas sala</td><td>400,00 EUR</td></tr>
     <tr><td>Logistica/grua</td><td>250,00 EUR</td></tr>
     <tr><td>Coste inicial</td><td><strong>8.150,00 EUR</strong></td></tr>
-    <tr><td>Coste reparacion</td><td><strong>182,50 EUR</strong> (materiales + mano de obra)</td></tr>
-    <tr><td>Coste total</td><td><strong>8.332,50 EUR</strong></td></tr>
+    <tr><td>Coste reparacion</td><td><strong>117,85 EUR</strong> (materiales + mano de obra)</td></tr>
+    <tr><td>Coste total</td><td><strong>8.267,85 EUR</strong></td></tr>
     <tr><td>Precio venta</td><td><strong>11.900,00 EUR</strong></td></tr>
-    <tr><td>Margen REBU</td><td><strong>3.567,50 EUR</strong> (42,8%)</td></tr>
+    <tr><td>Margen REBU</td><td><strong>3.632,15 EUR</strong> (43,2%)</td></tr>
 </table>
 
 <h2 id="capitulo-20-2">20.2 Vista General del Flujo</h2>
@@ -4597,23 +4597,23 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </table>
 <div class="info-box">
     <strong>Coste total de la OT:</strong><br>
-    Mano de obra: 3h &times; 35,00 EUR/h = <strong>105,00 EUR</strong><br>
+    Mano de obra: 3h &times; 13,45 EUR/h = <strong>40,35 EUR</strong><br>
     Materiales: <strong>77,50 EUR</strong><br>
-    <strong>Total OT = 182,50 EUR</strong><br><br>
-    Este coste se suma al coste de reparacion del vehiculo.
+    <strong>Total OT = 117,85 EUR</strong><br><br>
+    <em>Nota: el coste/hora se calcula con la formula del sistema: (Salario Base &times; (1 + %SS/100)) / 176. Con 1.800 EUR de salario y 31,5% de SS patronal, da 13,45 EUR/h.</em>
 </div>
 <div class="success-box">
     <strong>Asiento de capitalizacion generado al completar la OT (POSTEADO):</strong><br>
-    DEBE 310 (Mercancias) &mdash; 182,50 EUR<br>
+    DEBE 310 (Mercancias) &mdash; 117,85 EUR<br>
     HABER 300 (Compras) &mdash; 77,50 EUR (materiales consumidos)<br>
-    HABER 610 (Variacion de existencias) &mdash; 105,00 EUR (mano de obra)<br>
+    HABER 610 (Variacion de existencias) &mdash; 40,35 EUR (mano de obra)<br>
     <strong>Estado: POSTEADO</strong> &mdash; el coste de la reparacion se capitaliza en el vehiculo (310) y se da de baja en la venta.
 </div>
 
 <h3>Paso 3.5 &mdash; Pasar a ACONDICIONADO</h3>
 <p>Desde la ficha del vehiculo, seccion "Cambiar Estado", seleccione <strong>ACONDICIONADO</strong>.</p>
 <div class="success-box">
-    <strong>Efecto:</strong> Vehiculo listo para preparar para venta. Coste total del vehiculo: 8.150,00 (inicial) + 182,50 (reparacion) = <strong>8.332,50 EUR</strong>
+    <strong>Efecto:</strong> Vehiculo listo para preparar para venta. Coste total del vehiculo: 8.150,00 (inicial) + 117,85 (reparacion) = <strong>8.267,85 EUR</strong>
 </div>
 
 <h3>Paso 4.1 &mdash; Poner EN_VENTA</h3>
@@ -4650,18 +4650,18 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <table>
         <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
         <tr><td>572 (Banco Santander)</td><td>11.900,00</td><td></td></tr>
-        <tr><td>700 (Ventas mercancias)</td><td></td><td>2.948,35</td></tr>
-        <tr><td>471 (IVA Repercutido)</td><td></td><td>619,15</td></tr>
-        <tr><td>310 (Mercancias)</td><td></td><td>8.332,50</td></tr>
+        <tr><td>700 (Ventas mercancias)</td><td></td><td>3.001,78</td></tr>
+        <tr><td>471 (IVA Repercutido)</td><td></td><td>630,37</td></tr>
+        <tr><td>310 (Mercancias)</td><td></td><td>8.267,85</td></tr>
         <tr><td colspan="3"><strong>DEBE = HABER = 11.900,00 EUR</strong></td></tr>
     </table>
 </div>
 
 <div class="info-box">
     <strong>Calculo REBU:</strong><br>
-    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    Cuota IVA = 2.948,35 &times; 21% = <strong>619,15 EUR</strong><br>
+    Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    Cuota IVA = 3.632,15 - 3.001,78 = <strong>630,37 EUR</strong><br>
     El cliente paga <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -4693,15 +4693,15 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <strong>REPARACION (OT):</strong><br>
     &nbsp;&nbsp;- Aceite motor 5W30 (5L &times; 8,50): 42,50 EUR<br>
     &nbsp;&nbsp;- Pastillas de freno (1 juego &times; 35,00): 35,00 EUR<br>
-    &nbsp;&nbsp;- Mano de obra (3h &times; 35,00): 105,00 EUR<br>
-    &nbsp;&nbsp;- <strong>Coste reparacion = 182,50 EUR</strong><br><br>
-    <strong>COSTE TOTAL = 8.150,00 + 182,50 = 8.332,50 EUR</strong><br><br>
+    &nbsp;&nbsp;- Mano de obra (3h &times; 13,45): 40,35 EUR<br>
+    &nbsp;&nbsp;- <strong>Coste reparacion = 117,85 EUR</strong><br><br>
+    <strong>COSTE TOTAL = 8.150,00 + 117,85 = 8.267,85 EUR</strong><br><br>
     <strong>VENTA:</strong><br>
     &nbsp;&nbsp;- Precio venta: 11.900,00 EUR<br>
-    &nbsp;&nbsp;- Margen bruto: 3.567,50 EUR (42,8%)<br>
-    &nbsp;&nbsp;- Base imponible REBU: 2.948,35 EUR<br>
-    &nbsp;&nbsp;- IVA REBU (21%): 619,15 EUR<br><br>
-    <strong>Beneficio neto aproximado: 2.948,35 EUR</strong> (antes de gastos de estructura)
+    &nbsp;&nbsp;- Margen bruto: 3.632,15 EUR (43,2%)<br>
+    &nbsp;&nbsp;- Base imponible REBU: 3.001,78 EUR<br>
+    &nbsp;&nbsp;- IVA REBU (21%): 630,37 EUR<br><br>
+    <strong>Beneficio neto aproximado: 3.001,78 EUR</strong> (antes de gastos de estructura)
 </div>
 
 <h3>Asientos contables generados (7)</h3>
@@ -4713,8 +4713,8 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>3</td><td>Compra vehiculo</td><td>310 (8.150,00) + 472 (136,50)</td><td>572 (8.286,50)</td></tr>
     <tr><td>4</td><td>Compra material #1 (aceite)</td><td>300 (170,00) + 472 (35,70)</td><td>410 (205,70)</td></tr>
     <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
-    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (182,50)</td><td>300 (77,50) + 610 (105,00)</td></tr>
-    <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (2.948,35) + 471 (619,15) + 310 (8.332,50)</td></tr>
+    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 610 (40,35)</td></tr>
+    <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
 </table>
 
 <h3>Movimientos bancarios (4)</h3>
@@ -4769,8 +4769,8 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <table>
     <tr><th>Informe</th><th>Que verificar</th></tr>
     <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto</td></tr>
-    <tr><td>PyG</td><td>Ingresos (700): 2.948,35 EUR | Gastos: 0,00 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
-    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 619,15 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 = 624,75 EUR</td></tr>
+    <tr><td>PyG</td><td>Ingresos (700): 3.001,78 EUR | Gastos: 0,00 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 = 624,75 EUR</td></tr>
     <tr><td>Asientos</td><td>7 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU. Todos POSTEADOS</td></tr>
 </table>
 
@@ -4793,8 +4793,8 @@ python manage.py migrate</code></pre>
 <pre><code>python manage.py shell -c "
 from apps.accounts.models import User
 User.objects.create_superuser('admin', 'admin@eurocar.local', 'admin123!', first_name='Administrador', last_name='Rogil')
-User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', first_name='Carlos', last_name='Garcia', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800)
-User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', first_name='Ana', last_name='Lopez', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800)
+User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', first_name='Carlos', last_name='Garcia', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800, porcentaje_ss_patronal=31.50)
+User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', first_name='Ana', last_name='Lopez', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800, porcentaje_ss_patronal=31.50)
 User.objects.create_user('vendedor1', email='vendedor1@eurocar.local', password='vendedor123!', first_name='Pedro', last_name='Martinez', rol='VENDEDOR')
 User.objects.create_user('gestoria1', email='gestoria1@eurocar.local', password='gestoria123!', first_name='Laura', last_name='Fernandez', rol='GESTORIA')
 print('Usuarios de prueba creados')"</code></pre>
