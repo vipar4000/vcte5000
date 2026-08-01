@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from apps.expenses.models import GastoEstructura
+from apps.expenses.forms import GastoEstructuraForm, _parse_decimal_spanish
 from apps.accounting.models import CuentaContable, AsientoContable, MovimientoContable
 from apps.accounting.models import PlanContableDefault
 
@@ -109,3 +110,55 @@ class GastoEstructuraModelTest(TestCase):
             created_by=self.user,
         )
         self.assertFalse(gasto_sin.tiene_retencion)
+
+
+class FormatoNumericoFormTest(TestCase):
+    """Regresión: los formularios deben aceptar formato español (1.234,56)."""
+
+    def test_parse_decimal_spanish(self):
+        self.assertEqual(_parse_decimal_spanish('1.200,00'), Decimal('1200.00'))
+        self.assertEqual(_parse_decimal_spanish('2480,50'), Decimal('2480.50'))
+        self.assertEqual(_parse_decimal_spanish('1200'), Decimal('1200'))
+        self.assertEqual(_parse_decimal_spanish('1200.00'), Decimal('1200.00'))
+        self.assertEqual(_parse_decimal_spanish('21,00'), Decimal('21.00'))
+        self.assertEqual(_parse_decimal_spanish(''), None)
+        self.assertEqual(_parse_decimal_spanish(None), None)
+
+    def test_gasto_estructura_form_acepta_formato_espanol(self):
+        PlanContableDefault.crear_plan_base()
+        user = User.objects.create_user(
+            username='testadmin',
+            password='testpass123!',
+            rol='ADMIN'
+        )
+        data = {
+            'fecha_factura': '2026-07-01',
+            'proveedor_acreedor': 'Test S.L.',
+            'cif_nif': 'B12345678',
+            'categoria': 'SUMINISTROS',
+            'base_imponible': '1.200,00',
+            'tipo_iva': '21,00',
+            'retencion_irpf': '0,00',
+            'pagado': False,
+        }
+        form = GastoEstructuraForm(data)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['base_imponible'], Decimal('1200.00'))
+        self.assertEqual(form.cleaned_data['tipo_iva'], Decimal('21.00'))
+        self.assertEqual(form.cleaned_data['retencion_irpf'], Decimal('0.00'))
+
+    def test_gasto_estructura_form_rechaza_valor_invalido(self):
+        PlanContableDefault.crear_plan_base()
+        data = {
+            'fecha_factura': '2026-07-01',
+            'proveedor_acreedor': 'Test S.L.',
+            'cif_nif': 'B12345678',
+            'categoria': 'SUMINISTROS',
+            'base_imponible': 'abc',
+            'tipo_iva': '21,00',
+            'retencion_irpf': '0,00',
+            'pagado': False,
+        }
+        form = GastoEstructuraForm(data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('base_imponible', form.errors)

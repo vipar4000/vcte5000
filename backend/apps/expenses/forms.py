@@ -1,11 +1,65 @@
 from django import forms
 from django.forms import inlineformset_factory
+from decimal import Decimal, InvalidOperation
 from .models import GastoEstructura, InversionInicial, LineaInversionInicial
 from apps.core.formatting import format_euros
 
 
+def _parse_decimal_spanish(valor):
+    """Convierte cadenas en formato español (1.234,56) o inglés (1234.56) a Decimal."""
+    if valor is None or valor == '':
+        return None
+    if isinstance(valor, Decimal):
+        return valor
+    if isinstance(valor, (int, float)):
+        return Decimal(str(valor))
+    valor = str(valor).strip()
+    if valor == '':
+        return None
+    # Si hay coma, asumimos formato español: puntos = miles, coma = decimal.
+    if ',' in valor:
+        valor = valor.replace('.', '').replace(',', '.')
+    # Si no hay coma, asumimos formato inglés: punto = decimal.
+    try:
+        return Decimal(valor)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+class SpanishDecimalField(forms.DecimalField):
+    """DecimalField que acepta formato español (1.234,56) además del inglés."""
+
+    def to_python(self, value):
+        value = _parse_decimal_spanish(value)
+        if value is None:
+            return super().to_python('')
+        return super().to_python(str(value))
+
+
 class GastoEstructuraForm(forms.ModelForm):
     """Formulario para crear/editar gastos de estructura."""
+
+    base_imponible = SpanishDecimalField(
+        max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': '1.200,00',
+        }),
+    )
+    tipo_iva = SpanishDecimalField(
+        max_digits=4, decimal_places=2, min_value=0, max_value=100,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': '21,00',
+        }),
+    )
+    retencion_irpf = SpanishDecimalField(
+        max_digits=4, decimal_places=2, min_value=0, max_value=100,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': '19,00',
+        }),
+    )
 
     class Meta:
         model = GastoEstructura
@@ -30,23 +84,6 @@ class GastoEstructuraForm(forms.ModelForm):
             }),
             'categoria': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
-            }),
-            'base_imponible': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
-            }),
-            'tipo_iva': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
-                'max': '100',
-            }),
-            'retencion_irpf': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01',
-                'min': '0',
-                'max': '100',
             }),
             'pagado': forms.CheckboxInput(attrs={
                 'class': 'rounded',
@@ -92,6 +129,14 @@ class GastoBusquedaForm(forms.Form):
 class InversionInicialForm(forms.ModelForm):
     """Cabecera del asistente de inversión inicial."""
 
+    total_factura_fisico = SpanishDecimalField(
+        max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'placeholder': '2.480,50',
+        }),
+    )
+
     class Meta:
         model = InversionInicial
         fields = [
@@ -112,10 +157,6 @@ class InversionInicialForm(forms.ModelForm):
             }),
             'forma_pago': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
-            }),
-            'total_factura_fisico': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'step': '0.01', 'min': '0',
             }),
             'documento_pdf': forms.FileInput(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
@@ -170,6 +211,21 @@ class InversionInicialForm(forms.ModelForm):
 class LineaInversionInicialForm(forms.ModelForm):
     """Línea de desglose de la inversión inicial."""
 
+    base_imponible = SpanishDecimalField(
+        max_digits=12, decimal_places=2, min_value=0,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-2 py-1 border rounded-lg base-imponible',
+            'placeholder': '1.200,00',
+        }),
+    )
+    tipo_iva = SpanishDecimalField(
+        max_digits=4, decimal_places=2, min_value=0, max_value=100,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-2 py-1 border rounded-lg tipo-iva',
+            'placeholder': '21,00',
+        }),
+    )
+
     class Meta:
         model = LineaInversionInicial
         fields = ['categoria', 'concepto', 'base_imponible', 'tipo_iva']
@@ -180,14 +236,6 @@ class LineaInversionInicialForm(forms.ModelForm):
             'concepto': forms.TextInput(attrs={
                 'class': 'w-full px-2 py-1 border rounded-lg',
                 'placeholder': 'Descripción del artículo/servicio',
-            }),
-            'base_imponible': forms.NumberInput(attrs={
-                'class': 'w-full px-2 py-1 border rounded-lg base-imponible',
-                'step': '0.01', 'min': '0',
-            }),
-            'tipo_iva': forms.NumberInput(attrs={
-                'class': 'w-full px-2 py-1 border rounded-lg tipo-iva',
-                'step': '0.01', 'min': '0', 'max': '100',
             }),
         }
 
