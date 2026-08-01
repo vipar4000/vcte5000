@@ -22,8 +22,11 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 | Django mgmt (Docker) | `docker-compose exec backend python manage.py <cmd>` |
 | Django mgmt (local) | `cd backend && python manage.py <cmd>` |
 | Create test users | `python create_test_users.py` (required before tests) |
+| Django unit tests | `cd backend && python manage.py test` (isolated test DB) |
 | Integration tests | `python test_modules.py` (needs test users + `migrate` first) |
+| Report data check | `python check_report_data.py` (needs dev data + `migrate`) |
 | File I/O tests | `python -m unittest test_io.py` |
+| §20 pipeline test | `python test_pipeline_capitulo20.py` (needs Docker Postgres + test users) |
 | Frontend dev server | `cd frontend && npm run dev` (port 3000, proxies `/api`, `/media` → :8000) |
 | Build frontend | `cd frontend && npm run build` → `backend/static/web/` |
 | Full sample data | `python create_full_test.py` (after test users) |
@@ -32,7 +35,11 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 
 ## Testing
 
-No pytest. `test_modules.py` uses Django `Client` directly, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). **Stale** — it hits un-prefixed paths (`/vehiculos/`, `/taller/`, etc.) but ERP views moved to `/erp/`, so these now hit the SPA catch-all and fail. Prefix with `/erp/` (e.g. `/erp/vehiculos/`) to fix. Only `/admin/` still resolves at root.
+No pytest. Three layers:
+
+- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 45 tests. `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres) and `expenses/tests.py` seeds subaccount `4751.115` for the retención branch.
+- **Integration smoke** (`python test_modules.py`) — Django `Client` against the dev DB, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). Uses `/erp/`-prefixed paths plus a `FINANCIAL REPORTS` section; 54 checks. Needs test users + `migrate` first.
+- **Data check** (`python check_report_data.py`) — runs the report generators against real dev data and asserts the Balance squares (Activo = Pasivo + Patrimonio) and that every posted asiento is balanced.
 
 Test users from `create_test_users.py`:
 

@@ -35,12 +35,46 @@
             </tbody>
             <tfoot>
                 <tr class="bg-gray-50 font-bold border-t-2 border-gray-300">
-                    <td colspan="4" class="px-4 py-2 text-right">Valor total existencias</td>
-                    <td class="px-4 py-2 text-right font-mono">€{{ data.total_valor|floatformat:2 }}</td>
+                    <td colspan="4" class="px-4 py-2 text-right">Valor materiales en stock</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ data.total_materiales|floatformat:2 }}</td>
                 </tr>
             </tfoot>
         </table>
     </div>
+
+    {% if data.vehiculos %}
+    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <div class="bg-gray-50 px-6 py-3 border-b">
+            <h2 class="font-bold text-gray-800">Detalle por vehículo (310 Mercaderías)</h2>
+        </div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-100 text-gray-600 uppercase text-xs">
+                    <th class="px-4 py-2 text-left">Matrícula</th>
+                    <th class="px-4 py-2 text-left">Vehículo</th>
+                    <th class="px-4 py-2 text-left">Estado</th>
+                    <th class="px-4 py-2 text-right">Valor (coste total)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in data.vehiculos %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2 font-mono">{{ v.matricula }}</td>
+                    <td class="px-4 py-2">{{ v.marca_modelo }}</td>
+                    <td class="px-4 py-2 text-gray-500">{{ v.estado }}</td>
+                    <td class="px-4 py-2 text-right font-mono font-bold">€{{ v.valor|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="bg-gray-50 font-bold border-t-2 border-gray-300">
+                    <td colspan="3" class="px-4 py-2 text-right">Valor vehículos en stock</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ data.valor_vehiculos|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% endif %}
 
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-blue-50 rounded-lg p-4 text-center">

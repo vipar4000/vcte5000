@@ -779,11 +779,12 @@ Material (stock: 100)
 
 <div class="info-box">
     <strong>Calculos automaticos al guardar:</strong><br>
-    coste_total = copiado del vehiculo (ej: 9.557,50 EUR)<br>
-    base_imponible = precio_venta - coste_total = 14.500 - 9.557,50 = <strong>4.942,50 EUR</strong><br>
-    cuota_iva = base_imponible x 21% = 4.942,50 x 0,21 = <strong>1.037,93 EUR</strong><br>
-    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>51,71%</strong><br><br>
-    El cliente paga: <strong>14.500 EUR</strong> (IVA incluido en el precio)
+    coste_total = copiado del vehiculo (ej: 8.332,50 EUR)<br>
+    margen = precio_venta - coste_total = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
+    base_imponible = margen / 1,21 = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
+    cuota_iva = base_imponible x 21% = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
+    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>42,82%</strong><br><br>
+    El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
 <h2>5.2 Logica de IVA REBU</h2>
@@ -793,7 +794,8 @@ Material (stock: 100)
     <strong>Art. 84.Uno.2.1 LIVA:</strong> El IVA (21%) se aplica <strong>unicamente sobre el margen de beneficio</strong>, no sobre el precio de venta completo.
 </div>
 
-<pre><code>Base Imponible = Precio de Venta - Coste Total del Vehiculo
+<pre><code>Margen = Precio de Venta - Coste Total del Vehiculo
+Base Imponible = Margen / 1.21
 Cuota IVA = Base Imponible x 21% (si Base Imponible > 0)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
@@ -801,12 +803,13 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 
 <div class="warning-box">
     <strong>Ejemplo numerico:</strong><br>
-    Coste Total del vehiculo: 9.557,50 EUR<br>
-    Precio de Venta: 12.000 EUR<br><br>
-    Base Imponible = 12.000 - 9.557,50 = <strong>2.442,50 EUR</strong><br>
-    Cuota IVA (21%) = 2.442,50 x 0,21 = <strong>512,93 EUR</strong><br>
-    Beneficio = 2.442,50 EUR<br><br>
-    El cliente paga: <strong>12.000 EUR</strong> (IVA incluido en el precio)
+    Coste Total del vehiculo: 8.332,50 EUR<br>
+    Precio de Venta: 11.900 EUR<br><br>
+    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
+    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
+    Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
+    Beneficio = 2.948,35 EUR<br><br>
+    El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
 <h2>5.3 Generar Documentos PDF</h2>
@@ -1144,67 +1147,62 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 <div class="warning-box">
     <strong>Ejemplo numerico completo:</strong><br><br>
     <strong>Datos del vehiculo:</strong><br>
-    - Precio subasta: 8.000 EUR<br>
-    - Tasas sala: 500 EUR<br>
-    - Logistica grua: 300 EUR<br>
-    - Reparaciones: 757,50 EUR<br>
-    - <strong>Coste Total = 9.557,50 EUR</strong><br><br>
+    - Coste adquisicion: 8.150,00 EUR (precio subasta + tasas + grua)<br>
+    - Reparaciones (OT): 182,50 EUR<br>
+    - <strong>Coste Total = 8.332,50 EUR</strong><br><br>
     <strong>Datos de la venta:</strong><br>
-    - Precio de venta al cliente: 12.000 EUR<br><br>
+    - Precio de venta al cliente: 11.900 EUR<br><br>
     <strong>Calculo REBU:</strong><br>
-    - Margen = 12.000 - 9.557,50 = <strong>2.442,50 EUR</strong><br>
-    - Base Imponible = 2.442,50 / 1.21 = <strong>2.018,60 EUR</strong><br>
-    - Cuota IVA (21%) = 2.018,60 x 0,21 = <strong>423,91 EUR</strong><br>
-    - Beneficio neto = 2.442,50 EUR<br><br>
-    El cliente paga: <strong>12.000 EUR</strong> (IVA incluido en el precio)
+    - Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
+    - Base Imponible = 3.567,50 / 1.21 = <strong>2.948,35 EUR</strong><br>
+    - Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
+    - Beneficio neto = 2.948,35 EUR<br><br>
+    El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
 <h3>8.3.2 Asiento Contable de Venta REBU</h3>
-<p>Al registrar una venta, el sistema genera automaticamente un asiento contable con <strong>5 movimientos</strong>:</p>
+<p>Al registrar una venta, el sistema genera automaticamente un asiento contable con <strong>4 movimientos</strong> (ver el pipeline completo en el <a href="#capitulo-20">Capitulo 20</a>):</p>
 
 <div class="diagram">
     <div class="title">Flujo del Asiento de Venta REBU</div>
     <div class="flow">
-Venta Registrada (precio: 12.000 EUR, coste: 9.557,50 EUR)
+Venta Registrada (precio: 11.900 EUR, coste: 8.332,50 EUR)
          |
          v
 Calcular REBU:
-  Margen = 2.442,50
-  Base = 2.018,60
-  IVA  = 423,91
+  Margen = 3.567,50
+  Base = 2.948,35
+  IVA  = 619,15
          |
          v
-Crear Asiento Contable (5 movimientos):
-  DEBE  572 (Banco)        12.000,00  <-- Cobro del cliente
-  DEBE  600 (Compras)       9.557,50  <-- Coste de adquisicion
-  HABER 700 (Ventas)        2.018,60  <-- Ingresos (margen REBU)
-  HABER 471 (IVA Repercutido) 423,91  <-- IVA sobre el margen
-  HABER 310 (Mercancias)    9.557,50  <-- Baja de inventario
+Crear Asiento Contable (4 movimientos):
+  DEBE  572 (Banco)        11.900,00  <-- Cobro del cliente
+  HABER 700 (Ventas)        2.948,35  <-- Ingresos (margen REBU)
+  HABER 471 (IVA Repercutido) 619,15  <-- IVA sobre el margen
+  HABER 310 (Mercancias)    8.332,50  <-- Baja de inventario (coste del vehiculo)
          |
          v
-Verificar: DEBE (21.557,50) = HABER (21.557,50) -> CUADRADO
+Verificar: DEBE (11.900,00) = HABER (11.900,00) -> CUADRADO
     </div>
 </div>
 
-<pre><code>Asiento de Venta REBU - Vehiculo (12.000 EUR)
+<pre><code>Asiento de Venta REBU - Vehiculo (11.900 EUR)
 
-Cuenta 572 (Banco)              - DEBE:  12.000,00 EUR
-Cuenta 600 (Compras)            - DEBE:   9.557,50 EUR
-Cuenta 700 (Ventas mercancias)  - HABER:  2.018,60 EUR
-Cuenta 471 (IVA Repercutido)    - HABER:    423,91 EUR
-Cuenta 310 (Mercancias)         - HABER:  9.557,50 EUR
+Cuenta 572 (Banco)              - DEBE:  11.900,00 EUR
+Cuenta 700 (Ventas mercancias)  - HABER:  2.948,35 EUR
+Cuenta 471 (IVA Repercutido)    - HABER:    619,15 EUR
+Cuenta 310 (Mercancias)         - HABER:  8.332,50 EUR
 
-DEBE:  12.000,00 + 9.557,50 = 21.557,50 EUR
-HABER: 2.018,60 + 423,91 + 9.557,50 = 21.557,50 EUR
+DEBE:  11.900,00 EUR
+HABER: 2.948,35 + 619,15 + 8.332,50 = 11.900,00 EUR
 Verificacion: CUADRADO</code></pre>
 
 <div class="info-box">
-    <strong>Por que 5 movimientos?</strong><br>
+    <strong>Por que 4 movimientos?</strong><br>
     - <strong>572 DEBE:</strong> El banco recibe el precio completo del cliente<br>
-    - <strong>600 DEBE:</strong> Se reconoce el coste de compra del vehiculo<br>
     - <strong>700 HABER:</strong> Solo el margen (base imponible) es ingreso<br>
     - <strong>471 HABER:</strong> El IVA repercutido sobre el margen<br>
-    - <strong>310 HABER:</strong> El vehiculo sale del inventario (baja de mercancias)
+    - <strong>310 HABER:</strong> El vehiculo sale del inventario (baja de mercancias) por su coste total. El coste no pasa por la cuenta 600.
 </div>
 
 <h3>8.3.3 Costos de Acondicionamiento</h3>
@@ -2649,7 +2647,7 @@ Total: 6 vehiculos
     &nbsp;&nbsp;- Subasta MANNHEIM: 11.000 EUR<br>
     &nbsp;&nbsp;- Tasas sala: 700 EUR<br>
     &nbsp;&nbsp;- Logistica grua: 320 EUR<br>
-    &nbsp;&nbsp;- <strong>Total compra = 12.020 EUR</strong> (cuenta 600 Compras)<br><br>
+    &nbsp;&nbsp;- <strong>Total compra = 12.020 EUR</strong> (cuenta 310 Mercancias)<br><br>
     <strong>Entrada de dinero (venta):</strong><br>
     &nbsp;&nbsp;- Cliente Carlos Garcia: 16.500 EUR (cuenta 572 Banco)<br>
     &nbsp;&nbsp;- IVA REBU: 777,52 EUR (cuenta 471 IVA Repercutido)<br>
@@ -2661,12 +2659,11 @@ Total: 6 vehiculos
 <div class="warning-box">
     <strong>Asiento contable generado automaticamente al vender el Toyota:</strong><br>
     <pre><code>DEBE  572 (Banco)               16.500,00 EUR  -- Cobro cliente
-DEBE  600 (Compras)             12.020,00 EUR  -- Coste adquisicion
 HABER 700 (Ventas mercancias)    3.702,48 EUR  -- Margen REBU
 HABER 471 (IVA Repercutido)        777,52 EUR  -- IVA sobre margen
-HABER 310 (Mercancias)           12.020,00 EUR  -- Baja inventario
+HABER 310 (Mercancias)           12.020,00 EUR  -- Baja inventario (coste del vehiculo)
 
-DEBE: 28.520,00 = HABER: 28.520,00 -> CUADRADO</code></pre>
+DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 </div>
 
 <h2>13.5 Navegacion para Verificar los Datos</h2>
@@ -2740,7 +2737,7 @@ DEBE: 28.520,00 = HABER: 28.520,00 -> CUADRADO</code></pre>
     <strong>Asientos adicionales auto-generados:</strong> Ademas de los 2 asientos manuales, el script genera asientos automaticos via:
     <ul>
         <li><strong>Compras de material</strong>: 3 asientos (DEBE 300/310/330 + 472, HABER 410)</li>
-        <li><strong>Venta Toyota</strong>: 1 asiento REBU de 5 movimientos (ver seccion 13.4)</li>
+        <li><strong>Venta Toyota</strong>: 1 asiento REBU de 4 movimientos (ver seccion 13.4)</li>
     </ul>
     Estos aparecen en el libro diario y se verifican en los informes financieros.
 </div>
@@ -2791,7 +2788,7 @@ DEBE: 28.520,00 = HABER: 28.520,00 -> CUADRADO</code></pre>
 +-------------------+     +-------------------+     +-------------------+
         |                          |                          |
         v                          v                          v
-   DEBE 600                  DEBE 300/310/330           DEBE 6xx (gastos)
+   DEBE 310 (inventario)           DEBE 300/310/330           DEBE 6xx (gastos)
    DEBE 472 (IVA)           DEBE 472 (IVA)             DEBE 472 (IVA si 21%)
    HABER 410 (proveedor)    HABER 410 (proveedor)      HABER 410 (acreedores)
         |                          |                          |
@@ -2826,7 +2823,7 @@ DEBE: 28.520,00 = HABER: 28.520,00 -> CUADRADO</code></pre>
     +-----------+  +-----------+
     | BANCO     |  | CONTABIL. |
     | +16.500   |  | Asiento   |
-    | (cobro)   |  | 5 movim.  |
+    | (cobro)   |  | 4 movim.  |
     +-----------+  +-----------+
            |           |
            v           v
@@ -2841,7 +2838,7 @@ DEBE: 28.520,00 = HABER: 28.520,00 -> CUADRADO</code></pre>
     <strong>Puntos clave del flujo:</strong>
     <ul>
         <li><strong>Cada compra</strong> genera asiento + movimiento bancario automaticamente</li>
-        <li><strong>Cada venta</strong> genera asiento REBU de 5 movimientos + movimiento bancario de entrada</li>
+        <li><strong>Cada venta</strong> genera asiento REBU de 4 movimientos + movimiento bancario de entrada</li>
         <li><strong>Cada gasto</strong> genera asiento + movimiento bancario de salida</li>
         <li><strong>El banco</strong> nunca se toca manualmente: todo pasa por <code>crear_movimiento_banco()</code></li>
         <li><strong>Los informes</strong> (PyG, Balance, IVA) se calculan en tiempo real desde los asientos posteados</li>
@@ -3641,12 +3638,12 @@ Conciliacion        Reserva               (reparado)          Imagenes
         <td>1.2</td>
         <td>Registrar inversion inicial</td>
         <td>Cuenta bancaria existente (570/572)</td>
-        <td>Asiento BORRADOR (DEBE 214/216/217 + 472, HABER 570/572). Si el importe supera 300EUR en categorias de inmovilizado, se crea automaticamente un <code>ActivoFijo</code> con tabla de amortizacion</td>
+        <td>Asiento POSTEADO (DEBE 214/216/217 + 472, HABER 570/572). Si el importe supera 300EUR en categorias de inmovilizado, se crea automaticamente un <code>ActivoFijo</code> con tabla de amortizacion</td>
     </tr>
 </table>
 
 <div class="info-box">
-    <strong>Inversion inicial:</strong> Registra los gastos de apertura de la empresa: herramientas, mobiliario, informatica, alquiler del local, notaria, tasas. El sistema genera un asiento contable en estado BORRADOR que debe postearse antes de generar informes financieros. Si el gasto supera 300EUR en categorias de inmovilizado (214, 216, 217), se registra como activo fijo con amortizacion automatica.
+    <strong>Inversion inicial:</strong> Registra los gastos de apertura de la empresa: herramientas, mobiliario, informatica, alquiler del local, notaria, tasas. El sistema genera un asiento contable que se <strong>postea automaticamente</strong> (estado POSTEADO) si esta cuadrado. Si el gasto supera 300EUR en categorias de inmovilizado (214, 216, 217), se registra como activo fijo con amortizacion automatica.
 </div>
 
 <h4>Ejemplo: Compra de Herramientas para el Taller</h4>
@@ -3659,7 +3656,7 @@ Conciliacion        Reserva               (reparado)          Imagenes
     <tr><td colspan="3"><strong>TOTALES</strong></td><td><strong>903,00 EUR</strong></td><td><strong>5.203,00 EUR</strong></td></tr>
 </table>
 
-<p><strong>Asiento contable generado automaticamente (BORRADOR):</strong></p>
+<p><strong>Asiento contable generado automaticamente (POSTEADO):</strong></p>
 <pre><code>DEBE  214 (Herramientas/Utillaje): 4.300,00 EUR  -- Base imponible
 DEBE  472 (IVA Soportado):           903,00 EUR  -- IVA deducible
 HABER 572 (Banco):                 5.203,00 EUR  -- Pago proveedor
@@ -3667,7 +3664,7 @@ HABER 572 (Banco):                 5.203,00 EUR  -- Pago proveedor
 DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
 
 <div class="warning-box">
-    <strong>Activo fijo automatico:</strong> Como cada linea supera 300EUR en cuenta de inmovilizado (214), el sistema crea automaticamente dos <code>ActivoFijo</code> registros con tabla de amortizacion lineal (compresor: 4 anos, escaner: 3 anos). El asiento queda en estado BORRADOR y debe postearse antes de generar informes.
+    <strong>Activo fijo automatico:</strong> Como cada linea supera 300EUR en cuenta de inmovilizado (214), el sistema crea automaticamente dos <code>ActivoFijo</code> registros con tabla de amortizacion lineal (5 anos para herramientas). El asiento queda en estado POSTEADO y aparece de inmediato en los informes.
 </div>
 
 <h4>Cuando usar Inversion Inicial vs Gasto</h4>
@@ -3797,7 +3794,7 @@ DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
         <td>5.2</td>
         <td>Crear venta</td>
         <td>Vehiculo EN_VENTA o con reserva activa</td>
-        <td>Vehiculo pasa a <strong>VENDIDO</strong> + asiento REBU (5 movimientos) + GarantiaVehiculo creada</td>
+        <td>Vehiculo pasa a <strong>VENDIDO</strong> + asiento REBU (4 movimientos) + GarantiaVehiculo creada</td>
     </tr>
     <tr>
         <td>5.3</td>
@@ -3995,7 +3992,7 @@ python manage.py backfill_asientos_banco
     <tr>
         <td>4</td>
         <td>Registrar venta</td>
-        <td>5 movimientos REBU (POSTEADO)</td>
+        <td>4 movimientos REBU (POSTEADO)</td>
         <td>INGRESO</td>
         <td>Estado VENDIDO + Garantia B2C</td>
     </tr>
@@ -4093,13 +4090,12 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
     <tr><td><strong>Estado vehiculo</strong></td><td>Cambia automaticamente a <code>VENDIDO</code>.</td></tr>
-    <tr><td><strong>Asiento REBU</strong></td><td>5 movimientos, estado POSTEADO:
+    <tr><td><strong>Asiento REBU</strong></td><td>4 movimientos, estado POSTEADO:
         <ul>
             <li>DEBE 572 (Banco) = precio de venta completo</li>
-            <li>DEBE 600 (Compras) = coste total del vehiculo</li>
             <li>HABER 700 (Ventas) = base imponible (margen REBU)</li>
             <li>HABER 471 (IVA Repercutido) = IVA sobre el margen</li>
-            <li>HABER 310 (Mercancias) = baja de inventario</li>
+            <li>HABER 310 (Mercancias) = baja de inventario (coste total del vehiculo)</li>
         </ul>
     </td></tr>
     <tr><td><strong>Movimiento bancario</strong></td><td>INGRESO por el precio de venta.</td></tr>
@@ -4606,6 +4602,13 @@ USUARIO REGISTRA OPERACION
     <strong>Total OT = 182,50 EUR</strong><br><br>
     Este coste se suma al coste de reparacion del vehiculo.
 </div>
+<div class="success-box">
+    <strong>Asiento de capitalizacion generado al completar la OT (POSTEADO):</strong><br>
+    DEBE 310 (Mercancias) &mdash; 182,50 EUR<br>
+    HABER 300 (Compras) &mdash; 77,50 EUR (materiales consumidos)<br>
+    HABER 610 (Variacion de existencias) &mdash; 105,00 EUR (mano de obra)<br>
+    <strong>Estado: POSTEADO</strong> &mdash; el coste de la reparacion se capitaliza en el vehiculo (310) y se da de baja en la venta.
+</div>
 
 <h3>Paso 3.5 &mdash; Pasar a ACONDICIONADO</h3>
 <p>Desde la ficha del vehiculo, seccion "Cambiar Estado", seleccione <strong>ACONDICIONADO</strong>.</p>
@@ -4643,15 +4646,14 @@ USUARIO REGISTRA OPERACION
 </table>
 
 <div class="success-box">
-    <strong>Asiento contable REBU generado (5 movimientos, POSTEADO):</strong><br><br>
+    <strong>Asiento contable REBU generado (4 movimientos, POSTEADO):</strong><br><br>
     <table>
         <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
         <tr><td>572 (Banco Santander)</td><td>11.900,00</td><td></td></tr>
-        <tr><td>600 (Compras)</td><td>8.332,50</td><td></td></tr>
         <tr><td>700 (Ventas mercancias)</td><td></td><td>2.948,35</td></tr>
         <tr><td>471 (IVA Repercutido)</td><td></td><td>619,15</td></tr>
         <tr><td>310 (Mercancias)</td><td></td><td>8.332,50</td></tr>
-        <tr><td colspan="3"><strong>DEBE = HABER = 20.232,50 EUR</strong></td></tr>
+        <tr><td colspan="3"><strong>DEBE = HABER = 11.900,00 EUR</strong></td></tr>
     </table>
 </div>
 
@@ -4719,7 +4721,8 @@ USUARIO REGISTRA OPERACION
     (+50.000) Deposito inicial<br>
     (-2.480,50) Inversion taller (incluye IVA)<br>
     (-8.286,50) Pago factura vehiculo (incluye IVA)<br>
-    = <strong>39.233,00 EUR</strong> (saldo pendiente de conciliar)
+    (+11.900,00) Cobro venta REBU<br>
+    = <strong>51.133,00 EUR</strong> (saldo pendiente de conciliar)
 </div>
 <p><strong>Nota:</strong> Cada cuenta bancaria muestra ahora tres metricas: <strong>Saldo real (conciliado)</strong>, <strong>Saldo sin conciliar</strong> (pendientes) y <strong>Saldo total</strong>. Vea <a href="#paso-1-3">Paso 1.3</a> para mas detalle.</p>
 
@@ -4727,9 +4730,9 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Informe</th><th>Que verificar</th></tr>
     <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto</td></tr>
-    <tr><td>PyG</td><td>Ingresos (700): 2.948,35 EUR | Gastos (600): 8.332,50 EUR</td></tr>
-    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 619,15 EUR | IVA Soportado (472): 1.575 + 35,70 + 22,05 = 1.632,75 EUR</td></tr>
-    <tr><td>Asientos</td><td>6 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, venta REBU. Todos POSTEADOS</td></tr>
+    <tr><td>PyG</td><td>Ingresos (700): 2.948,35 EUR | Gastos: 0,00 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 619,15 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 = 624,75 EUR</td></tr>
+    <tr><td>Asientos</td><td>7 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU. Todos POSTEADOS</td></tr>
 </table>
 
 <h3>Garantia</h3>

@@ -95,6 +95,67 @@ class OrdenTrabajo(models.Model):
         """Coste total de la OT."""
         return self.coste_mano_obra + self.coste_materiales
 
+    def crear_asiento_contable(self):
+        """Capitaliza el coste de reparación en inventario al completar la OT.
+
+        DEBE  310 Mercaderías  = coste_total (mano de obra + materiales)
+        HABER 300 Compras      = coste_materiales (consumo de inventario)
+        HABER 610 Variación    = coste_mano_obra
+        """
+        from django.db import transaction
+        from apps.accounting.models import (
+            AsientoContable, MovimientoContable, CuentaContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        if self.coste_total <= 0:
+            return None
+        if AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo', documento_id=self.pk
+        ).exists():
+            return None
+
+        with transaction.atomic():
+            cuenta_mercancias = CuentaContable.objects.get(codigo='310')
+            cuenta_compras = CuentaContable.objects.get(codigo='300')
+            cuenta_variacion = CuentaContable.objects.get(codigo='610')
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_fin or self.updated_at.date(),
+                concepto=f"Capitalización reparación OT-{self.pk}: {self.titulo}",
+                estado='BORRADOR',
+                tipo_documento='OrdenTrabajo',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_mercancias,
+                debe=self.coste_total, haber=Decimal('0'),
+                descripcion=f"Coste reparación {self.vehiculo}",
+            )
+
+            if self.coste_materiales > 0:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_compras,
+                    debe=Decimal('0'), haber=self.coste_materiales,
+                    descripcion=f"Materiales consumidos OT-{self.pk}",
+                )
+
+            if self.coste_mano_obra > 0:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_variacion,
+                    debe=Decimal('0'), haber=self.coste_mano_obra,
+                    descripcion=f"Mano de obra OT-{self.pk}",
+                )
+
+            if asiento.esta_cuadrado:
+                asiento.estado = 'POSTEADO'
+                asiento.save(update_fields=['estado'])
+
+            return asiento
+
 
 class Material(models.Model):
     """Material/insumo del taller."""

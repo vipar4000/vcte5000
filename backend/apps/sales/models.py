@@ -177,7 +177,6 @@ class VentaVehiculo(models.Model):
             cuenta_clientes = CuentaContable.objects.get(codigo='430')
             cuenta_ventas = CuentaContable.objects.get(codigo='700')
             cuenta_iva = CuentaContable.objects.get(codigo='471')
-            cuenta_compras = CuentaContable.objects.get(codigo='600')
             cuenta_mercancias = CuentaContable.objects.get(codigo='310')
 
             asiento = AsientoContable.objects.create(
@@ -211,12 +210,6 @@ class VentaVehiculo(models.Model):
                 )
 
             MovimientoContable.objects.create(
-                asiento=asiento, cuenta=cuenta_compras,
-                debe=self.coste_total, haber=Decimal('0'),
-                descripcion=f"Coste adquisición {self.vehiculo}",
-            )
-
-            MovimientoContable.objects.create(
                 asiento=asiento, cuenta=cuenta_ventas,
                 debe=Decimal('0'), haber=self.base_imponible,
                 descripcion="Ingresos por venta (margen REBU)",
@@ -228,16 +221,38 @@ class VentaVehiculo(models.Model):
                 descripcion="IVA REBU 21% sobre margen",
             )
 
+            coste_inventario = self.vehiculo.coste_total
             MovimientoContable.objects.create(
                 asiento=asiento, cuenta=cuenta_mercancias,
-                debe=Decimal('0'), haber=self.coste_total,
+                debe=Decimal('0'), haber=coste_inventario,
                 descripcion=f"Baja inventario {self.vehiculo}",
             )
 
             self.asiento_contable = asiento
             self.save(update_fields=['asiento_contable'])
 
+            if asiento.esta_cuadrado:
+                asiento.estado = 'POSTEADO'
+                asiento.save(update_fields=['estado'])
+
             return asiento
+
+    def registrar_movimiento_banco(self, asiento=None):
+        """Registra el ingreso bancario del cobro de la venta."""
+        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+
+        cuenta = obtener_cuenta_banco_default()
+        if not cuenta:
+            return None
+        return crear_movimiento_banco(
+            banco_cuenta=cuenta,
+            fecha=self.fecha_venta,
+            concepto=f"Cobro venta {self.vehiculo} - {self.cliente_nombre}",
+            tipo='INGRESO',
+            importe=self.precio_venta,
+            vehiculo=self.vehiculo,
+            asiento=asiento or self.asiento_contable,
+        )
 
 
 class FacturaVenta(models.Model):

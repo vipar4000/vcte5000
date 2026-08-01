@@ -3,7 +3,9 @@ import os
 
 
 def apply_trigger_sql(apps, schema_editor):
-    """Aplica trigger de inmutabilidad para facturas."""
+    """Aplica trigger de inmutabilidad para facturas (solo PostgreSQL)."""
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     sql_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         '..', 'sql', '0001_factura_inmutabilidad.sql'
@@ -15,6 +17,8 @@ def apply_trigger_sql(apps, schema_editor):
 
 
 def reverse_trigger_sql(apps, schema_editor):
+    if schema_editor.connection.vendor != 'postgresql':
+        return
     with schema_editor.connection.cursor() as cursor:
         cursor.execute("DROP TRIGGER IF EXISTS trg_factura_inmutabilidad ON sales_facturaventa;")
         cursor.execute("DROP FUNCTION IF EXISTS prevent_factura_modificacion();")
