@@ -195,9 +195,10 @@ def calcular_balance(fecha_corte):
     resultado_ejercicio_conta = saldo_grupo_haber('129')
 
     # Resultado del ejercicio = Ingresos (7xx) - Gastos (6xx)
-    # Sin asiento de cierre, calcular el resultado del PyG directamente
+    # Sin asiento de cierre, calcular el resultado del PyG directamente.
+    # Las cuentas 61x (variación de existencias) no son gastos/ingresos reales.
     ingresos = saldo_grupo_haber('7')
-    gastos = saldo_grupo('6')
+    gastos = saldo_grupo('6') - saldo_grupo('61')
     resultado_ejercicio_pyg = ingresos - gastos
     
     resultado_ejercicio = resultado_ejercicio_conta + resultado_ejercicio_pyg

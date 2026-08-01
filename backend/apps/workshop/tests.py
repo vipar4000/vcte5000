@@ -214,6 +214,35 @@ class OrdenTrabajoCosteTests(TestCase):
         mov_611 = [m for m in movimientos if m.cuenta.codigo == '611'][0]
         self.assertEqual(mov_611.haber, ot.coste_mano_obra)
 
+    def test_capitalizacion_ot_no_afecta_resultado_ejercicio(self):
+        """La mano de obra capitalizada no debe aparecer como beneficio."""
+        from apps.workshop.models import OrdenTrabajo
+        from apps.accounting.reports import calcular_balance, calcular_pyg
+        from apps.vehicles.models import Vehiculo
+
+        ot = OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo,
+            operario=self.operario,
+            titulo='Diagnóstico',
+            descripcion='Revisión',
+            horas_estimadas=4,
+            horas_reales=3,
+            estado='COMPLETADA',
+            created_by=self.admin,
+        )
+        ot.crear_asiento_contable()
+        self.vehiculo.estado = 'ACONDICIONADO'
+        self.vehiculo.save()
+
+        balance = calcular_balance('2026-08-02')
+        pyg = calcular_pyg('2026-01-01', '2026-12-31')
+
+        self.assertEqual(
+            balance['patrimonio_neto']['resultado_ejercicio'],
+            Decimal('0')
+        )
+        self.assertEqual(pyg['resultado_neto'], Decimal('0'))
+
 
 class CompraMaterialTests(TestCase):
     def setUp(self):

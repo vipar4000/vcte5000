@@ -91,7 +91,7 @@ class OrdenTrabajo(models.Model):
     def coste_materiales(self):
         """Calcula el coste total de materiales."""
         total = sum(mo.subtotal for mo in self.materiales_usados.all())
-        return total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return Decimal(total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     @property
     def coste_total(self):
