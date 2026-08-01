@@ -57,16 +57,17 @@ users = [
 
 for data in users:
     password = data.pop('password')
-    user, created = User.objects.get_or_create(
+    user, created = User.objects.update_or_create(
         username=data['username'],
         defaults=data
     )
-    if created:
-        user.set_password(password)
-        user.save()
-        print(f'[OK] Created: {user.username} ({user.get_rol_display()})')
-    else:
-        print(f'[SKIP] Already exists: {user.username}')
+    user.set_password(password)
+    # Ensure active, in case an old/broken test account was disabled
+    if not user.is_active:
+        user.is_active = True
+    user.save()
+    action = 'Created' if created else 'Updated'
+    print(f'[OK] {action}: {user.username} ({user.get_rol_display()})')
 
 print('\n--- Users list ---')
 for u in User.objects.all():

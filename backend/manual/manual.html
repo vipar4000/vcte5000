@@ -4789,14 +4789,14 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 python manage.py migrate</code></pre>
 
 <h3>Recrear los usuarios de prueba</h3>
-<p><code>create_test_users.py</code> no se despliega en Render (la raiz del servicio es <code>backend/</code>), asi que los usuarios se crean via shell:</p>
+<p><code>create_test_users.py</code> no se despliega en Render (la raiz del servicio es <code>backend/</code>), asi que los usuarios se crean via shell. Incluya <code>first_name</code> y <code>last_name</code> para que los desplegables de operarios, vendedores y gestoria muestren nombres legibles:</p>
 <pre><code>python manage.py shell -c "
 from apps.accounts.models import User
-User.objects.create_superuser('admin', 'admin@eurocar.local', 'admin123!')
-User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800)
-User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800)
-User.objects.create_user('vendedor1', email='vendedor1@eurocar.local', password='vendedor123!', rol='VENDEDOR')
-User.objects.create_user('gestoria1', email='gestoria1@eurocar.local', password='gestoria123!', rol='GESTORIA')
+User.objects.create_superuser('admin', 'admin@eurocar.local', 'admin123!', first_name='Administrador', last_name='Rogil')
+User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', first_name='Carlos', last_name='Garcia', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800)
+User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', first_name='Ana', last_name='Lopez', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800)
+User.objects.create_user('vendedor1', email='vendedor1@eurocar.local', password='vendedor123!', first_name='Pedro', last_name='Martinez', rol='VENDEDOR')
+User.objects.create_user('gestoria1', email='gestoria1@eurocar.local', password='gestoria123!', first_name='Laura', last_name='Fernandez', rol='GESTORIA')
 print('Usuarios de prueba creados')"</code></pre>
 
 <h3>Reinicializar el plan contable</h3>

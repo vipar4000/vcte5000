@@ -38,7 +38,7 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 
 No pytest. Three layers:
 
-- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 45 tests. `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres) and `expenses/tests.py` seeds subaccount `4751.115` for the retención branch.
+- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 50 tests. `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`; `apps/workshop/tests.py` covers la creación de OTs y el desplegable de operarios. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres) and `expenses/tests.py` seeds subaccount `4751.115` for the retención branch.
 - **Integration smoke** (`python test_modules.py`) — Django `Client` against the dev DB, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). Uses `/erp/`-prefixed paths plus a `FINANCIAL REPORTS` section; 54 checks. Needs test users + `migrate` first.
 - **Data check** (`python check_report_data.py`) — runs the report generators against real dev data and asserts the Balance squares (Activo = Pasivo + Patrimonio) and that every posted asiento is balanced.
 
@@ -52,7 +52,7 @@ Test users from `create_test_users.py`:
 | `vendedor1` | VENDEDOR | `vendedor123!` |
 | `gestoria1` | GESTORIA | `gestoria123!` |
 
-`backend/create_test_users.py` is stale (hardcoded SQLite path); use the root one.
+`backend/create_test_users.py` is a thin wrapper that delegates to the root `create_test_users.py`; both now use `update_or_create` and reset the password, so stale test accounts are repaired automatically.
 
 ## Financial Reports
 

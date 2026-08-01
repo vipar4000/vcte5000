@@ -58,7 +58,8 @@ class User(AbstractUser):
         ordering = ['-date_joined']
     
     def __str__(self):
-        return f"{self.get_full_name()} ({self.get_rol_display()})"
+        nombre = self.get_full_name().strip() or self.username
+        return f"{nombre} ({self.get_rol_display()})"
     
     @property
     def is_admin(self):
