@@ -105,6 +105,7 @@ def venta_create(request):
             # Crear asiento contable automáticamente
             try:
                 venta.crear_asiento_contable()
+                venta.registrar_movimiento_banco(asiento=venta.asiento_contable)
             except Exception as e:
                 messages.warning(
                     request,

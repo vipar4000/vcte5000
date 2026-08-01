@@ -304,6 +304,10 @@ class InversionInicial(models.Model):
                     asiento=asiento,
                 )
 
+            # Postear automaticamente si cuadra (igual que compras, vehiculo y REBU)
+            asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
+            asiento.save()
+
             return asiento
 
 
@@ -369,6 +373,7 @@ class LineaInversionInicial(models.Model):
                     'descripcion': self.concepto,
                     'valor_adquisicion': self.base_imponible,
                     'fecha_adquisicion': fecha,
+                    'vida_util_anos': ActivoFijo.VIDAS_UTILES.get(cuenta, 10),
                 },
             )
 

@@ -26,6 +26,7 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 | Integration tests | `python test_modules.py` (needs test users + `migrate` first) |
 | Report data check | `python check_report_data.py` (needs dev data + `migrate`) |
 | File I/O tests | `python -m unittest test_io.py` |
+| §20 pipeline test | `python test_pipeline_capitulo20.py` (needs Docker Postgres + test users) |
 | Frontend dev server | `cd frontend && npm run dev` (port 3000, proxies `/api`, `/media` → :8000) |
 | Build frontend | `cd frontend && npm run build` → `backend/static/web/` |
 | Full sample data | `python create_full_test.py` (after test users) |

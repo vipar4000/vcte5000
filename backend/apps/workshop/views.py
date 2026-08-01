@@ -253,6 +253,17 @@ def orden_trabajo_cambiar_estado(request, pk):
                 ot.fecha_fin = timezone.now().date()
             
             ot.save()
+
+            # Capitalizar coste de reparación en inventario (310)
+            if nuevo_estado == 'COMPLETADA':
+                try:
+                    ot.crear_asiento_contable()
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f'OT completada, pero no se pudo capitalizar el coste: {str(e)}'
+                    )
+
             messages.success(
                 request, 
                 f'Estado de OT-{ot.pk} cambiado a {ot.get_estado_display()}.'

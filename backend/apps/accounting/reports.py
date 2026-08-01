@@ -469,8 +469,9 @@ def obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta):
 
 
 def obtener_valor_existencias():
-    """Existencias valoradas: stock actual x precio unitario por material."""
+    """Existencias valoradas: stock x precio unitario por material + vehículos en stock."""
     from apps.workshop.models import Material
+    from apps.vehicles.models import Vehiculo
 
     materiales = Material.objects.all().order_by('nombre')
     total_valor = Decimal('0')
@@ -486,6 +487,19 @@ def obtener_valor_existencias():
             'valor': valor,
         })
 
+    # Vehículos en stock (no vendidos) valorados a coste_total (310 Mercaderías)
+    vehiculos_stock = Vehiculo.objects.exclude(estado='VENDIDO').order_by('matricula')
+    vehiculos_items = []
+    for v in vehiculos_stock:
+        valor = v.coste_total
+        total_valor += valor
+        vehiculos_items.append({
+            'matricula': v.matricula,
+            'marca_modelo': f'{v.marca} {v.modelo}',
+            'estado': v.get_estado_display(),
+            'valor': valor,
+        })
+
     debe_300, haber_300 = obtener_saldo_cuenta('300', fecha_hasta=date.today())
     debe_310, haber_310 = obtener_saldo_cuenta('310', fecha_hasta=date.today())
     debe_320, haber_320 = obtener_saldo_cuenta('320', fecha_hasta=date.today())
@@ -494,6 +508,9 @@ def obtener_valor_existencias():
 
     return {
         'materiales': items,
+        'vehiculos': vehiculos_items,
+        'valor_vehiculos': sum(v['valor'] for v in vehiculos_items),
+        'total_materiales': sum(item['valor'] for item in items),
         'total_valor': total_valor,
         'saldo_contable': saldo_contable,
         'diferencia': total_valor - saldo_contable,
