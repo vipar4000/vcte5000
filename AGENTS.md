@@ -5,6 +5,7 @@
 - **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`. README wrongly says "Nuxt 3".
 - `docker-compose.yml`: 5 services — `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 - Python 3.11.9 (`.python-version`). Backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly.
+- Settings modules in `config/settings/`: `development` (default; SQLite unless `DATABASE_URL` set), `staging` (Render staging: no Redis — locmem cache, Celery eager/sync, WhiteNoise), `production` (S3 media only when `AWS_STORAGE_BUCKET_NAME` set). Root test scripts set `DJANGO_SETTINGS_MODULE=config.settings.development` themselves.
 
 Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, admin at `/admin/`. **Catch-all `spa_index` must stay last** — serves the Vue SPA for unmatched paths.
 
@@ -77,6 +78,8 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 
 **Balance template** (`balance.html`) has expandable `<details>` sections showing individual account balances under each category.
 
+Accounting also has **export views** in `apps/accounting/export_views.py` (not `reports.py`): `exportar/` CSV for 303/390 + SII XML, plus scheduled tasks at `tareas/`.
+
 ## Gotchas
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
@@ -89,6 +92,7 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 - **Session**: expires in 1h and on browser close. `SESSION_SAVE_EVERY_REQUEST=True`.
 - **`django-cleanup`** auto-deletes orphaned files when records are removed.
 - **Development** has `AUTH_PASSWORD_VALIDATORS = []` — weak passwords work locally but not in production.
+- **`SECRET_KEY` has no default** (`base.py:25` `env('SECRET_KEY')`) — Django won't start without `backend/.env` (or the env var set, e.g. docker-compose).
 - **Bank movements** are never created manually — `apps.bank.services:crear_movimiento_banco()` is the single entry point. Every financial transaction auto-creates a `BancoMovimiento`. `BancoCuenta.saldo` is computed on-the-fly.
 - **Vehicle images**: vehicle must be `EN_VENTA` or images are deleted. Max 8 per vehicle.
 - **Workshop stock** only via purchase with invoice (`CompraMaterial`). Auto-posts accounting entry on save.
@@ -98,6 +102,8 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 
 Deployed on **Render** (Python runtime, not Docker). Self-hosted alternative: `docker-compose.prod.yml`. Render build: `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`. Start: `gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120`.
 
-- **Auto-Deploy**: branch must be `master`. Click **Manual Deploy → Clear build cache & deploy** if push doesn't go live.
-- **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:32`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
+- **Two deploy targets**: `render.yaml` defines the **staging** service `eurocar-staging` (branch `staging`, `DJANGO_SETTINGS_MODULE=config.settings.staging`, free plan). `master` is the main branch (`origin/HEAD` → `master`); production deploys from it via the Render dashboard (not in-repo). The current repo branch is `staging`.
+- **Staging quirks** (`config/settings/staging.py`): no Redis — locmem cache, Celery tasks run eagerly/sync, WhiteNoise serves statics. Don't assume a Redis-backed cache or a Celery worker there.
+- **Auto-Deploy**: push to the service's configured branch. If a push doesn't go live, click **Manual Deploy → Clear build cache & deploy**.
+- **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:33`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
 - UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts. DB backed up daily by `.github/workflows/backup.yml`.

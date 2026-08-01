@@ -145,10 +145,11 @@
         <li><a href="#capitulo-20"><span class="chapter-num">20.</span> Prueba del Sistema</a>
             <ul>
                 <li><a href="#capitulo-20-1"><span class="chapter-num">20.1</span> Objetivo</a></li>
-                <li><a href="#capitulo-20-2"><span class="chapter-num">20.2</span> Flujo Completo Paso a Paso</a></li>
-                <li><a href="#capitulo-20-3"><span class="chapter-num">20.3</span> Ejemplo Numerico del Vehiculo</a></li>
-                <li><a href="#capitulo-20-4"><span class="chapter-num">20.4</span> Verificacion Post-Prueba</a></li>
-                <li><a href="#capitulo-20-5"><span class="chapter-num">20.5</span> Limpieza (Reinicio para Produccion)</a></li>
+                <li><a href="#capitulo-20-2"><span class="chapter-num">20.2</span> Vista General del Flujo</a></li>
+                <li><a href="#capitulo-20-3"><span class="chapter-num">20.3</span> Flujo Completo Paso a Paso</a></li>
+                <li><a href="#capitulo-20-4"><span class="chapter-num">20.4</span> Registros Esperados</a></li>
+                <li><a href="#capitulo-20-5"><span class="chapter-num">20.5</span> Verificacion Post-Prueba</a></li>
+                <li><a href="#capitulo-20-6"><span class="chapter-num">20.6</span> Limpieza (Reinicio para Produccion)</a></li>
             </ul>
         </li>
     </ul>
@@ -182,7 +183,7 @@
         </tr>
     </table>
 
-    <h2>Credenciales de Prueba</h2>
+    <h2 id="credenciales">Credenciales de Prueba</h2>
     <table>
         <tr>
             <th>Usuario</th>
@@ -2716,7 +2717,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <h3>13.5.4 Verificar Contabilidad y Asientos</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad</strong> (<code>/erp/contabilidad/</code>)</li>
-    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las ~33 cuentas del plan contable base</li>
+    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 52 cuentas del plan contable base</li>
     <li>Haga clic en <strong>"Asientos"</strong>: verifique los 2 asientos manuales:</li>
 </ol>
 <table>
@@ -2859,7 +2860,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
     <tr><td>Reparaciones Garantia</td><td>1 (en proceso - 300 EUR interno)</td></tr>
     <tr><td>Configuracion Nomina</td><td>2 (mecanico1, mecanico2)</td></tr>
     <tr><td>Marcajes</td><td>~14 (semana completa)</td></tr>
-    <tr><td>Cuentas Contables</td><td>~33 (plan base PGC)</td></tr>
+    <tr><td>Cuentas Contables</td><td>52 (plan base PGC)</td></tr>
     <tr><td>Asientos Contables</td><td>~6 (2 manuales + 3 compras + 1 venta REBU)</td></tr>
     <tr><td>Gastos de Estructura</td><td>8 (todas las categorias)</td></tr>
     <tr><td>Movimientos Bancarios</td><td>~12 (auto-generados por ventas, compras y gastos)</td></tr>
@@ -4226,12 +4227,12 @@ USUARIO REGISTRA OPERACION
 <!-- ==================== CAPITULO 20 ==================== -->
 <h1 id="capitulo-20">20. Prueba del Sistema</h1>
 
-<p>Este capitulo es una guia paso a paso para que el aprobador verifique el sistema completo en el entorno de staging, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado).</p>
+<p>Este capitulo es una guia paso a paso para verificar el sistema completo, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado). Para el detalle de cada automatismo, consulte <a href="#capitulo-18">Flujos Automaticos (§18)</a>.</p>
 
 <div class="info-box">
-    <strong>Entorno de staging:</strong><br>
-    URL: <code>https://eurocar-staging.onrender.com/erp/</code><br>
-    Usuario: <code>tester</code> / Contrasena: <code>TestMadrid2024!</code><br>
+    <strong>Entorno de prueba (produccion):</strong><br>
+    URL: <code>https://eurocar.onrender.com/erp/</code><br>
+    Usuarios: los de la <a href="#credenciales">tabla de Credenciales de Prueba</a> (p. ej. <code>admin</code> / <code>admin123!</code>, <code>mecanico1</code> / <code>mecanico123!</code>)<br>
     Rol: ADMIN (<code>puede_eliminar=True</code>)
 </div>
 
@@ -4255,7 +4256,7 @@ USUARIO REGISTRA OPERACION
     <tr><th>Concepto</th><th>Vehiculo de Prueba</th></tr>
     <tr><td>Marca/Modelo</td><td>Volkswagen Golf 1.6 TDI 2018</td></tr>
     <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
-    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000020</code></td></tr>
     <tr><td>Precio subasta</td><td>7.500,00 EUR</td></tr>
     <tr><td>Tasas sala</td><td>400,00 EUR</td></tr>
     <tr><td>Logistica/grua</td><td>250,00 EUR</td></tr>
@@ -4263,12 +4264,37 @@ USUARIO REGISTRA OPERACION
     <tr><td>Coste reparacion</td><td><strong>182,50 EUR</strong> (materiales + mano de obra)</td></tr>
     <tr><td>Coste total</td><td><strong>8.332,50 EUR</strong></td></tr>
     <tr><td>Precio venta</td><td><strong>11.900,00 EUR</strong></td></tr>
-    <tr><td>Margen REBU</td><td><strong>3.567,50 EUR</strong></td></tr>
+    <tr><td>Margen REBU</td><td><strong>3.567,50 EUR</strong> (42,8%)</td></tr>
 </table>
 
-<h2 id="capitulo-20-2">20.2 Flujo Completo Paso a Paso</h2>
+<h2 id="capitulo-20-2">20.2 Vista General del Flujo</h2>
 
-<p>Cada paso sigue la numeracion de la Pipeline de Datos (§17). Complete los pasos en orden; cada uno depende del anterior.</p>
+<p>La prueba recorre el ciclo completo de un vehiculo, desde la subasta hasta la venta con garantia. El flujo es lineal y cada fase depende de la anterior:</p>
+
+<pre><code>Fase 0  Configuracion inicial (PGC)
+Fase 1  Infraestructura financiera (banco + inversion taller)
+Fase 2  Adquisicion del vehiculo + catalogo de materiales
+Fase 3  Taller: diagnostico, compra de material y reparacion
+Fase 4  Preparacion para la venta (EN_VENTA)
+Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
+
+<table>
+    <tr><th>Fase</th><th>Pasos de este capitulo</th><th>Referencia</th></tr>
+    <tr><td>0. Configuracion inicial</td><td>Paso 0.3 &mdash; Inicializar PGC</td><td><a href="#capitulo-17-2">§17.2</a></td></tr>
+    <tr><td>1. Infraestructura financiera</td><td>Pasos 1.1 a 1.3 &mdash; Banco + inversion</td><td><a href="#capitulo-17-3">§17.3</a>, <a href="#capitulo-18-9">§18.9</a></td></tr>
+    <tr><td>2. Adquisicion y catalogo</td><td>Pasos 2.1 y 2.2 &mdash; Vehiculo + materiales</td><td><a href="#capitulo-17-4">§17.4</a>, <a href="#capitulo-18-3">§18.3</a></td></tr>
+    <tr><td>3. Taller</td><td>Pasos 3.1 a 3.5 &mdash; OT, compras, reparacion</td><td><a href="#capitulo-17-5">§17.5</a>, <a href="#capitulo-18-4">§18.4</a>, <a href="#capitulo-18-5">§18.5</a></td></tr>
+    <tr><td>4. Preparacion para venta</td><td>Paso 4.1 &mdash; EN_VENTA + precio</td><td><a href="#capitulo-17-6">§17.6</a></td></tr>
+    <tr><td>5. Comercializacion</td><td>Paso 5.1 &mdash; Venta REBU + garantia</td><td><a href="#capitulo-17-7">§17.7</a>, <a href="#capitulo-18-6">§18.6</a></td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Duracion estimada:</strong> 30&ndash;45 minutos con un unico operador conectado como <code>admin</code>. Al final, <strong>§20.4</strong> lista los registros esperados exactos y <strong>§20.5</strong> el checklist de verificacion.
+</div>
+
+<h2 id="capitulo-20-3">20.3 Flujo Completo Paso a Paso</h2>
+
+<p>Cada paso sigue la numeracion de la Pipeline de Datos (§17) y enlaza con el flujo automatico correspondiente (§18). Complete los pasos en orden; cada uno depende del anterior.</p>
 
 <h3>Paso 0.3 &mdash; Inicializar Plan Contable</h3>
 <table>
@@ -4276,7 +4302,7 @@ USUARIO REGISTRA OPERACION
     <tr>
         <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
         <td>1 clic en "Inicializar Plan"</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean ~33 cuentas (100-799)</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>52 cuentas</strong> (grupos 100-799)</td>
     </tr>
 </table>
 <div class="success-box">
@@ -4295,7 +4321,8 @@ USUARIO REGISTRA OPERACION
     <strong>Asiento contable generado automaticamente:</strong><br>
     DEBE 572 (Banco) &mdash; 50.000,00 EUR<br>
     HABER 110 (Resultados no asignados) &mdash; 50.000,00 EUR<br>
-    <strong>Estado: POSTEADO</strong>
+    <strong>Estado: POSTEADO</strong><br>
+    <span class="text-sm">Flujo detallado: <a href="#capitulo-17-3">§17.3 Fase 1</a> y <a href="#capitulo-18-9">§18.9 Crear Cuenta Bancaria</a>.</span>
 </div>
 <div class="info-box">
     <strong>Movimiento bancario:</strong> INGRESO 50.000,00 EUR &mdash; Concepto: "Deposito inicial" &mdash; Conciliado: No
@@ -4413,7 +4440,7 @@ USUARIO REGISTRA OPERACION
     </tr>
 </table>
 
-<h3>Paso 1.3 &mdash; Mejoras en Banco: Saldo sin Conciliar y Validacion</h3>
+<h3 id="paso-1-3">Paso 1.3 &mdash; Mejoras en Banco: Saldo sin Conciliar y Validacion</h3>
 <p>Se implementaron dos mejoras en el modulo bancario para evitar sobregiros y dar visibilidad del saldo real:</p>
 
 <h4>a) Saldo sin conciliar</h4>
@@ -4438,7 +4465,7 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Campo</th><th>Valor</th></tr>
     <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
-    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000020</code></td></tr>
     <tr><td>Marca</td><td>Volkswagen</td></tr>
     <tr><td>Modelo</td><td>Golf 1.6 TDI</td></tr>
     <tr><td>Anio</td><td>2018</td></tr>
@@ -4472,40 +4499,13 @@ USUARIO REGISTRA OPERACION
     DEBE 310 (Mercaderias) &mdash; 8.150,00 EUR (coste_inicial)<br>
     DEBE 472 (IVA soportado) &mdash; 136,50 EUR<br>
     HABER 572 (Banco Santander) &mdash; 8.286,50 EUR<br>
-    <strong>Estado: POSTEADO</strong>
+    <strong>Estado: POSTEADO</strong><br>
+    <span class="text-sm">Flujo detallado: <a href="#capitulo-17-4">§17.4 Fase 2</a> y <a href="#capitulo-18-3">§18.3 Crear Vehiculo con Factura de Compra</a>.</span>
 </div>
 <div class="info-box">
     <strong>Movimiento bancario:</strong> EGRESO 8.286,50 EUR &mdash; Concepto: "Compra VW Golf 1234ABC" &mdash; Conciliado: No<br>
     <strong>Coste inicial calculado:</strong> 7.500 + 400 + 250 = <strong>8.150,00 EUR</strong>
 </div>
-
-<h3>Incidencias y Correcciones aplicadas durante la prueba</h3>
-<p>Durante la ejecucion del pipeline de pruebas se detectaron y corrigieron los siguientes bugs:</p>
-
-<table>
-    <tr><th>#</th><th>Incidencia</th><th>Sintoma</th><th>Solucion</th><th>Archivo</th></tr>
-    <tr>
-        <td>1</td>
-        <td><strong>BancoMovimiento no creado en Inversión Inicial</strong></td>
-        <td>Saldo bancario no reflejaba el EGRESO de 2.480,50€ de la inversion del Paso 1.2. <code>saldo_pendiente</code> mostraba 50.000€ en vez de 47.519,50€.</td>
-        <td>Se agregó llamada a <code>crear_movimiento_banco()</code> dentro de <code>InversionInicial.crear_asiento_contable()</code> en <code>expenses/models.py</code>. Para la inversion existente se ejecutó script <code>fix_inversion_banco.py</code>.</td>
-        <td><code>apps/expenses/models.py</code></td>
-    </tr>
-    <tr>
-        <td>2</td>
-        <td><strong>Type mismatch en vehiculo <code>registrar_movimiento_banco</code></strong></td>
-        <td>Al crear vehiculo con "Forma de pago" = Banco Santander, no se generaba el EGRESO bancario. El asiento contable se creaba correctamente pero el banco no reflejaba el pago.</td>
-        <td>Se cambi&oacute; <code>cuenta = self.forma_pago</code> (CuentaContable) por <code>BancoCuenta.objects.filter(cuenta_contable=self.forma_pago).first()</code> en <code>vehicles/models.py</code>.</td>
-        <td><code>apps/vehicles/models.py</code></td>
-    </tr>
-    <tr>
-        <td>3</td>
-        <td><strong>Error 500 al editar OT de Taller</strong></td>
-        <td>Al hacer clic en "Editar" en una Orden de Trabajo, se mostraba <strong>Server Error (500)</strong>. Impedia modificar cualquier OT.</td>
-        <td>Se agreg&oacute; <code>from apps.accounts.models import User</code> dentro de <code>orden_trabajo_update()</code> en <code>workshop/views.py</code>. El <code>User</code> se usaba sin importar (<code>NameError</code>). Tambi&eacute;n se agreg&oacute; guarda <code>porcentaje_ss_patronal is not None</code> en <code>User.coste_hora</code> en <code>accounts/models.py</code>.</td>
-        <td><code>apps/workshop/views.py</code><br><code>apps/accounts/models.py</code></td>
-    </tr>
-</table>
 
 <h3>Paso 2.2 &mdash; Crear Catalogo de Materiales</h3>
 <p>Navegue a <strong>Sidebar &gt; 📋 Catalogo</strong> y cree los siguientes materiales (stock inicial = 0).</p>
@@ -4677,7 +4677,11 @@ USUARIO REGISTRA OPERACION
     4. Se puede generar contrato de compraventa y mandato DGT
 </div>
 
-<h2 id="capitulo-20-3">20.3 Ejemplo Numerico del Vehiculo</h2>
+<h2 id="capitulo-20-4">20.4 Registros Esperados</h2>
+
+<p>Al completar el flujo, el sistema debe haber generado <strong>exactamente</strong> los siguientes registros. Si alguna cifra no coincide, revise el paso correspondiente antes de continuar.</p>
+
+<h3>Ejemplo numerico del vehiculo</h3>
 
 <div class="warning-box">
     <strong>Resumen financiero completo del VW Golf 1234ABC:</strong><br><br>
@@ -4694,15 +4698,50 @@ USUARIO REGISTRA OPERACION
     <strong>COSTE TOTAL = 8.150,00 + 182,50 = 8.332,50 EUR</strong><br><br>
     <strong>VENTA:</strong><br>
     &nbsp;&nbsp;- Precio venta: 11.900,00 EUR<br>
-    &nbsp;&nbsp;- Margen bruto: 3.567,50 EUR (42,4%)<br>
+    &nbsp;&nbsp;- Margen bruto: 3.567,50 EUR (42,8%)<br>
     &nbsp;&nbsp;- Base imponible REBU: 2.948,35 EUR<br>
     &nbsp;&nbsp;- IVA REBU (21%): 619,15 EUR<br><br>
     <strong>Beneficio neto aproximado: 2.948,35 EUR</strong> (antes de gastos de estructura)
 </div>
 
-<h2 id="capitulo-20-4">20.4 Verificacion Post-Prueba</h2>
+<h3>Asientos contables generados (7)</h3>
+<p>Todos los asientos estan <strong>POSTEADOS</strong> y cuadran (DEBE = HABER):</p>
+<table>
+    <tr><th>#</th><th>Asiento</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>1</td><td>Deposito inicial</td><td>572 (50.000,00)</td><td>110 (50.000,00)</td></tr>
+    <tr><td>2</td><td>Inversion taller (compresor + escaner)</td><td>214 (2.050,00) + 472 (430,50)</td><td>572 (2.480,50)</td></tr>
+    <tr><td>3</td><td>Compra vehiculo</td><td>310 (8.150,00) + 472 (136,50)</td><td>572 (8.286,50)</td></tr>
+    <tr><td>4</td><td>Compra material #1 (aceite)</td><td>300 (170,00) + 472 (35,70)</td><td>410 (205,70)</td></tr>
+    <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
+    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (182,50)</td><td>300 (77,50) + 610 (105,00)</td></tr>
+    <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (2.948,35) + 471 (619,15) + 310 (8.332,50)</td></tr>
+</table>
 
-<p>Despues de completar todos los pasos, verifique los siguientes indicadores:</p>
+<h3>Movimientos bancarios (4)</h3>
+<table>
+    <tr><th>#</th><th>Tipo</th><th>Importe</th><th>Concepto</th></tr>
+    <tr><td>1</td><td>INGRESO</td><td>50.000,00 EUR</td><td>Deposito inicial</td></tr>
+    <tr><td>2</td><td>EGRESO</td><td>2.480,50 EUR</td><td>Inversion taller</td></tr>
+    <tr><td>3</td><td>EGRESO</td><td>8.286,50 EUR</td><td>Compra VW Golf 1234ABC</td></tr>
+    <tr><td>4</td><td>INGRESO</td><td>11.900,00 EUR</td><td>Cobro venta REBU</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Saldo final del banco = 51.133,00 EUR</strong> (50.000,00 - 2.480,50 - 8.286,50 + 11.900,00)
+</div>
+
+<h2 id="capitulo-20-5">20.5 Verificacion Post-Prueba</h2>
+
+<p>Despues de completar todos los pasos, marque cada comprobacion del checklist:</p>
+
+<ul>
+    <li>&#9744; El vehiculo VW Golf 1234ABC esta en estado <strong>VENDIDO</strong></li>
+    <li>&#9744; Existen <strong>7 asientos</strong> contables, todos <strong>POSTEADOS</strong> y cuadrados</li>
+    <li>&#9744; Existen <strong>4 movimientos</strong> bancarios y el saldo es <strong>51.133,00 EUR</strong></li>
+    <li>&#9744; El Balance de situacion cuadra (Activo = Pasivo + Patrimonio)</li>
+    <li>&#9744; El informe de Existencias no muestra aviso de descuadre (diferencia = 0,00)</li>
+    <li>&#9744; La garantia de 12 meses existe y esta <strong>VIGENTE</strong></li>
+</ul>
 
 <h3>Dashboard (KPIs)</h3>
 <table>
@@ -4740,29 +4779,38 @@ USUARIO REGISTRA OPERACION
     Al ser venta B2C (Particular), se creo automaticamente una <strong>garantia de 12 meses</strong> para el VW Golf. Verifique en Garantias que el registro existe y tiene estado VIGENTE.
 </div>
 
-<h2 id="capitulo-20-5">20.5 Limpieza (Reinicio para Produccion)</h2>
+<h2 id="capitulo-20-6">20.6 Limpieza (Reinicio para Produccion)</h2>
 
-<p>Una vez completada la prueba, puede limpiar el sistema para dejarlo listo para datos reales:</p>
+<p>El <code>flush</code> borra absolutamente todos los registros de prueba y deja el sistema listo para datos reales. Se usa tanto para preparar el entorno antes de la prueba (partir de cero) como para limpiarlo despues de ella.</p>
 
-<h3>Opcion A: Eliminar usuario tester (recomendado)</h3>
-<pre><code># Desde la consola de Render (Shell)
-python create_tester_user.py --delete</code></pre>
-
-<h3>Opcion B: Reset completo de la base de datos</h3>
-<p>Esto borra TODOS los datos de prueba pero mantiene la estructura de tablas:</p>
+<h3>Reset completo de la base de datos</h3>
+<p>Ejecutar desde la consola de Render (Shell). Borra todos los datos pero mantiene la estructura de tablas:</p>
 <pre><code>python manage.py flush --noinput
-python manage.py migrate
-python create_test_users.py</code></pre>
+python manage.py migrate</code></pre>
+
+<h3>Recrear los usuarios de prueba</h3>
+<p><code>create_test_users.py</code> no se despliega en Render (la raiz del servicio es <code>backend/</code>), asi que los usuarios se crean via shell:</p>
+<pre><code>python manage.py shell -c "
+from apps.accounts.models import User
+User.objects.create_superuser('admin', 'admin@eurocar.local', 'admin123!')
+User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800)
+User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800)
+User.objects.create_user('vendedor1', email='vendedor1@eurocar.local', password='vendedor123!', rol='VENDEDOR')
+User.objects.create_user('gestoria1', email='gestoria1@eurocar.local', password='gestoria123!', rol='GESTORIA')
+print('Usuarios de prueba creados')"</code></pre>
+
+<h3>Reinicializar el plan contable</h3>
+<pre><code>python manage.py shell -c "
+from apps.accounting.models import PlanContableDefault
+PlanContableDefault.crear_plan_base()
+print('Plan contable inicializado (52 cuentas)')"</code></pre>
 
 <div class="warning-box">
     <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.
 </div>
 
-<h3>Opcion C: Reset de contrasena del tester (si se queda)</h3>
-<pre><code>python create_tester_user.py --reset-password</code></pre>
-
 <div class="info-box">
-    <strong>Nota:</strong> Si el tester se queda en el sistema para produccion, cambie su contrasena por una segura y ajuste <code>puede_eliminar</code> segun la politica de la empresa.
+    <strong>Nota final:</strong> Tras la prueba, el operador debe cambiar la contrasena del usuario <code>admin</code> a una segura (<code>python manage.py changepassword admin</code>) y ajustar <code>puede_eliminar</code> segun la politica de la empresa antes de dar de alta datos reales.
 </div>
 
 </body>
