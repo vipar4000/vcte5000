@@ -102,6 +102,8 @@
                             <th class="py-2 pr-2 w-2/5">Material</th>
                             <th class="py-2 px-2 w-1/6">Cantidad</th>
                             <th class="py-2 px-2 w-1/6">Precio Ud. (€)</th>
+                            <th class="py-2 px-2 w-1/6">Base (€)</th>
+                            <th class="py-2 px-2 w-1/6">Cuota IVA (€)</th>
                             <th class="py-2 pl-2 w-10"></th>
                         </tr>
                     </thead>
@@ -111,6 +113,8 @@
                             <td class="py-2 pr-2">{{ form.material }}</td>
                             <td class="py-2 px-2">{{ form.cantidad }}</td>
                             <td class="py-2 px-2">{{ form.precio_unitario }}</td>
+                            <td class="py-2 px-2 text-right base-imponible font-mono text-gray-700">0,00 €</td>
+                            <td class="py-2 px-2 text-right cuota-iva font-mono text-gray-700">0,00 €</td>
                             <td class="py-2 pl-2 text-center">
                                 {% if form.DELETE %}
                                 <input type="checkbox" name="{{ form.DELETE.name }}"
@@ -123,6 +127,12 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mt-4 flex justify-end items-center gap-6 text-sm">
+                <span class="font-medium text-gray-600">Total Base: <span id="total-base" class="font-mono font-bold">0,00 €</span></span>
+                <span class="font-medium text-gray-600">Total Cuota IVA: <span id="total-cuota" class="font-mono font-bold">0,00 €</span></span>
+                <span class="font-medium text-gray-800">Total Factura: <span id="total-factura" class="font-mono font-bold text-lg">0,00 €</span></span>
             </div>
 
             <button type="button" id="add-linea"
@@ -153,38 +163,117 @@
     var tbody = document.querySelector('#lineas-table tbody');
     var totalForms = document.getElementById('id_lineas-TOTAL_FORMS');
     var addBtn = document.getElementById('add-linea');
+    var tipoIvaInput = document.getElementById('id_tipo_iva');
 
-    if (!tbody || !totalForms || !addBtn) return;
-
-    // Eliminar línea
-    tbody.addEventListener('click', function(e) {
-        var btn = e.target.closest('.delete-linea');
-        if (!btn) return;
-        var row = btn.closest('.linea-row');
-        var delCheckbox = row.querySelector('.delete-checkbox');
-        if (delCheckbox) {
-            delCheckbox.checked = true;
+    function parseSpanishNumber(value) {
+        if (!value) return 0;
+        value = String(value).replace(/\s/g, '');
+        if (value.includes(',')) {
+            value = value.replace(/\./g, '').replace(',', '.');
         }
-        row.style.display = 'none';
-    });
+        var parsed = parseFloat(value);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function formatEuros(value) {
+        return value.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function bindInputs(row) {
+        var inputs = row.querySelectorAll('input[name$="-cantidad"], input[name$="-precio_unitario"]');
+        inputs.forEach(function(input) {
+            input.addEventListener('input', calcularLineas);
+            input.addEventListener('change', calcularLineas);
+        });
+    }
+
+    function calcularLineas() {
+        var tipoIva = parseSpanishNumber(tipoIvaInput ? tipoIvaInput.value : 0);
+        var totalBase = 0;
+        var totalCuota = 0;
+
+        document.querySelectorAll('#lineas-table tbody .linea-row').forEach(function(row) {
+            if (row.style.display === 'none') return;
+            var cantidadInput = row.querySelector('input[name$="-cantidad"]');
+            var precioInput = row.querySelector('input[name$="-precio_unitario"]');
+            var baseCell = row.querySelector('.base-imponible');
+            var cuotaCell = row.querySelector('.cuota-iva');
+
+            var cantidad = parseSpanishNumber(cantidadInput ? cantidadInput.value : 0);
+            var precio = parseSpanishNumber(precioInput ? precioInput.value : 0);
+            var base = cantidad * precio;
+            var cuota = base * (tipoIva / 100);
+
+            if (baseCell) baseCell.textContent = formatEuros(base);
+            if (cuotaCell) cuotaCell.textContent = formatEuros(cuota);
+
+            totalBase += base;
+            totalCuota += cuota;
+        });
+
+        var totalFactura = totalBase + totalCuota;
+        var totalBaseEl = document.getElementById('total-base');
+        var totalCuotaEl = document.getElementById('total-cuota');
+        var totalFacturaEl = document.getElementById('total-factura');
+        if (totalBaseEl) totalBaseEl.textContent = formatEuros(totalBase);
+        if (totalCuotaEl) totalCuotaEl.textContent = formatEuros(totalCuota);
+        if (totalFacturaEl) totalFacturaEl.textContent = formatEuros(totalFactura);
+    }
+
+    if (tipoIvaInput) {
+        tipoIvaInput.addEventListener('input', calcularLineas);
+        tipoIvaInput.addEventListener('change', calcularLineas);
+    }
+
+    if (tbody) {
+        tbody.querySelectorAll('.linea-row').forEach(function(row) {
+            bindInputs(row);
+        });
+
+        // Eliminar línea
+        tbody.addEventListener('click', function(e) {
+            var btn = e.target.closest('.delete-linea');
+            if (!btn) return;
+            var row = btn.closest('.linea-row');
+            var delCheckbox = row.querySelector('.delete-checkbox');
+            if (delCheckbox) {
+                delCheckbox.checked = true;
+            }
+            row.style.display = 'none';
+            calcularLineas();
+        });
+    }
 
     // Añadir línea
-    addBtn.addEventListener('click', function() {
-        var num = parseInt(totalForms.value);
-        var template = tbody.querySelector('.linea-row');
-        if (!template) return;
-        var clone = template.cloneNode(true);
-        clone.innerHTML = clone.innerHTML.replace(/lineas-0-/g, 'lineas-' + num + '-');
-        clone.querySelectorAll('input').forEach(function(inp) {
-            if (inp.type !== 'hidden') inp.value = '';
+    if (addBtn && tbody && totalForms) {
+        addBtn.addEventListener('click', function() {
+            var num = parseInt(totalForms.value);
+            var template = tbody.querySelector('.linea-row');
+            if (!template) return;
+            var clone = template.cloneNode(true);
+            clone.innerHTML = clone.innerHTML.replace(/lineas-0-/g, 'lineas-' + num + '-');
+            clone.innerHTML = clone.innerHTML.replace(/lineas_0_/g, 'lineas_' + num + '_');
+            clone.querySelectorAll('input').forEach(function(inp) {
+                if (inp.type !== 'hidden') {
+                    inp.value = '';
+                    inp.checked = false;
+                }
+            });
+            clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
+            var delCb = clone.querySelector('.delete-checkbox');
+            if (delCb) delCb.checked = false;
+            clone.style.display = '';
+            clone.querySelectorAll('.base-imponible').forEach(function(el) { el.textContent = '0,00 €'; });
+            clone.querySelectorAll('.cuota-iva').forEach(function(el) { el.textContent = '0,00 €'; });
+            tbody.appendChild(clone);
+            totalForms.value = num + 1;
+            bindInputs(clone);
+            calcularLineas();
         });
-        clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
-        var delCb = clone.querySelector('.delete-checkbox');
-        if (delCb) delCb.checked = false;
-        clone.style.display = '';
-        tbody.appendChild(clone);
-        totalForms.value = num + 1;
-    });
+    }
+
+    // Calcular al cargar
+    calcularLineas();
 })();
 </script>
 {% endblock %}
