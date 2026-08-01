@@ -125,9 +125,9 @@ class InversionInicialForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['documento_pdf'].required = True
+        self.fields['documento_pdf'].required = False
         self.fields['documento_pdf'].help_text = (
-            'PDF, PNG o JPEG. Se renombrará como INV_INICIAL_[ID]_[NUM_FACTURA].'
+            'PDF, PNG o JPEG opcional. Se renombrará como INV_INICIAL_[ID]_[NUM_FACTURA].'
         )
 
     def clean(self):
