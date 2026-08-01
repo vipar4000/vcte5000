@@ -9,11 +9,13 @@ from django.http import HttpResponse
 from django.utils import timezone
 from datetime import date
 
+from .report_views import parse_int_query
+
 
 @login_required
 def exportar_modelo_390(request):
     """Genera y descarga el fichero plano del Modelo 390."""
-    anio = int(request.GET.get('anio', date.today().year))
+    anio = parse_int_query(request, 'anio', date.today().year)
     
     try:
         from .exports import generar_modelo_390
@@ -30,7 +32,7 @@ def exportar_modelo_390(request):
 @login_required
 def exportar_csv_303(request):
     """Genera y descarga el CSV para pre-declaración Modelo 303."""
-    anio = int(request.GET.get('anio', date.today().year))
+    anio = parse_int_query(request, 'anio', date.today().year)
     trimestre = int(request.GET.get('trimestre', (date.today().month - 1) // 3 + 1))
     
     try:
@@ -100,7 +102,7 @@ def exportar_facturas_compra_csv(request):
 @login_required
 def exportar_sii_xml(request):
     """Genera y descarga el XML del SII."""
-    anio = int(request.GET.get('anio', date.today().year))
+    anio = parse_int_query(request, 'anio', date.today().year)
     trimestre = int(request.GET.get('trimestre', (date.today().month - 1) // 3 + 1))
     
     try:

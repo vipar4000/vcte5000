@@ -7,10 +7,21 @@ from django.contrib.auth.decorators import login_required
 from datetime import date
 
 
+def parse_int_query(request, key, default):
+    """Parsea un parametro entero tolerando el separador de miles espanol (2.026)."""
+    raw = request.GET.get(key)
+    if raw is None:
+        return default
+    try:
+        return int(raw.replace('.', '').replace(',', ''))
+    except (ValueError, TypeError):
+        return default
+
+
 @login_required
 def pyg_view(request):
     """Informe de Pérdidas y Ganancias (PyG) Pymes."""
-    anio = int(request.GET.get('anio', date.today().year))
+    anio = parse_int_query(request, 'anio', date.today().year)
     
     from .reports import calcular_pyg
     pyg = calcular_pyg(date(anio, 1, 1), date(anio, 12, 31))
@@ -79,7 +90,7 @@ def balance_view(request):
 @login_required
 def iva_view(request):
     """Libro de IVA por trimestre (Modelo 303/390)."""
-    anio = int(request.GET.get('anio', date.today().year))
+    anio = parse_int_query(request, 'anio', date.today().year)
     trimestre = int(request.GET.get('trimestre', (date.today().month - 1) // 3 + 1))
     
     from .reports import calcular_libro_iva, calcular_trimestre
@@ -102,7 +113,7 @@ def iva_view(request):
 @login_required
 def comparativa_view(request):
     """Comparativa año a año."""
-    anio_actual = int(request.GET.get('anio_actual', date.today().year))
+    anio_actual = parse_int_query(request, 'anio_actual', date.today().year)
     anio_anterior = anio_actual - 1
     
     from .reports import calcular_comparativa
