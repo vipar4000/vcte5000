@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`. README wrongly says "Nuxt 3".
+- **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`.
 - `docker-compose.yml`: 5 services — `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 - Python 3.11.9 (`.python-version`). Backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly.
 - Settings modules in `config/settings/`: `development` (default; SQLite unless `DATABASE_URL` set), `staging` (Render staging: no Redis — locmem cache, Celery eager/sync, WhiteNoise), `production` (S3 media only when `AWS_STORAGE_BUCKET_NAME` set). Root test scripts set `DJANGO_SETTINGS_MODULE=config.settings.development` themselves.
@@ -73,7 +73,7 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 - `obtener_saldo_cuenta(codigo, fecha_desde, fecha_hasta)` — core helper, returns `(debe, haber)` for any account prefix, filtered by date and posted status.
 - `obtener_asientos_diario(fecha_desde, fecha_hasta)` — returns all posted `AsientoContable` with their `MovimientoContable` rows, ordered chronologically.
 - `obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta)` — returns all movements for a specific `CuentaContable` with running balance (saldo corrido).
-- `obtener_valor_existencias()` — values stock at `stock_actual × precio_unitario` for each `Material`, compares against accounting balance in accounts 300-330.
+- `obtener_valor_existencias()` — values materials at `stock_actual × precio_unitario` plus unsold vehicles at `coste_total`, compares against accounting balance in accounts 300-330.
 - `calcular_balance()` — now also passes `cuentas_balance` context with per-account detail for activo no corriente, existencias, clientes, and proveedores.
 
 **Balance template** (`balance.html`) has expandable `<details>` sections showing individual account balances under each category.
@@ -83,7 +83,7 @@ Accounting also has **export views** in `apps/accounting/export_views.py` (not `
 ## Gotchas
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
-- **`User.puede_eliminar`** (default True) gates delete permission. `rol` defaults to `'ADMIN'`; `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties fall back to `is_superuser`. A `createsuperuser` user stores `rol=''` — not admin until set.
+- **`User.puede_eliminar`** (default True) gates delete permission. `rol` defaults to `'ADMIN'`; `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties also return True for any `is_superuser`, so a `createsuperuser` user passes every role check.
 - **Keep `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat even though we run 3.11).
 - **`debug_toolbar` removed** — incompatible with Python 3.14. Don't re-add.
 - **`.env` split**: `backend/.env` is read by Django (`base.py:23`). Root `.env.example` is for docker-compose only.

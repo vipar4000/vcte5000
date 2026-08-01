@@ -50,7 +50,10 @@ eurocar/
 │   │   ├── sales/             # Ventas
 │   │   ├── warranty/          # Garantías
 │   │   ├── accounting/        # Contabilidad
-│   │   └── attendance/        # Asistencia
+│   │   ├── attendance/        # Asistencia
+│   │   ├── expenses/          # Gastos e inversiones
+│   │   ├── bank/              # Movimientos bancarios
+│   │   └── api/               # API REST / web pública
 │   ├── config/                 # Configuración Django
 │   ├── templates/              # Templates HTML
 │   └── static/                 # Archivos estáticos
@@ -74,7 +77,7 @@ eurocar/
 - **Backend**: Python 3.11 + Django 4.2
 - **Base de Datos**: PostgreSQL 15
 - **Frontend ERP**: Django Templates + HTMX
-- **Frontend Web**: Vue.js 3 + Nuxt 3
+- **Frontend Web**: Vue.js 3 + Vite
 - **Cache**: Redis
 - **Tareas**: Celery
 - **PDFs**: WeasyPrint
