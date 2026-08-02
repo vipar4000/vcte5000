@@ -2717,7 +2717,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <h3>13.5.4 Verificar Contabilidad y Asientos</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad</strong> (<code>/erp/contabilidad/</code>)</li>
-    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 52 cuentas del plan contable base</li>
+    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 53 cuentas del plan contable base</li>
     <li>Haga clic en <strong>"Asientos"</strong>: verifique los 2 asientos manuales:</li>
 </ol>
 <table>
@@ -3851,7 +3851,7 @@ DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
         <td>7.2</td>
         <td>Regularizar existencias (31 dic)</td>
         <td>Cierre anual</td>
-        <td>Asiento DEBE 300 / HABER 610 (ajuste de inventario)</td>
+        <td>Asiento DEBE 300 / HABER 611 (ajuste de inventario)</td>
     </tr>
     <tr>
         <td>7.3</td>
@@ -4230,8 +4230,8 @@ USUARIO REGISTRA OPERACION
 <p>Este capitulo es una guia paso a paso para verificar el sistema completo, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado). Para el detalle de cada automatismo, consulte <a href="#capitulo-18">Flujos Automaticos (§18)</a>.</p>
 
 <div class="info-box">
-    <strong>Entorno de prueba (produccion):</strong><br>
-    URL: <code>https://eurocar.onrender.com/erp/</code><br>
+    <strong>Entorno de prueba (staging):</strong><br>
+    URL: <code>https://eurocar-staging.onrender.com/erp/</code><br>
     Usuarios: los de la <a href="#credenciales">tabla de Credenciales de Prueba</a> (p. ej. <code>admin</code> / <code>admin123!</code>, <code>mecanico1</code> / <code>mecanico123!</code>)<br>
     Rol: ADMIN (<code>puede_eliminar=True</code>)
 </div>
@@ -4302,7 +4302,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
         <td>1 clic en "Inicializar Plan"</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>52 cuentas</strong> (grupos 100-799)</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>53 cuentas</strong> (grupos 100-799)</td>
     </tr>
 </table>
 <div class="success-box">
@@ -4606,7 +4606,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <strong>Asiento de capitalizacion generado al completar la OT (POSTEADO):</strong><br>
     DEBE 310 (Mercancias) &mdash; 117,85 EUR<br>
     HABER 300 (Compras) &mdash; 77,50 EUR (materiales consumidos)<br>
-    HABER 610 (Variacion de existencias) &mdash; 40,35 EUR (mano de obra)<br>
+    HABER 611 (Variacion de existencias) &mdash; 40,35 EUR (mano de obra)<br>
     <strong>Estado: POSTEADO</strong> &mdash; el coste de la reparacion se capitaliza en el vehiculo (310) y se da de baja en la venta.
 </div>
 
@@ -4713,7 +4713,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>3</td><td>Compra vehiculo</td><td>310 (8.150,00) + 472 (136,50)</td><td>572 (8.286,50)</td></tr>
     <tr><td>4</td><td>Compra material #1 (aceite)</td><td>300 (170,00) + 472 (35,70)</td><td>410 (205,70)</td></tr>
     <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
-    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 610 (40,35)</td></tr>
+    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 611 (40,35)</td></tr>
     <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
 </table>
 
@@ -4803,7 +4803,7 @@ print('Usuarios de prueba creados')"</code></pre>
 <pre><code>python manage.py shell -c "
 from apps.accounting.models import PlanContableDefault
 PlanContableDefault.crear_plan_base()
-print('Plan contable inicializado (52 cuentas)')"</code></pre>
+print('Plan contable inicializado (53 cuentas)')"</code></pre>
 
 <div class="warning-box">
     <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.

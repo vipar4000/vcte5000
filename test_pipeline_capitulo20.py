@@ -236,11 +236,11 @@ def ejecutar(c, admin):
     ot.fecha_fin = date(2026, 7, 5)
     ot.save()
     ot_asiento = ot.crear_asiento_contable()
-    check('Capitalizacion OT (310 182,50 / 300 77,50 + 610 105) POSTEADA',
+    check('Capitalizacion OT (310 182,50 / 300 77,50 + 611 105) POSTEADA',
           ot_asiento is not None and ot_asiento.estado == 'POSTEADO')
     check('Asiento OT cuadrado', ot_asiento is not None and ot_asiento.esta_cuadrado)
-    check('Movimientos OT: 310/300/610',
-          {m.cuenta.codigo for m in ot_asiento.movimientos.all()} == {'310', '300', '610'})
+    check('Movimientos OT: 310/300/611',
+          {m.cuenta.codigo for m in ot_asiento.movimientos.all()} == {'310', '300', '611'})
     check('Coste reparacion vehiculo = 182,50', vehiculo.coste_reparacion == Decimal('182.50'),
           str(vehiculo.coste_reparacion))
     check('Coste total vehiculo = 8.332,50', vehiculo.coste_total == Decimal('8332.50'),
