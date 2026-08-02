@@ -551,16 +551,6 @@ def reserva_detail(request, pk):
     return render(request, 'bank/reserva_detail.html', context)
 
 
-# =============================================================================
-# GUÍA / AYUDA
-# =============================================================================
-
-@login_required
-def banco_guia(request):
-    """Guía paso a paso del módulo bancario."""
-    return render(request, 'bank/guia.html')
-
-
 @login_required
 def reserva_convertir(request, pk):
     """Convierte una reserva activa en una venta."""

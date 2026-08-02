@@ -1994,6 +1994,128 @@ CREAR CUENTA BANCARIA
 </div>
 </div>
 
+<!-- ==================== 9.5 GUIA PRACTICA ==================== -->
+<h2 id="capitulo-9-5">9.5 Guia Practica: Ejemplos Paso a Paso</h2>
+
+<p>Esta seccion reune ejemplos completos del modulo bancario, con las acciones a realizar y el asiento contable que el sistema genera automaticamente en cada caso.</p>
+
+<div class="info-box">
+<strong>Regla de oro:</strong> Los movimientos de banco <strong>nunca</strong> se crean manualmente. El sistema los genera automaticamente cuando registras una venta, compra, gasto o reserva.
+</div>
+
+<h3>9.5.1 Crear cuenta bancaria</h3>
+<p>Antes de usar el modulo bancario se necesita al menos una cuenta configurada, vinculada a una subcuenta del PGC grupo 572 (Banco).</p>
+<ol>
+    <li>Ir a <strong>Banco</strong> en el sidebar y pulsar <strong>"+ Nueva Cuenta"</strong>.</li>
+    <li>Rellenar el formulario. Ejemplo: Nombre <code>BBVA Empresa</code>, IBAN <code>ES91 2100 0418 4502 0005 1332</code>, SWIFT <code>BBVAESMMXXX</code> (opcional), Cuenta contable <code>572 - Banco</code>.</li>
+    <li>Pulsar <strong>"Crear Cuenta"</strong>.</li>
+</ol>
+<div class="success-box">
+<strong>Resultado:</strong> La cuenta aparece en el dashboard con saldo 0,00 &euro;. Los movimientos apareceran automaticamente al registrar ventas, compras o gastos. <strong>Asiento contable:</strong> ninguno (solo se crea la cuenta; si se indica deposito inicial, ver §9.4).
+</div>
+
+<h3>9.5.2 Venta de contado</h3>
+<p>Al vender un vehiculo de contado, el sistema genera automaticamente el movimiento bancario (INGRESO), el asiento contable REBU y da de baja el inventario.</p>
+<p><strong>Datos del ejemplo:</strong> VW Golf VIII &mdash; compra en subasta 8.000 &euro;, reparaciones 2.500 &euro; (coste total 10.500 &euro;), <strong>precio de venta 14.000 &euro;</strong> por transferencia.</p>
+<ol>
+    <li>Verificar que el vehiculo esta en estado <strong>ACONDICIONADO</strong> o <strong>EN_VENTA</strong>.</li>
+    <li>Ir a <strong>Ventas &rarr; "+ Nueva Venta"</strong>, seleccionar el vehiculo y rellenar los datos del cliente.</li>
+    <li>Metodo de pago: <strong>TRANSFERENCIA</strong>. Precio de venta: <strong>14000</strong>.</li>
+    <li>Pulsar <strong>"Registrar Venta"</strong>.</li>
+</ol>
+<p><strong>Asiento contable REBU generado (POSTEADO):</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>572 Banco</td><td>14.000,00</td><td></td></tr>
+    <tr><td>700 Ventas mercaderias (base REBU)</td><td></td><td>2.975,21</td></tr>
+    <tr><td>471 HP IVA repercutido</td><td></td><td>624,79</td></tr>
+    <tr><td>310 Mercaderias (baja inventario)</td><td></td><td>10.500,00</td></tr>
+</table>
+<p>Margen = 14.000 &minus; 10.500 = 3.500 &euro; &middot; Base REBU = 3.500 / 1,21 = 2.975,21 &euro; &middot; IVA REBU = 624,79 &euro;. <strong>Movimiento bancario:</strong> INGRESO 14.000 &euro; (pendiente de conciliar).</p>
+<div class="info-box">
+<strong>Nota:</strong> si el metodo de pago es FINANCIADO, el DEBE va a la cuenta 430 (Clientes) en lugar de 572 (Banco), y el cobro se registra despues con los plazos (§9.5.4).
+</div>
+
+<h3>9.5.3 Reserva (arras / senal)</h3>
+<p>Un cliente deja una senal de 500 &euro; para apartar un vehiculo (BMW Serie 3, precio 18.000 &euro;). El sistema crea un anticipo con IVA y un movimiento bancario; al convertir en venta, el anticipo se descuenta.</p>
+<ol>
+    <li>Ir a <strong>Reservas &rarr; "+ Nueva Reserva"</strong>, seleccionar el vehiculo y rellenar los datos del cliente (Maria Lopez).</li>
+    <li>Importe: <strong>500</strong>. Pulsar <strong>"Crear Reserva"</strong>.</li>
+</ol>
+<p><strong>Asiento contable del anticipo (POSTEADO):</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>572 Banco</td><td>500,00</td><td></td></tr>
+    <tr><td>438 Anticipos de Clientes</td><td></td><td>413,22</td></tr>
+    <tr><td>477 HP IVA Repercutido</td><td></td><td>86,78</td></tr>
+</table>
+<p>Base = 500 / 1,21 = 413,22 &euro; &middot; IVA = 86,78 &euro;. <strong>Movimiento bancario:</strong> INGRESO 500 &euro;.</p>
+<p><strong>Convertir en venta:</strong> en <strong>Reservas</strong>, abrir la reserva y pulsar <strong>"Convertir en Venta"</strong> (el formulario de venta se abre con el vehiculo pre-seleccionado). El asiento REBU se genera por el precio completo (18.000 &euro;); el anticipo queda en la 438 y se compensa cuando el cliente paga el resto (17.500 &euro;).</p>
+<p><strong>Cancelacion:</strong> <em>Devolver senal</em> crea un EGRESO de 500 &euro;; <em>Penalizar</em> retiene la senal sin movimiento de egreso.</p>
+
+<h3>9.5.4 Cobro fraccionado (plazos)</h3>
+<p>El cliente paga un vehiculo de 12.000 &euro; en 3 plazos de 4.000 &euro;. Cada plazo genera su propio movimiento bancario y asiento contable.</p>
+<ol>
+    <li>Registrar la venta normalmente (metodo FINANCIADO o DIRECTA).</li>
+    <li>En <strong>Ventas</strong>, abrir la venta y pulsar <strong>"Cobros"</strong>.</li>
+    <li>Pulsar <strong>"+ Anadir Plazo"</strong> 3 veces: vencimientos 15/08, 15/09 y 15/10/2026, financiacion "Directa S.L.", 4.000 &euro; cada uno.</li>
+    <li>En la lista de cobros, pulsar <strong>"Marcar recibido"</strong> en cada plazo al cobrarlo.</li>
+</ol>
+<p><strong>Asiento por plazo (financiacion directa S.L.):</strong> DEBE 572 (4.000) / HABER 430 Clientes (4.000).</p>
+<p><strong>Asiento por plazo (financiacion externa con comision):</strong> DEBE 572 (3.800 neto) + DEBE 626 Comisiones bancarias (200) / HABER 430 Clientes (4.000).</p>
+<div class="info-box">
+<strong>Tip:</strong> cuando el total cobrado alcanza el precio de venta, la venta se marca automaticamente como <strong>PAGADA</strong>.
+</div>
+
+<h3>9.5.5 Conciliacion bancaria</h3>
+<p>Subir el extracto del banco (Excel o CSV) y el sistema busca automaticamente los movimientos que coinciden con los del ERP (ver §9.3).</p>
+<ol>
+    <li>Ir a <strong>Banco &rarr; "Conciliacion Bancaria"</strong> y seleccionar la cuenta.</li>
+    <li>Subir el archivo Excel o CSV y pulsar <strong>"Procesar Extracto"</strong>.</li>
+    <li>Revisar el matching: <strong>verde</strong> = coincidencia automatica (mismo importe, fecha &plusmn;2 dias); <strong>amarillo</strong> = sin coincidencia (revision manual).</li>
+    <li>Marcar los movimientos y pulsar <strong>"Conciliacion automatica"</strong>.</li>
+</ol>
+<p><strong>Algoritmo de matching:</strong> 1) mismo tipo (INGRESO/EGRESO); 2) mismo importe exacto; 3) fecha &plusmn;2 dias (compensa la fecha valor); 4) similitud de concepto como desempate. Las columnas del Excel se mapean automaticamente por nombre ("fecha", "concepto", "importe", "tipo"), sin importar el orden ni las columnas extra.</p>
+
+<h3>9.5.6 Regularizacion anual de existencias</h3>
+<p>Al cierre del ejercicio (31 de diciembre), el sistema ajusta el valor del inventario de vehiculos no vendidos para el balance de la S.L.</p>
+<pre><code>cd backend
+python manage.py regularizar_existencias --ano 2025</code></pre>
+<p><strong>Ejemplo:</strong> con 3 vehiculos sin vender a 31/12/2025 (VW Golf 8.000 &euro;, BMW Serie 3 12.000 &euro;, Audi A4 9.500 &euro;), valor total del stock: 29.500 &euro;.</p>
+<p><strong>Asiento de regularizacion:</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>300 Existencias (Mercaderias)</td><td>29.500,00</td><td></td></tr>
+    <tr><td>611 Variacion de existencias</td><td></td><td>29.500,00</td></tr>
+</table>
+<div class="warning-box">
+<strong>Nota fiscal:</strong> la cuenta 300 refleja el valor del stock en el balance y la 611 ajusta la variacion de existencias en la cuenta de resultados. El asiento es idempotente: si ya existe uno para ese ano, se omite.
+</div>
+
+<h3>9.5.7 Referencia rapida</h3>
+<p><strong>Cuentas PGC del modulo bancario:</strong></p>
+<table>
+    <tr><th>Codigo</th><th>Nombre</th><th>Uso</th></tr>
+    <tr><td>430</td><td>Clientes</td><td>Ventas a credito / cobros fraccionados</td></tr>
+    <tr><td>438</td><td>Anticipos de Clientes</td><td>Reservas / senales</td></tr>
+    <tr><td>477</td><td>HP IVA Repercutido</td><td>IVA 21% de anticipos</td></tr>
+    <tr><td>477001</td><td>HP IVA Repercutido REBU</td><td>IVA sobre margen REBU</td></tr>
+    <tr><td>572</td><td>Banco</td><td>Todos los movimientos bancarios</td></tr>
+    <tr><td>626</td><td>Comisiones bancarias</td><td>Comision de financiacion externa</td></tr>
+</table>
+<p><strong>Flujos contables resumen:</strong></p>
+<table>
+    <tr><th>Operacion</th><th>DEBE</th><th>HABER</th><th>Banco</th></tr>
+    <tr><td>Venta contado</td><td>572</td><td>700 + 471 + 310</td><td>INGRESO</td></tr>
+    <tr><td>Venta credito</td><td>430</td><td>700 + 471 + 310</td><td>&mdash;</td></tr>
+    <tr><td>Cobro plazo</td><td>572</td><td>430</td><td>INGRESO</td></tr>
+    <tr><td>Cobro ext. (comision)</td><td>572 + 626</td><td>430</td><td>INGRESO</td></tr>
+    <tr><td>Reserva</td><td>572</td><td>438 + 477</td><td>INGRESO</td></tr>
+    <tr><td>Compra inventario</td><td>300 + 472</td><td>410</td><td>EGRESO</td></tr>
+    <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410</td><td>EGRESO</td></tr>
+    <tr><td>Devolucion reserva</td><td>438 + 477</td><td>572</td><td>EGRESO</td></tr>
+</table>
+
 <!-- ==================== CAPITULO 10 ==================== -->
 <h1 id="capitulo-10">10. Reservas (Arras / Senales)</h1>
 
