@@ -28,7 +28,7 @@ boto3==1.34.69
 python-dateutil==2.8.2
 
 # Security
-django-axes==6.3.0
+django-axes==7.1.0
 django-csp==3.7
 
 # HTMX
