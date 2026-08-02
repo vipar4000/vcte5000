@@ -150,13 +150,16 @@ def orden_trabajo_update(request, pk):
     if not request.user.is_admin and request.user != ot.operario:
         messages.error(request, 'No tiene permisos para editar esta OT.')
         return redirect('workshop:list')
-    
+
+    # Capturar el estado ANTES de is_valid(): full_clean muta la instancia
+    # (construct_instance), así que leerlo después siempre daría el estado nuevo.
+    estado_anterior = ot.estado
+
     if request.method == 'POST':
         form = OrdenTrabajoForm(request.POST, instance=ot)
         formset = MaterialUsadoFormSet(request.POST, instance=ot)
-        
+
         if form.is_valid():
-            estado_anterior = ot.estado
             ot = form.save()
             
             if formset.is_valid():
