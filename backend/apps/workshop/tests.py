@@ -214,8 +214,14 @@ class OrdenTrabajoCosteTests(TestCase):
         mov_611 = [m for m in movimientos if m.cuenta.codigo == '611'][0]
         self.assertEqual(mov_611.haber, ot.coste_mano_obra)
 
-    def test_capitalizacion_ot_no_afecta_resultado_ejercicio(self):
-        """La mano de obra capitalizada no debe aparecer como beneficio."""
+    def test_capitalizacion_ot_como_variacion_existencias(self):
+        """La mano de obra capitalizada aparece como variación de existencias (611).
+
+        Mientras el vehículo sigue en inventario, la mano de obra de la OT
+        incrementa el activo (DEBE 310); el HABER a 611 debe formar parte del
+        resultado del ejercicio o el Balance no cuadraría (el gasto de
+        personal del operario no se asienta como tal en este sistema).
+        """
         from apps.workshop.models import OrdenTrabajo
         from apps.accounting.reports import calcular_balance, calcular_pyg
         from apps.vehicles.models import Vehiculo
@@ -234,14 +240,16 @@ class OrdenTrabajoCosteTests(TestCase):
         self.vehiculo.estado = 'ACONDICIONADO'
         self.vehiculo.save()
 
-        balance = calcular_balance('2026-08-02')
+        balance = calcular_balance('2026-12-31')
         pyg = calcular_pyg('2026-01-01', '2026-12-31')
 
         self.assertEqual(
             balance['patrimonio_neto']['resultado_ejercicio'],
-            Decimal('0')
+            ot.coste_mano_obra,
         )
-        self.assertEqual(pyg['resultado_neto'], Decimal('0'))
+        self.assertEqual(pyg['variacion_existencias'], ot.coste_mano_obra)
+        self.assertEqual(pyg['resultado_neto'], ot.coste_mano_obra)
+        self.assertEqual(balance['activo']['total'], balance['total_pasivo_patrimonio'])
 
 
 class CompraMaterialTests(TestCase):

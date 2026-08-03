@@ -201,6 +201,7 @@ class PlanContableDefault(models.Model):
             ('477', 'Hacienda Pública, IVA repercutido (otros)', 'P'),
             ('477001', 'HP IVA Repercutido REBU', 'P'),
             ('4751', 'Retenciones y anticipos IRPF', 'P'),
+            ('4751.115', 'HP Retenciones IRPF arrendamientos', 'P'),
             
             # Grupo 5 - Tesorería
             ('570', 'Caja', 'A'),

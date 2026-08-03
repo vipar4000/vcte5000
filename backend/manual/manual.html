@@ -1666,7 +1666,7 @@ Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
     <tr><td>Cobro de plazo (fraccionado)</td><td>INGRESO</td><td>Se crea al marcar plazo como recibido</td></tr>
     <tr><td>Reserva / senal</td><td>INGRESO</td><td>Se crea al guardar la reserva en <code>apps/bank/views.py</code></td></tr>
     <tr><td>Compra de material (inventario)</td><td>EGRESO</td><td>Se crea al registrar la compra en <code>apps/workshop/</code></td></tr>
-    <tr><td>Gasto de estructura</td><td>EGRESO</td><td>Se crea al guardar el gasto en <code>apps/expenses/</code></td></tr>
+    <tr><td>Gasto de estructura</td><td>&mdash;</td><td>No genera movimiento: queda pendiente en la cuenta 410 (<code>apps/expenses/</code>)</td></tr>
     <tr><td>Devolucion de reserva</td><td>EGRESO</td><td>Se crea al cancelar reserva con accion "Devolver"</td></tr>
     <tr><td>Deposito inicial / subsiguiente</td><td>INGRESO</td><td>Se crea al crear cuenta (campo deposito inicial) o via boton "Agregar Deposito"</td></tr>
 </table>
@@ -2112,7 +2112,7 @@ python manage.py regularizar_existencias --ano 2025</code></pre>
     <tr><td>Cobro ext. (comision)</td><td>572 + 626</td><td>430</td><td>INGRESO</td></tr>
     <tr><td>Reserva</td><td>572</td><td>438 + 477</td><td>INGRESO</td></tr>
     <tr><td>Compra inventario</td><td>300 + 472</td><td>410</td><td>EGRESO</td></tr>
-    <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410</td><td>EGRESO</td></tr>
+    <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410 (+ 4751.115)</td><td>&mdash;</td></tr>
     <tr><td>Devolucion reserva</td><td>438 + 477</td><td>572</td><td>EGRESO</td></tr>
 </table>
 
@@ -2839,7 +2839,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <h3>13.5.4 Verificar Contabilidad y Asientos</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad</strong> (<code>/erp/contabilidad/</code>)</li>
-    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 53 cuentas del plan contable base</li>
+    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 54 cuentas del plan contable base</li>
     <li>Haga clic en <strong>"Asientos"</strong>: verifique los 2 asientos manuales:</li>
 </ol>
 <table>
@@ -4234,8 +4234,8 @@ USUARIO REGISTRA OPERACION
 
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
-    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de gasto (6xx: 621, 628, 629, 640, 642, etc.) + DEBE 472 (IVA) + DEBE/HABER 4751 (IRPF, si aplica) / HABER 410 (Acreedores).</td></tr>
-    <tr><td><strong>Movimiento bancario</strong></td><td>EGRESO por el total de la factura (si el gasto esta marcado como pagado).</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de gasto (6xx: 621, 628, 629, 640, 642, etc.) + DEBE 472 (IVA) / HABER 4751.115 (IRPF, si aplica) + HABER 410 (Acreedores). Se postea automaticamente al cuadrar.</td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td><strong>No se crea</strong>: el gasto queda pendiente de pago en la cuenta 410 hasta que se abone al proveedor.</td></tr>
     <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (opcional).</td></tr>
 </table>
 
@@ -4408,6 +4408,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>3. Taller</td><td>Pasos 3.1 a 3.5 &mdash; OT, compras, reparacion</td><td><a href="#capitulo-17-5">§17.5</a>, <a href="#capitulo-18-4">§18.4</a>, <a href="#capitulo-18-5">§18.5</a></td></tr>
     <tr><td>4. Preparacion para venta</td><td>Paso 4.1 &mdash; EN_VENTA + precio</td><td><a href="#capitulo-17-6">§17.6</a></td></tr>
     <tr><td>5. Comercializacion</td><td>Paso 5.1 &mdash; Venta REBU + garantia</td><td><a href="#capitulo-17-7">§17.7</a>, <a href="#capitulo-18-6">§18.6</a></td></tr>
+    <tr><td>6. Gastos de estructura</td><td>Paso 8.6 &mdash; Alquiler del galpon (retencion IRPF)</td><td><a href="#capitulo-8-6">§8.6</a>, <a href="#capitulo-18-7">§18.7</a></td></tr>
 </table>
 
 <div class="info-box">
@@ -4424,7 +4425,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
         <td>1 clic en "Inicializar Plan"</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>53 cuentas</strong> (grupos 100-799)</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>54 cuentas</strong> (grupos 100-799, incluida la 4751.115 de retenciones IRPF)</td>
     </tr>
 </table>
 <div class="success-box">
@@ -4799,6 +4800,74 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     4. Se puede generar contrato de compraventa y mandato DGT
 </div>
 
+<h3>Paso 8.6 &mdash; Registrar Gasto de Estructura (Alquiler del Galpon)</h3>
+<p>Los gastos de estructura se devengan durante todo el ejercicio; en esta prueba lo registramos al final para no alterar la numeracion de los pasos anteriores. Navegue a <strong>Gastos &gt; Nuevo Gasto</strong> (<code>/erp/gastos/nuevo/</code>) y registre la factura de alquiler del galpon <strong>con retencion IRPF</strong> (detalle completo del modulo en <a href="#capitulo-8-6">§8.6</a>, flujo automatico en <a href="#capitulo-18-7">§18.7</a>):</p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Fecha factura</td><td>20/07/2026</td></tr>
+    <tr><td>Proveedor/Acreedor</td><td>Propietario Galpon S.L.</td></tr>
+    <tr><td>CIF/NIF</td><td>B87654321</td></tr>
+    <tr><td>Categoria</td><td><code>ARRENDAMIENTO</code> (Cuenta PGC 621)</td></tr>
+    <tr><td>Base imponible</td><td><strong>2.000,00 EUR</strong></td></tr>
+    <tr><td>Tipo IVA</td><td>21%</td></tr>
+    <tr><td>Retencion IRPF</td><td><strong>19%</strong> (obligatoria en arrendamientos)</td></tr>
+    <tr><td>Factura PDF</td><td><em>Opcional:</em> <code>backend/manual/ejemplos/factura_ejemplo.pdf</code></td></tr>
+</table>
+<div class="info-box">
+    <strong>Calculo del sistema:</strong><br>
+    Cuota IVA = 2.000,00 &times; 21% = <strong>420,00 EUR</strong><br>
+    Cuota retencion = 2.000,00 &times; 19% = <strong>380,00 EUR</strong><br>
+    Total factura = 2.000,00 + 420,00 - 380,00 = <strong>2.040,00 EUR</strong>
+</div>
+<div class="success-box">
+    <strong>Asiento contable generado automaticamente (POSTEADO):</strong><br>
+    DEBE 621 (Arrendamientos) &mdash; 2.000,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 420,00 EUR<br>
+    HABER 4751.115 (HP Retenciones IRPF) &mdash; 380,00 EUR<br>
+    HABER 410 (Acreedores varios) &mdash; 2.040,00 EUR<br>
+    <strong>Estado: POSTEADO</strong> &mdash; el sistema postea el asiento automaticamente al cuadrar (DEBE = HABER = 2.420,00 EUR)
+</div>
+<div class="warning-box">
+    <strong>Este gasto NO genera movimiento bancario ni toca el inventario:</strong><br>
+    &bull; El gasto queda <strong>pendiente de pago</strong> en la cuenta 410 (el banco sigue en 51.133,00 EUR).<br>
+    &bull; Regla AEAT (<a href="#capitulo-8-6">§8.6.1</a>): los gastos de estructura son gastos del ejercicio (6xx) y <strong>nunca</strong> incrementan el valor del inventario (cuenta 300). El informe de Existencias debe seguir sin descuadre.
+</div>
+
+<h4>Verificacion posterior</h4>
+<table>
+    <tr><th>#</th><th>Donde ir</th><th>Que comprobar</th></tr>
+    <tr>
+        <td>1</td>
+        <td><strong>💸 Gastos</strong></td>
+        <td>El gasto aparece en el listado: categoria ARRENDAMIENTO, base 2.000,00, IVA 420,00, retencion 380,00, total <strong>2.040,00 EUR</strong>, Pagado = No.</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
+        <td>Asiento auto-generado #000008: DEBE 621 + 472 / HABER 4751.115 + 410. <strong>Estado: POSTEADO</strong> y cuadrado.</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>📉 Contabilidad &gt; Informes &gt; PyG</strong></td>
+        <td>Otros gastos operativos &gt; Arrendamientos (621) = <strong>2.000,00 EUR</strong>. La PyG tambien muestra la Variacion de existencias (611) = <strong>40,35 EUR</strong> (mano de obra capitalizada en el Paso 3.4). Resultado neto: 3.001,78 + 40,35 - 2.000,00 = <strong>1.042,13 EUR</strong>.</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Libro IVA</strong></td>
+        <td>IVA soportado total: 624,75 + 420,00 = <strong>1.044,75 EUR</strong>.</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
+        <td>Pasivo: 410 = 2.372,75 (332,75 compras + 2.040 alquiler) y 4751.115 = 380,00. <strong>Sigue cuadrando</strong>.</td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <td><strong>🏦 Banco &gt; Cuentas</strong></td>
+        <td>Saldo sin cambios: <strong>51.133,00 EUR</strong>. No hay EGRESO del alquiler (pendiente en 410).</td>
+    </tr>
+</table>
+
 <h2 id="capitulo-20-4">20.4 Registros Esperados</h2>
 
 <p>Al completar el flujo, el sistema debe haber generado <strong>exactamente</strong> los siguientes registros. Si alguna cifra no coincide, revise el paso correspondiente antes de continuar.</p>
@@ -4823,10 +4892,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     &nbsp;&nbsp;- Margen bruto: 3.632,15 EUR (43,2%)<br>
     &nbsp;&nbsp;- Base imponible REBU: 3.001,78 EUR<br>
     &nbsp;&nbsp;- IVA REBU (21%): 630,37 EUR<br><br>
-    <strong>Beneficio neto aproximado: 3.001,78 EUR</strong> (antes de gastos de estructura)
+    <strong>Beneficio neto aproximado: 3.042,13 EUR</strong> (antes de gastos de estructura; incluye la variacion de existencias de 40,35 EUR por la mano de obra capitalizada)<br>
+    <strong>Beneficio tras gastos de estructura: 1.042,13 EUR</strong> (3.042,13 - 2.000,00 alquiler, ver Paso 8.6)
 </div>
 
-<h3>Asientos contables generados (7)</h3>
+<h3>Asientos contables generados (8)</h3>
 <p>Todos los asientos estan <strong>POSTEADOS</strong> y cuadran (DEBE = HABER):</p>
 <table>
     <tr><th>#</th><th>Asiento</th><th>DEBE</th><th>HABER</th></tr>
@@ -4837,6 +4907,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
     <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 611 (40,35)</td></tr>
     <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
+    <tr><td>8</td><td>Gasto estructura (alquiler con retencion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td></tr>
 </table>
 
 <h3>Movimientos bancarios (4)</h3>
@@ -4849,7 +4920,8 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </table>
 
 <div class="info-box">
-    <strong>Saldo final del banco = 51.133,00 EUR</strong> (50.000,00 - 2.480,50 - 8.286,50 + 11.900,00)
+    <strong>Saldo final del banco = 51.133,00 EUR</strong> (50.000,00 - 2.480,50 - 8.286,50 + 11.900,00)<br>
+    <strong>Nota (Paso 8.6):</strong> el gasto de estructura NO genera movimiento bancario: queda pendiente de pago en la cuenta 410 (Acreedores) hasta que se abone al proveedor.
 </div>
 
 <h2 id="capitulo-20-5">20.5 Verificacion Post-Prueba</h2>
@@ -4858,10 +4930,13 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 
 <ul>
     <li>&#9744; El vehiculo VW Golf 1234ABC esta en estado <strong>VENDIDO</strong></li>
-    <li>&#9744; Existen <strong>7 asientos</strong> contables, todos <strong>POSTEADOS</strong> y cuadrados</li>
+    <li>&#9744; Existen <strong>8 asientos</strong> contables, todos <strong>POSTEADOS</strong> y cuadrados</li>
     <li>&#9744; Existen <strong>4 movimientos</strong> bancarios y el saldo es <strong>51.133,00 EUR</strong></li>
+    <li>&#9744; El gasto de estructura (alquiler) existe: total <strong>2.040,00 EUR</strong>, retencion 380,00, Pagado = No</li>
+    <li>&#9744; El asiento del gasto (621 + 472 / 4751.115 + 410) esta <strong>POSTEADO</strong> automaticamente</li>
     <li>&#9744; El Balance de situacion cuadra (Activo = Pasivo + Patrimonio)</li>
-    <li>&#9744; El informe de Existencias no muestra aviso de descuadre (diferencia = 0,00)</li>
+    <li>&#9744; El informe de Existencias no muestra aviso de descuadre (diferencia = 0,00) &mdash; el gasto no toca la cuenta 300</li>
+    <li>&#9744; La PyG muestra Arrendamientos (621) = <strong>2.000,00 EUR</strong>, Variacion de existencias (611) = <strong>40,35 EUR</strong> y resultado neto = <strong>1.042,13 EUR</strong></li>
     <li>&#9744; La garantia de 12 meses existe y esta <strong>VIGENTE</strong></li>
 </ul>
 
@@ -4890,10 +4965,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <h3>Contabilidad</h3>
 <table>
     <tr><th>Informe</th><th>Que verificar</th></tr>
-    <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto</td></tr>
-    <tr><td>PyG</td><td>Ingresos (700): 3.001,78 EUR | Gastos: 0,00 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
-    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 = 624,75 EUR</td></tr>
-    <tr><td>Asientos</td><td>7 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU. Todos POSTEADOS</td></tr>
+    <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto. Pasivo: 410 = 2.372,75 (332,75 compras + 2.040 alquiler) | 4751.115 = 380,00</td></tr>
+    <tr><td>PyG</td><td>Ingresos (700): 3.001,78 EUR | Variacion existencias (611): 40,35 EUR | Gastos estructura (621): 2.000,00 EUR | Resultado neto: 1.042,13 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 + 420,00 = 1.044,75 EUR</td></tr>
+    <tr><td>Asientos</td><td>8 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU, gasto estructura (alquiler). Todos POSTEADOS</td></tr>
 </table>
 
 <h3>Garantia</h3>
@@ -4925,7 +5000,7 @@ print('Usuarios de prueba creados')"</code></pre>
 <pre><code>python manage.py shell -c "
 from apps.accounting.models import PlanContableDefault
 PlanContableDefault.crear_plan_base()
-print('Plan contable inicializado (53 cuentas)')"</code></pre>
+print('Plan contable inicializado (54 cuentas)')"</code></pre>
 
 <div class="warning-box">
     <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.

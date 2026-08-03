@@ -130,6 +130,10 @@ class GastoEstructura(models.Model):
                 descripcion=f"Proveedor: {self.proveedor_acreedor}",
             )
 
+            # Postear automaticamente si cuadra (igual que inversiones, compras y ventas)
+            asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
+            asiento.save()
+
             return asiento
 
 

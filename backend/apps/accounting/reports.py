@@ -72,12 +72,17 @@ def calcular_pyg(fecha_desde, fecha_hasta):
     
     # 3. Resultado bruto
     resultado_bruto = ventas - compras - repuestos
-    
+
+    # 3b. Variación de existencias (61x): mano de obra capitalizada en OTs y
+    # regularización anual de inventario. HABER - DEBE (positivo = ingreso).
+    # Debe contarse en el resultado o el Balance no cuadra (el DEBE va a 310).
+    variacion_existencias = saldo_haber('61')
+
     # 4. Gastos de personal
     sueldos = saldo('640')
     seguridad_social = saldo('642')
     gastos_personal = sueldos + seguridad_social
-    
+
     # 5. Otros gastos operativos
     servicios_exteriores = saldo('602')
     arrendamientos = saldo('621')
@@ -85,9 +90,9 @@ def calcular_pyg(fecha_desde, fecha_hasta):
     suministros = saldo('628')
     otros_gastos = saldo('629')
     Otros_gastos_operativos = servicios_exteriores + arrendamientos + reparaciones + suministros + otros_gastos
-    
+
     # 6. EBITDA
-    ebitda = resultado_bruto - gastos_personal - Otros_gastos_operativos
+    ebitda = resultado_bruto + variacion_existencias - gastos_personal - Otros_gastos_operativos
     
     # 7. Gastos financieros
     gastos_financieros = saldo('630')
@@ -113,6 +118,7 @@ def calcular_pyg(fecha_desde, fecha_hasta):
         },
         'resultado_bruto': resultado_bruto,
         'margen_bruto_pct': (resultado_bruto / ventas * 100) if ventas > 0 else Decimal('0'),
+        'variacion_existencias': variacion_existencias,
         'gastos_operativos': {
             'sueldos': sueldos,
             'seguridad_social': seguridad_social,
@@ -196,9 +202,11 @@ def calcular_balance(fecha_corte):
 
     # Resultado del ejercicio = Ingresos (7xx) - Gastos (6xx)
     # Sin asiento de cierre, calcular el resultado del PyG directamente.
-    # Las cuentas 61x (variación de existencias) no son gastos/ingresos reales.
+    # Las cuentas 61x SÍ cuentan: la OT capitaliza mano de obra (HABER 611)
+    # en inventario (DEBE 310); si se excluyen, el Balance descuadra porque
+    # el gasto de personal correspondiente nunca se asienta.
     ingresos = saldo_grupo_haber('7')
-    gastos = saldo_grupo('6') - saldo_grupo('61')
+    gastos = saldo_grupo('6')
     resultado_ejercicio_pyg = ingresos - gastos
     
     resultado_ejercicio = resultado_ejercicio_conta + resultado_ejercicio_pyg

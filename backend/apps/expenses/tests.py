@@ -74,7 +74,7 @@ class GastoEstructuraModelTest(TestCase):
         asiento = gasto.crear_asiento_contable()
 
         self.assertIsNotNone(asiento)
-        self.assertEqual(asiento.estado, 'BORRADOR')
+        self.assertEqual(asiento.estado, 'POSTEADO')
         self.assertEqual(asiento.tipo_documento, 'GastoEstructura')
         self.assertEqual(asiento.documento_id, gasto.pk)
 
