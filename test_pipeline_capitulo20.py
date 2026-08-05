@@ -1,6 +1,7 @@
 """Prueba del Sistema - Capítulo 20 del manual.
 
-Recorre el pipeline completo (Fases 0-7) contra la BD de desarrollo usando las
+Recorre el pipeline completo (Fases 0-7 + Paso 8.6 Gastos de estructura)
+contra la BD de desarrollo usando las
 mismas rutas de código que las vistas (metodos crear_asiento_contable,
 crear_movimiento_banco, save(), etc.) y verifica los valores esperados del
 §20.4.
@@ -29,7 +30,9 @@ from apps.accounts.models import User
 from apps.accounting.models import CuentaContable, AsientoContable
 from apps.accounting import reports
 from apps.bank.models import BancoCuenta, BancoMovimiento
-from apps.expenses.models import InversionInicial, LineaInversionInicial, ActivoFijo
+from apps.expenses.models import (
+    InversionInicial, LineaInversionInicial, ActivoFijo, GastoEstructura,
+)
 from apps.vehicles.models import Vehiculo
 from apps.workshop.models import Material, CompraMaterial, OrdenTrabajo, MaterialUsado
 from apps.sales.models import VentaVehiculo
@@ -53,6 +56,7 @@ def clean_slate():
     """Borra datos del pipeline dentro de la transaccion (se revierte al salir)."""
     from apps.expenses.models import AmortizacionAnual
     AmortizacionAnual.objects.all().delete()
+    GastoEstructura.objects.all().delete()
     GarantiaVehiculo.objects.all().delete()
     VentaVehiculo.objects.all().delete()
     MaterialUsado.objects.all().delete()
@@ -72,8 +76,13 @@ def ejecutar(c, admin):
     if CuentaContable.objects.count() == 0:
         resp = c.get('/erp/contabilidad/cuentas/inicializar/')
         check('Inicializar PGC (redirect)', resp.status_code == 302)
+    # Idempotente: recoge cuentas nuevas (p. ej. 4751.115) en BDs ya inicializadas
+    from apps.accounting.models import PlanContableDefault
+    PlanContableDefault.crear_plan_base()
     check('Plan contable creado', CuentaContable.objects.count() > 0,
           f'{CuentaContable.objects.count()} cuentas')
+    check('Cuenta 4751.115 (retencion IRPF) existe en el PGC',
+          CuentaContable.objects.filter(codigo='4751.115').exists())
 
     cuenta_572 = CuentaContable.objects.get(codigo='572')
 
@@ -236,11 +245,11 @@ def ejecutar(c, admin):
     ot.fecha_fin = date(2026, 7, 5)
     ot.save()
     ot_asiento = ot.crear_asiento_contable()
-    check('Capitalizacion OT (310 182,50 / 300 77,50 + 610 105) POSTEADA',
+    check('Capitalizacion OT (310 182,50 / 300 77,50 + 611 105) POSTEADA',
           ot_asiento is not None and ot_asiento.estado == 'POSTEADO')
     check('Asiento OT cuadrado', ot_asiento is not None and ot_asiento.esta_cuadrado)
-    check('Movimientos OT: 310/300/610',
-          {m.cuenta.codigo for m in ot_asiento.movimientos.all()} == {'310', '300', '610'})
+    check('Movimientos OT: 310/300/611',
+          {m.cuenta.codigo for m in ot_asiento.movimientos.all()} == {'310', '300', '611'})
     check('Coste reparacion vehiculo = 182,50', vehiculo.coste_reparacion == Decimal('182.50'),
           str(vehiculo.coste_reparacion))
     check('Coste total vehiculo = 8.332,50', vehiculo.coste_total == Decimal('8332.50'),
@@ -293,11 +302,37 @@ def ejecutar(c, admin):
     check('Garantia 12 meses vigente',
           garantia.esta_vigente and (garantia.fecha_fin - garantia.fecha_inicio).days in (365, 366))
 
+    print('\n--- PASO 8.6: Gasto de estructura (alquiler con retencion IRPF) ---')
+    gasto = GastoEstructura.objects.create(
+        fecha_factura=date(2026, 7, 20),
+        proveedor_acreedor='Propietario Galpon S.L.',
+        cif_nif='B87654321',
+        categoria='ARRENDAMIENTO',
+        base_imponible=Decimal('2000.00'),
+        tipo_iva=Decimal('21.00'),
+        retencion_irpf=Decimal('19.00'),
+        created_by=admin,
+    )
+    check('Gasto: cuota IVA = 420,00', gasto.cuota_iva == Decimal('420.00'),
+          str(gasto.cuota_iva))
+    check('Gasto: cuota retencion = 380,00', gasto.cuota_retencion == Decimal('380.00'),
+          str(gasto.cuota_retencion))
+    check('Gasto: total factura = 2.040,00', gasto.total_factura == Decimal('2040.00'),
+          str(gasto.total_factura))
+    gasto_asiento = gasto.crear_asiento_contable()
+    check('Asiento gasto POSTEADO automaticamente', gasto_asiento.estado == 'POSTEADO')
+    check('Asiento gasto cuadrado (621+472 / 4751.115+410)', gasto_asiento.esta_cuadrado)
+    check('Movimientos gasto: 621/472/4751.115/410',
+          {m.cuenta.codigo for m in gasto_asiento.movimientos.all()}
+          == {'621', '472', '4751.115', '410'})
+    check('Gasto NO genera movimiento bancario (pendiente en 410)',
+          BancoMovimiento.objects.count() == 4)
+
     print('\n--- §20.4: VERIFICACION POST-PRUEBA ---')
     print('\n[Asientos]')
     asientos = list(AsientoContable.objects.order_by('numero'))
-    check(f'Total asientos POSTEADOS = 7 (6 del manual + capitalizacion OT)',
-          len(asientos) == 7 and all(a.estado == 'POSTEADO' for a in asientos),
+    check(f'Total asientos POSTEADOS = 8 (6 del manual + capitalizacion OT + gasto estructura)',
+          len(asientos) == 8 and all(a.estado == 'POSTEADO' for a in asientos),
           f'{len(asientos)}')
     check('Todos los asientos cuadrados (DEBE = HABER)',
           all(a.esta_cuadrado for a in asientos))
@@ -323,14 +358,23 @@ def ejecutar(c, admin):
           str(pyg['ingresos']['ventas']))
     check('PyG: resultado bruto = 2.948,35 (sin coste 600 duplicado)',
           pyg['resultado_bruto'] == Decimal('2948.35'), str(pyg['resultado_bruto']))
-    check('PyG: resultado neto = 2.948,35', pyg['resultado_neto'] == Decimal('2948.35'),
-          str(pyg['resultado_neto']))
+    check('PyG: variacion existencias (611) = 105,00 (mano de obra capitalizada)',
+          pyg['variacion_existencias'] == Decimal('105.00'),
+          str(pyg['variacion_existencias']))
+    check('PyG: arrendamientos (621) = 2.000,00 (gasto estructura)',
+          pyg['gastos_operativos']['arrendamientos'] == Decimal('2000.00'),
+          str(pyg['gastos_operativos']['arrendamientos']))
+    check('PyG: total gastos operativos = 2.000,00',
+          pyg['gastos_operativos']['total'] == Decimal('2000.00'),
+          str(pyg['gastos_operativos']['total']))
+    check('PyG: resultado neto = 1.053,35 (2.948,35 + 105,00 - 2.000,00)',
+          pyg['resultado_neto'] == Decimal('1053.35'), str(pyg['resultado_neto']))
 
     iva = reports.calcular_libro_iva(date(2026, 1, 1), date(2026, 12, 31))
     check('IVA repercutido (471) = 619,15', iva['iva_repercutido']['total'] == Decimal('619.15'),
           str(iva['iva_repercutido']['total']))
-    check('IVA soportado (472) = 624,75 (430,50+136,50+35,70+22,05)',
-          iva['iva_soportado']['total'] == Decimal('624.75'),
+    check('IVA soportado (472) = 1.044,75 (624,75 + 420,00 alquiler)',
+          iva['iva_soportado']['total'] == Decimal('1044.75'),
           str(iva['iva_soportado']['total']))
 
     balance = reports.calcular_balance(date(2026, 12, 31))
@@ -341,11 +385,19 @@ def ejecutar(c, admin):
           saldo('310') == Decimal('0'), str(saldo('310')))
     check('300 = 197,50 (materiales no consumidos)',
           saldo('300') == Decimal('197.50'), str(saldo('300')))
+    check('621 = 2.000,00 (alquiler devengado)',
+          saldo('621') == Decimal('2000.00'), str(saldo('621')))
+    check('410 = -2.372,75 (compras 332,75 + alquiler 2.040 pendientes)',
+          saldo('410') == Decimal('-2372.75'), str(saldo('410')))
+    check('4751 = -380,00 (retencion IRPF pendiente de ingreso)',
+          saldo('4751') == Decimal('-380.00'), str(saldo('4751')))
 
     existencias = reports.obtener_valor_existencias()
     check('Existencias: diferencia = 0 (stock == contable)',
           existencias['diferencia'] == Decimal('0'),
           f"valor {existencias['total_valor']} / contable {existencias['saldo_contable']}")
+    check('Gasto de estructura NO toca inventario (300 sigue en 197,50)',
+          saldo('300') == Decimal('197.50'), str(saldo('300')))
     resp = c.get('/erp/contabilidad/informes/existencias/')
     check('Informe existencias renderiza sin aviso de descuadre',
           resp.status_code == 200 and 'supera el valor seg' not in resp.content.decode('utf-8', 'ignore'))
@@ -366,6 +418,15 @@ def ejecutar(c, admin):
                 '/erp/contabilidad/informes/libro-mayor/']:
         resp = c.get(url)
         check(f'GET {url.split("/")[-2]}', resp.status_code == 200, str(resp.status_code))
+
+    print('\n[Render modulo gastos]')
+    resp = c.get('/erp/gastos/')
+    check('GET /erp/gastos/ (listado)', resp.status_code == 200, str(resp.status_code))
+    resp = c.get(f'/erp/gastos/{gasto.pk}/')
+    check('GET /erp/gastos/<pk>/ (detalle)', resp.status_code == 200, str(resp.status_code))
+    resp = c.get('/erp/gastos/exportar/')
+    check('GET /erp/gastos/exportar/ (CSV gestoria)', resp.status_code == 200,
+          str(resp.status_code))
 
 
 def main():

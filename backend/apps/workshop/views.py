@@ -90,14 +90,13 @@ def orden_trabajo_create(request):
         if form.is_valid():
             ot = form.save(commit=False)
             ot.created_by = request.user
-            
+            ot.save()
+
             # Si es la primera OT del vehículo, cambiar estado a TALLER
             vehiculo = ot.vehiculo
             if vehiculo.estado == 'ADQUIRIDO':
                 vehiculo.estado = 'TALLER'
-                vehiculo.save()
-            
-            ot.save()
+                vehiculo.save(update_fields=['estado'])
             
             # Guardar materiales usados
             formset = MaterialUsadoFormSet(request.POST, instance=ot)
@@ -150,16 +149,30 @@ def orden_trabajo_update(request, pk):
     if not request.user.is_admin and request.user != ot.operario:
         messages.error(request, 'No tiene permisos para editar esta OT.')
         return redirect('workshop:list')
-    
+
+    # Capturar el estado ANTES de is_valid(): full_clean muta la instancia
+    # (construct_instance), así que leerlo después siempre daría el estado nuevo.
+    estado_anterior = ot.estado
+
     if request.method == 'POST':
         form = OrdenTrabajoForm(request.POST, instance=ot)
         formset = MaterialUsadoFormSet(request.POST, instance=ot)
-        
+
         if form.is_valid():
             ot = form.save()
             
             if formset.is_valid():
                 formset.save()
+            
+            # Si se completó la OT desde este formulario, capitalizar reparación
+            if ot.estado == 'COMPLETADA' and estado_anterior != 'COMPLETADA':
+                try:
+                    ot.crear_asiento_contable()
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f'OT completada, pero no se pudo capitalizar el coste: {str(e)}'
+                    )
             
             # Si se completó la OT, verificar si el vehículo está listo
             if ot.estado == 'COMPLETADA':

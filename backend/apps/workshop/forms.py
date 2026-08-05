@@ -222,28 +222,33 @@ class CompraMaterialLineaForm(forms.Form):
         queryset=Material.objects.all(),
         required=True, label='Material *',
         widget=forms.Select(attrs={
-            'class': 'w-full px-3 py-2 border rounded-lg',
+            'class': 'w-full px-2 py-1 text-sm border rounded-lg',
         }),
     )
     cantidad = forms.DecimalField(
         max_digits=8, decimal_places=2, min_value=0.01, label='Cantidad *',
         widget=forms.NumberInput(attrs={
-            'class': 'w-full px-3 py-2 border rounded-lg',
+            'class': 'w-full px-2 py-1 text-sm border rounded-lg text-right',
             'step': '0.01', 'min': '0.01',
         }),
     )
     precio_unitario = forms.DecimalField(
         max_digits=8, decimal_places=2, min_value=0, label='Precio unitario (€) *',
         widget=forms.NumberInput(attrs={
-            'class': 'w-full px-3 py-2 border rounded-lg',
+            'class': 'w-full px-2 py-1 text-sm border rounded-lg text-right',
             'step': '0.01', 'min': '0',
         }),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mostrar solo el nombre del material, sin el stock entre paréntesis
+        self.fields['material'].label_from_instance = lambda obj: obj.nombre
+
 
 CompraMaterialLineaFormSet = formset_factory(
     CompraMaterialLineaForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     min_num=1,
     validate_min=True,

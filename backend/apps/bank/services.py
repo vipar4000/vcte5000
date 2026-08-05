@@ -21,7 +21,9 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
     Crea un movimiento bancario y lo vincula a un asiento contable.
     Prohibido insertar movimientos de banco manuales — solo vía servicios.
     """
-    from .models import BancoMovimiento
+    from .models import BancoMovimiento, BancoCuenta
+
+    banco_cuenta = BancoCuenta.objects.select_for_update().get(pk=banco_cuenta.pk)
 
     if tipo == 'EGRESO':
         disponible = banco_cuenta.saldo_pendiente

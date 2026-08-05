@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class User(AbstractUser):
@@ -15,7 +16,7 @@ class User(AbstractUser):
     ]
     
     email = models.EmailField(unique=True, verbose_name='correo electrónico')
-    rol = models.CharField(max_length=20, choices=ROLES, default='ADMIN', verbose_name='rol')
+    rol = models.CharField(max_length=20, choices=ROLES, default='OPERARIO', verbose_name='rol')
     movil = models.CharField(max_length=15, blank=True, verbose_name='móvil')
     pin_kiosco = models.CharField(max_length=4, blank=True, verbose_name='PIN kiosco')
     qr_code = models.ImageField(upload_to='qr/', blank=True, verbose_name='código QR')
@@ -58,7 +59,8 @@ class User(AbstractUser):
         ordering = ['-date_joined']
     
     def __str__(self):
-        return f"{self.get_full_name()} ({self.get_rol_display()})"
+        nombre = self.get_full_name().strip() or self.username
+        return f"{nombre} ({self.get_rol_display()})"
     
     @property
     def is_admin(self):
@@ -78,12 +80,22 @@ class User(AbstractUser):
     
     @property
     def coste_hora(self):
-        """Calcula el coste real por hora incluyendo SS patronal."""
-        if not self.salario_base_mensual or self.porcentaje_ss_patronal is None:
-            return 0
-        coste_mensual = self.salario_base_mensual * (1 + self.porcentaje_ss_patronal / 100)
-        horas_mensuales = 22 * 8  # 22 días × 8 horas
-        return coste_mensual / horas_mensuales
+        """Calcula el coste real por hora incluyendo SS patronal.
+
+        Redondeado a 2 decimales para evitar precisión infinita en cálculos
+        contables.
+        """
+        salario = self.salario_base_mensual
+        ss = self.porcentaje_ss_patronal
+        if not salario or ss is None:
+            return Decimal('0')
+        salario = Decimal(str(salario))
+        ss = Decimal(str(ss))
+        coste_mensual = salario * (1 + ss / Decimal('100'))
+        horas_mensuales = Decimal('176')  # 22 días × 8 horas
+        return (coste_mensual / horas_mensuales).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
     
     @property
     def is_locked(self):

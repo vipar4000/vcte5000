@@ -73,13 +73,23 @@
 const salarioInput = document.getElementById('id_salario_base_mensual');
 const ssInput = document.getElementById('id_porcentaje_ss_patronal');
 
+function parseSpanishNumber(value) {
+    if (!value) return 0;
+    value = String(value);
+    if (value.includes(',')) {
+        value = value.replace(/\./g, '').replace(',', '.');
+    }
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+}
+
 function actualizarPreview() {
-    const salario = parseFloat(salarioInput?.value) || 0;
-    const ss = parseFloat(ssInput?.value) || 0;
-    
+    const salario = parseSpanishNumber(salarioInput?.value);
+    const ss = parseSpanishNumber(ssInput?.value);
+
     const mensual = salario * (1 + ss / 100);
     const hora = mensual / (22 * 8);
-    
+
     document.getElementById('preview-salario').textContent = `€${salario.toFixed(2)}`;
     document.getElementById('preview-ss').textContent = `${ss}%`;
     document.getElementById('preview-mensual').textContent = `€${mensual.toFixed(2)}`;

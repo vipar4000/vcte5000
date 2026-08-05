@@ -141,7 +141,7 @@ class VentaVehiculo(models.Model):
         margen = self.precio_venta - coste
         if margen > 0:
             self.base_imponible = (margen / Decimal('1.21')).quantize(Decimal('0.01'))
-            self.cuota_iva = (self.base_imponible * Decimal('0.21')).quantize(Decimal('0.01'))
+            self.cuota_iva = (margen - self.base_imponible).quantize(Decimal('0.01'))
         else:
             self.base_imponible = Decimal('0')
             self.cuota_iva = Decimal('0')
@@ -150,8 +150,8 @@ class VentaVehiculo(models.Model):
     
     @property
     def beneficio(self):
-        """Beneficio de la venta (margen bruto)."""
-        return self.precio_venta - self.coste_total
+        """Beneficio neto de la venta (margen sin IVA REBU)."""
+        return self.base_imponible
     
     @property
     def precio_final_cliente(self):

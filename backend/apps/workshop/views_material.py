@@ -128,12 +128,18 @@ def compra_material_create(request):
 
             with transaction.atomic():
                 for i, linea_form in enumerate(linea_formset):
-                    if linea_form.cleaned_data.get('DELETE'):
+                    # Saltar formularios vacíos o marcados para borrar
+                    if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
+                        continue
+                    material = linea_form.cleaned_data.get('material')
+                    cantidad = linea_form.cleaned_data.get('cantidad')
+                    precio_unitario = linea_form.cleaned_data.get('precio_unitario')
+                    if not material or cantidad is None or precio_unitario is None:
                         continue
                     compra = CompraMaterial(
-                        material=linea_form.cleaned_data['material'],
-                        cantidad=linea_form.cleaned_data['cantidad'],
-                        precio_unitario=linea_form.cleaned_data['precio_unitario'],
+                        material=material,
+                        cantidad=cantidad,
+                        precio_unitario=precio_unitario,
                         proveedor=header_form.cleaned_data['proveedor'],
                         cif_nif=header_form.cleaned_data['cif_nif'],
                         fecha_compra=header_form.cleaned_data['fecha_compra'],

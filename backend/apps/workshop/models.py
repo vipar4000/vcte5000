@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class OrdenTrabajo(models.Model):
@@ -82,25 +82,30 @@ class OrdenTrabajo(models.Model):
     def coste_mano_obra(self):
         """Calcula el coste de mano de obra."""
         if self.operario and self.operario.salario_base_mensual:
-            return self.horas_reales * self.operario.coste_hora
+            return (self.horas_reales * self.operario.coste_hora).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
         return Decimal('0')
     
     @property
     def coste_materiales(self):
         """Calcula el coste total de materiales."""
-        return sum(mo.subtotal for mo in self.materiales_usados.all())
+        total = sum(mo.subtotal for mo in self.materiales_usados.all())
+        return Decimal(total).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     @property
     def coste_total(self):
         """Coste total de la OT."""
-        return self.coste_mano_obra + self.coste_materiales
+        return (self.coste_mano_obra + self.coste_materiales).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
 
     def crear_asiento_contable(self):
         """Capitaliza el coste de reparación en inventario al completar la OT.
 
         DEBE  310 Mercaderías  = coste_total (mano de obra + materiales)
         HABER 300 Compras      = coste_materiales (consumo de inventario)
-        HABER 610 Variación    = coste_mano_obra
+        HABER 611 Variación de existencias = coste_mano_obra
         """
         from django.db import transaction
         from apps.accounting.models import (
@@ -118,7 +123,7 @@ class OrdenTrabajo(models.Model):
         with transaction.atomic():
             cuenta_mercancias = CuentaContable.objects.get(codigo='310')
             cuenta_compras = CuentaContable.objects.get(codigo='300')
-            cuenta_variacion = CuentaContable.objects.get(codigo='610')
+            cuenta_variacion = CuentaContable.objects.get(codigo='611')
 
             asiento = AsientoContable.objects.create(
                 numero=generar_numero_asiento(),
@@ -333,14 +338,17 @@ class CompraMaterial(models.Model):
         )
         # Entrada a inventario: incrementar stock solo al crear
         if not self.pk:
-            super().save(*args, **kwargs)
-            self.material.stock_actual += self.cantidad
-            self.material.alerta_stock = (
-                self.material.stock_actual <= self.material.stock_minimo
-            )
-            self.material.save(
-                update_fields=['stock_actual', 'alerta_stock']
-            )
+            from django.db import transaction
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+                material = Material.objects.select_for_update().get(pk=self.material.pk)
+                material.stock_actual += self.cantidad
+                material.alerta_stock = (
+                    material.stock_actual <= material.stock_minimo
+                )
+                material.save(
+                    update_fields=['stock_actual', 'alerta_stock']
+                )
         else:
             super().save(*args, **kwargs)
 
@@ -395,4 +403,9 @@ class CompraMaterial(models.Model):
 
             self.asiento_contable = asiento
             self.save(update_fields=['asiento_contable'])
+
+            if asiento.esta_cuadrado:
+                asiento.estado = 'POSTEADO'
+                asiento.save(update_fields=['estado'])
+
             return asiento

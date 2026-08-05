@@ -20,7 +20,6 @@ weasyprint>=62.0
 Pillow==10.1.0
 
 # Accounting
-django-ledger==0.5.4
 
 # Utilities
 django-cleanup==8.0.0

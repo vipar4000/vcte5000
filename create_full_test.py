@@ -459,8 +459,6 @@ gastos_data = [
     {'fecha_factura': date(2026, 7, 5), 'proveedor_acreedor': 'Endesa Energia S.A.U.', 'cif_nif': 'B12345678', 'categoria': 'SUMINISTROS', 'base_imponible': Decimal('350'), 'tipo_iva': Decimal('21'), 'retencion_irpf': Decimal('0')},
     {'fecha_factura': date(2026, 7, 10), 'proveedor_acreedor': 'Distrilimpia S.L.', 'cif_nif': 'B87654321', 'categoria': 'LIMPIEZA_PROD', 'base_imponible': Decimal('180'), 'tipo_iva': Decimal('21'), 'retencion_irpf': Decimal('0')},
     {'fecha_factura': date(2026, 7, 15), 'proveedor_acreedor': 'CleanPro Servicios S.A.', 'cif_nif': 'B12345678', 'categoria': 'LIMPIEZA_SERV', 'base_imponible': Decimal('450'), 'tipo_iva': Decimal('21'), 'retencion_irpf': Decimal('0')},
-    {'fecha_factura': date(2026, 7, 1), 'proveedor_acreedor': 'Nomina interna personal limpieza', 'cif_nif': 'P00000000', 'categoria': 'NOMINAS_ESTR', 'base_imponible': Decimal('1600'), 'tipo_iva': Decimal('0'), 'retencion_irpf': Decimal('0')},
-    {'fecha_factura': date(2026, 7, 5), 'proveedor_acreedor': 'Seguridad Social (TC 00/26)', 'cif_nif': 'P00000000', 'categoria': 'SEG_SOCIAL_ESTR', 'base_imponible': Decimal('504'), 'tipo_iva': Decimal('0'), 'retencion_irpf': Decimal('0')},
     {'fecha_factura': date(2026, 7, 20), 'proveedor_acreedor': 'Ayuntamiento de Alcala de Henares', 'cif_nif': 'P00000000', 'categoria': 'IMPUESTOS_ESTR', 'base_imponible': Decimal('320'), 'tipo_iva': Decimal('0'), 'retencion_irpf': Decimal('0')},
     {'fecha_factura': date(2026, 7, 25), 'proveedor_acreedor': 'Jardines y Paisajismo S.L.', 'cif_nif': 'B11223344', 'categoria': 'OTROS', 'base_imponible': Decimal('120'), 'tipo_iva': Decimal('21'), 'retencion_irpf': Decimal('0')},
 ]

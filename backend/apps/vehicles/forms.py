@@ -130,6 +130,15 @@ class VehiculoForm(forms.ModelForm):
             }),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # precio_venta no se exige al crear: se fija al pasar a EN_VENTA (default 0)
+        self.fields['precio_venta'].required = False
+
+    def clean_precio_venta(self):
+        # Vacio -> 0 (el campo del modelo no admite NULL, tiene default=0)
+        return self.cleaned_data.get('precio_venta') or Decimal('0')
+
     def clean_matricula(self):
         matricula = self.cleaned_data.get('matricula')
         if len(matricula) != 7:

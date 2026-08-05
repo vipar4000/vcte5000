@@ -126,7 +126,7 @@ def api_vehiculos_public(request):
 def api_vehiculo_detalle(request, pk):
     """API pública para detalle de un vehículo."""
     try:
-        vehiculo = Vehiculo.objects.get(pk=pk)
+        vehiculo = Vehiculo.objects.get(pk=pk, estado='EN_VENTA', precio_venta__gt=0)
         imagen_url = None
         if vehiculo.imagen_principal:
             imagen_url = vehiculo.imagen_principal.url

@@ -104,6 +104,11 @@
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
                     🏗️ Inversión Inicial
                 </a>
+
+                <a href="{% url 'payroll:list' %}" 
+                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
+                    💵 Nóminas
+                </a>
                 
                 <a href="{% url 'accounting:asientos' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
@@ -120,14 +125,14 @@
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
                     🔖 Reservas
                 </a>
-                <a href="{% url 'bank:guia' %}" 
-                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
-                    ❓ Ayuda Banco
-                </a>
                 {% endif %}
                 
                 {% if is_admin %}
                 <div class="border-t border-eurocar-light my-4"></div>
+                <a href="/admin/accounts/user/" 
+                   class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
+                    👥 Usuarios
+                </a>
                 <a href="{% url 'admin:index' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
                     ⚙️ Administración

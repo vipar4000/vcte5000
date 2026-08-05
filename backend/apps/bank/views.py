@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
+from django.db import transaction
 from django.db.models import Sum
 from datetime import date
 from decimal import Decimal
@@ -549,16 +550,6 @@ def reserva_detail(request, pk):
         'cuota_iva': reserva.cuota_iva,
     }
     return render(request, 'bank/reserva_detail.html', context)
-
-
-# =============================================================================
-# GUÍA / AYUDA
-# =============================================================================
-
-@login_required
-def banco_guia(request):
-    """Guía paso a paso del módulo bancario."""
-    return render(request, 'bank/guia.html')
 
 
 @login_required

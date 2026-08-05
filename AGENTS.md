@@ -2,9 +2,10 @@
 
 ## Architecture
 
-- **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`. README wrongly says "Nuxt 3".
+- **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`.
 - `docker-compose.yml`: 5 services — `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 - Python 3.11.9 (`.python-version`). Backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly.
+- Settings modules in `config/settings/`: `development` (default; SQLite unless `DATABASE_URL` set), `staging` (Render staging: no Redis — locmem cache, Celery eager/sync, WhiteNoise), `production` (S3 media only when `AWS_STORAGE_BUCKET_NAME` set). Root test scripts set `DJANGO_SETTINGS_MODULE=config.settings.development` themselves.
 
 Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, admin at `/admin/`. **Catch-all `spa_index` must stay last** — serves the Vue SPA for unmatched paths.
 
@@ -37,7 +38,7 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 
 No pytest. Three layers:
 
-- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 45 tests. `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres) and `expenses/tests.py` seeds subaccount `4751.115` for the retención branch.
+- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 56 tests (~100s). `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`; `apps/workshop/tests.py` covers la creación de OTs y el desplegable de operarios. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres). Subaccount `4751.115` (retención IRPF) is part of the base PGC (54 cuentas) — `expenses/tests.py` still seeds it defensively with `get_or_create`.
 - **Integration smoke** (`python test_modules.py`) — Django `Client` against the dev DB, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). Uses `/erp/`-prefixed paths plus a `FINANCIAL REPORTS` section; 54 checks. Needs test users + `migrate` first.
 - **Data check** (`python check_report_data.py`) — runs the report generators against real dev data and asserts the Balance squares (Activo = Pasivo + Patrimonio) and that every posted asiento is balanced.
 
@@ -51,7 +52,7 @@ Test users from `create_test_users.py`:
 | `vendedor1` | VENDEDOR | `vendedor123!` |
 | `gestoria1` | GESTORIA | `gestoria123!` |
 
-`backend/create_test_users.py` is stale (hardcoded SQLite path); use the root one.
+`backend/create_test_users.py` is a thin wrapper that delegates to the root `create_test_users.py`; both now use `update_or_create` and reset the password, so stale test accounts are repaired automatically.
 
 ## Financial Reports
 
@@ -72,15 +73,17 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 - `obtener_saldo_cuenta(codigo, fecha_desde, fecha_hasta)` — core helper, returns `(debe, haber)` for any account prefix, filtered by date and posted status.
 - `obtener_asientos_diario(fecha_desde, fecha_hasta)` — returns all posted `AsientoContable` with their `MovimientoContable` rows, ordered chronologically.
 - `obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta)` — returns all movements for a specific `CuentaContable` with running balance (saldo corrido).
-- `obtener_valor_existencias()` — values stock at `stock_actual × precio_unitario` for each `Material`, compares against accounting balance in accounts 300-330.
+- `obtener_valor_existencias()` — values materials at `stock_actual × precio_unitario` plus unsold vehicles at `coste_total`, compares against accounting balance in accounts 300-330.
 - `calcular_balance()` — now also passes `cuentas_balance` context with per-account detail for activo no corriente, existencias, clientes, and proveedores.
 
 **Balance template** (`balance.html`) has expandable `<details>` sections showing individual account balances under each category.
 
+Accounting also has **export views** in `apps/accounting/export_views.py` (not `reports.py`): `exportar/` CSV for 303/390 + SII XML, plus `tareas_programadas`/`crear_tareas_por_defecto` views that manage the Celery-beat schedule. The periodic tasks themselves are Celery `@shared_task`s in `apps/accounting/tasks.py` (`liquidar_iva_trimestral`, `cierre_anual`, `generar_archivos_fiscales`, `generar_sii`, `generar_cuotas_seguridad_social`) — on staging they run eagerly.
+
 ## Gotchas
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
-- **`User.puede_eliminar`** (default True) gates delete permission. `rol` defaults to `'ADMIN'`; `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties fall back to `is_superuser`. A `createsuperuser` user stores `rol=''` — not admin until set.
+- **`User.puede_eliminar`** (default True) gates delete permission. `rol` defaults to `'ADMIN'`; `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties also return True for any `is_superuser`, so a `createsuperuser` user passes every role check.
 - **Keep `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat even though we run 3.11).
 - **`debug_toolbar` removed** — incompatible with Python 3.14. Don't re-add.
 - **`.env` split**: `backend/.env` is read by Django (`base.py:23`). Root `.env.example` is for docker-compose only.
@@ -89,15 +92,21 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 - **Session**: expires in 1h and on browser close. `SESSION_SAVE_EVERY_REQUEST=True`.
 - **`django-cleanup`** auto-deletes orphaned files when records are removed.
 - **Development** has `AUTH_PASSWORD_VALIDATORS = []` — weak passwords work locally but not in production.
-- **Bank movements** are never created manually — `apps.bank.services:crear_movimiento_banco()` is the single entry point. Every financial transaction auto-creates a `BancoMovimiento`. `BancoCuenta.saldo` is computed on-the-fly.
+- **`SECRET_KEY` has no default** (`base.py:25` `env('SECRET_KEY')`) — local Django runs fail without `backend/.env`. Docker works zero-config because `docker-compose.yml` supplies an insecure dev fallback.
+- **Bank movements** are never created manually — `apps.bank.services:crear_movimiento_banco()` is the single entry point. `BancoCuenta.saldo` is computed on-the-fly.
 - **Vehicle images**: vehicle must be `EN_VENTA` or images are deleted. Max 8 per vehicle.
-- **Workshop stock** only via purchase with invoice (`CompraMaterial`). Auto-posts accounting entry on save.
-- **Vehicle purchase**: filling `factura_compra` fields auto-calculates `coste_inicial` and triggers accounting + bank movement.
+- **Workshop stock** changes via `CompraMaterial` (stock input path). `save()` updates stock and computes invoice amounts, but the view explicitly calls `crear_asiento_contable()` and posts it if balanced; the model does not auto-post.
+- **Accounting entries are not auto-generated by `save()`**. Models expose a `crear_asiento_contable()` method that views/services call explicitly. Bank movements are likewise created by explicit calls (`registrar_movimiento_banco()` or `apps.bank.services.crear_movimiento_banco()`), not signals.
+- **`GastoEstructura` auto-posts** its asiento when balanced (like `InversionInicial`) — this also affects the warranty/SS-patronal auto-gastos in `apps/expenses/services.py`. Gastos never create bank movements: they stay pending in account 410.
+- **61x counts in the result** (PyG `variacion_existencias` + Balance `resultado_ejercicio`): OT completion credits 611 for capitalized labor (DEBE 310) and operario payroll is never posted, so excluding 61x descuadra the Balance by the labor amount.
+- **Vehicle purchase**: `save()` auto-calculates `coste_inicial` from the cost fields. The create/update view then explicitly calls `crear_asiento_contable()` and `registrar_movimiento_banco()`.
 
 ## Production Deploy
 
 Deployed on **Render** (Python runtime, not Docker). Self-hosted alternative: `docker-compose.prod.yml`. Render build: `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`. Start: `gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120`.
 
-- **Auto-Deploy**: branch must be `master`. Click **Manual Deploy → Clear build cache & deploy** if push doesn't go live.
-- **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:32`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
+- **Two deploy targets**: `render.yaml` defines the **staging** service `eurocar-staging` (branch `staging`, `DJANGO_SETTINGS_MODULE=config.settings.staging`, free plan). `master` is the main branch (`origin/HEAD` → `master`); production deploys from it via the Render dashboard (not in-repo). The current repo branch is `staging`.
+- **Staging quirks** (`config/settings/staging.py`): no Redis — locmem cache, Celery tasks run eagerly/sync, WhiteNoise serves statics. Don't assume a Redis-backed cache or a Celery worker there.
+- **Auto-Deploy**: push to the service's configured branch. If a push doesn't go live, click **Manual Deploy → Clear build cache & deploy**.
+- **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:33`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
 - UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts. DB backed up daily by `.github/workflows/backup.yml`.

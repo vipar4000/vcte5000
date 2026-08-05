@@ -17,8 +17,8 @@
         <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
     </div>
     <div class="cover-footer">
-        <div class="cover-version">Manual de Usuario v2.0</div>
-        <div class="cover-date">Julio 2026 &mdash; Madrid, Espana</div>
+        <div class="cover-version">Manual de Usuario v3.0</div>
+        <div class="cover-date">Agosto 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
 </div>
@@ -40,7 +40,16 @@
         </li>
         <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a></li>
         <li><a href="#capitulo-5"><span class="chapter-num">5.</span> Ventas y Documentacion</a></li>
-        <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nomina</a></li>
+        <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nominas (Payroll RGPD)</a>
+        <ul>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.1</span> Kiosco de Fichaje</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.2</span> Marcaje Manual</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.3</span> Configuracion de Nomina</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.4</span> Reporte de Jornada</a></li>
+            <li><a href="#capitulo-6-5"><span class="chapter-num">6.5</span> Modulo de Nominas (Payroll App)</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.6</span> Cambios en Gastos de Estructura</a></li>
+        </ul>
+    </li>
         <li><a href="#capitulo-7"><span class="chapter-num">7.</span> Garantias Postventa</a></li>
         <li><a href="#capitulo-8"><span class="chapter-num">8.</span> Contabilidad</a>
             <ul>
@@ -145,10 +154,11 @@
         <li><a href="#capitulo-20"><span class="chapter-num">20.</span> Prueba del Sistema</a>
             <ul>
                 <li><a href="#capitulo-20-1"><span class="chapter-num">20.1</span> Objetivo</a></li>
-                <li><a href="#capitulo-20-2"><span class="chapter-num">20.2</span> Flujo Completo Paso a Paso</a></li>
-                <li><a href="#capitulo-20-3"><span class="chapter-num">20.3</span> Ejemplo Numerico del Vehiculo</a></li>
-                <li><a href="#capitulo-20-4"><span class="chapter-num">20.4</span> Verificacion Post-Prueba</a></li>
-                <li><a href="#capitulo-20-5"><span class="chapter-num">20.5</span> Limpieza (Reinicio para Produccion)</a></li>
+                <li><a href="#capitulo-20-2"><span class="chapter-num">20.2</span> Vista General del Flujo</a></li>
+                <li><a href="#capitulo-20-3"><span class="chapter-num">20.3</span> Flujo Completo Paso a Paso</a></li>
+                <li><a href="#capitulo-20-4"><span class="chapter-num">20.4</span> Registros Esperados</a></li>
+                <li><a href="#capitulo-20-5"><span class="chapter-num">20.5</span> Verificacion Post-Prueba</a></li>
+                <li><a href="#capitulo-20-6"><span class="chapter-num">20.6</span> Limpieza (Reinicio para Produccion)</a></li>
             </ul>
         </li>
     </ul>
@@ -182,7 +192,7 @@
         </tr>
     </table>
 
-    <h2>Credenciales de Prueba</h2>
+    <h2 id="credenciales">Credenciales de Prueba</h2>
     <table>
         <tr>
             <th>Usuario</th>
@@ -254,6 +264,7 @@
     <tr><td><code>/erp/asistencia/</code></td><td>Asistencia</td><td>Marcajes y nomina</td></tr>
     <tr><td><code>/erp/garantias/</code></td><td>Garantias</td><td>Garantias postventa</td></tr>
     <tr><td><code>/erp/contabilidad/</code></td><td>Contabilidad</td><td>Asientos, plan contable, informes y exportacion fiscal</td></tr>
+    <tr><td><code>/erp/nominas/</code></td><td>Payroll</td><td>Nominas (solo ADMIN/GESTORIA)</td></tr>
     <tr><td><code>/erp/gastos/</code></td><td>Gastos</td><td>Gastos de estructura</td></tr>
     <tr><td><code>/erp/banco/</code></td><td>Banco</td><td>Cuentas, movimientos, conciliacion y reservas</td></tr>
     <tr><td><code>/api/</code></td><td>API</td><td>Endpoints JSON publicos (sin prefijo /erp/)</td></tr>
@@ -397,7 +408,7 @@ ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
     <tr><td><code>cif_nif</code></td><td>Texto (15 chars)</td><td>No</td><td><code>B12345678</code></td></tr>
     <tr><td><code>numero_factura</code></td><td>Texto (20 chars)</td><td>No</td><td><code>FC-2026-001</code></td></tr>
     <tr><td><code>tipo_iva</code></td><td>Select</td><td>No</td><td><code>GENERAL_21</code>, <code>REDUCIDO_10</code>, <code>SUPERREDUCIDO_4</code>, <code>EXENTO</code></td></tr>
-    <tr><td><code>base_imponible</code></td><td>Decimal</td><td>No</td><td><code>8000.00</code></td></tr>
+    <tr><td><code>coste_total_adquisicion</code></td><td>Decimal</td><td>No</td><td><code>8000.00</code></td></tr>
     <tr><td><code>cuota_iva</code></td><td>Decimal</td><td>No</td><td><code>1680.00</code></td></tr>
     <tr><td><code>forma_pago</code></td><td>Select (CuentaContable)</td><td>No</td><td><code>Caja Chica</code>, <code>Banco Santander</code></td></tr>
     <tr><td><code>factura_compra_pdf</code></td><td>Archivo PDF</td><td>No</td><td>Factura original escaneada</td></tr>
@@ -779,11 +790,11 @@ Material (stock: 100)
 
 <div class="info-box">
     <strong>Calculos automaticos al guardar:</strong><br>
-    coste_total = copiado del vehiculo (ej: 8.332,50 EUR)<br>
-    margen = precio_venta - coste_total = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    base_imponible = margen / 1,21 = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    cuota_iva = base_imponible x 21% = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>42,82%</strong><br><br>
+    coste_total = copiado del vehiculo (ej: 8.267,85 EUR)<br>
+    margen = precio_venta - coste_total = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    base_imponible = margen / 1,21 = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    cuota_iva = base_imponible x 21% = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    margen_porcentaje = ((precio_venta - coste_total) / coste_total) x 100 = <strong>43,93%</strong><br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -796,19 +807,19 @@ Material (stock: 100)
 
 <pre><code>Margen = Precio de Venta - Coste Total del Vehiculo
 Base Imponible = Margen / 1,21
-Cuota IVA = Base Imponible x 21% (si Base Imponible > 0)
+Cuota IVA = Margen - Base Imponible   (redondeo AEAT: base + cuota = margen sin descuadre) (si Base Imponible > 0)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
 El precio que paga el cliente es el precio de venta completo.</code></pre>
 
 <div class="warning-box">
     <strong>Ejemplo numerico:</strong><br>
-    Coste Total del vehiculo: 8.332,50 EUR<br>
+    Coste Total del vehiculo: 8.267,85 EUR<br>
     Precio de Venta: 11.900 EUR<br><br>
-    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    Beneficio = 2.948,35 EUR<br><br>
+    Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    Cuota IVA (21%) = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    Beneficio = 3.001,78 EUR<br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -850,7 +861,11 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 </ol>
 
 <!-- ==================== CAPITULO 6 ==================== -->
-<h1 id="capitulo-6">6. Control de Asistencia y Nomina</h1>
+<h1 id="capitulo-6">6. Control de Asistencia y Nominas (Payroll RGPD)</h1>
+
+<div class="warning-box">
+    <strong>v3.0 — Modulo independiente Payroll:</strong> Las nominas y la Seguridad Social patronal se han separado del modulo de Gastos de Estructura y ahora se gestionan en la aplicacion <strong>Payroll</strong> (<code>apps/payroll</code>). El acceso esta <strong>restringido por RGPD</strong>: solo usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code> pueden ver, crear o gestionar nominas. Los roles <code>OPERARIO</code> y <code>VENDEDOR</code> no tienen acceso.
+</div>
 
 <h2>6.1 Kiosco de Fichaje</h2>
 <p>El kiosco esta disenado para tablets o pantallas tactiles en el galpon.</p>
@@ -903,7 +918,7 @@ SALIDA    ENTRADA
     <li>Confirme el registro</li>
 </ol>
 
-<h2>6.3 Configuracion de Nomina</h2>
+<h2>6.3 Configuracion de Nomina (Coste/Hora)</h2>
 <p>Para calcular el coste real por hora de cada operario:</p>
 
 <pre><code>Coste Mensual Total = Salario Base x (1 + % SS Patronal / 100)
@@ -928,6 +943,102 @@ Ejemplo con Convenio del Metal de Madrid:
         </ul>
     </li>
 </ol>
+
+<h2 id="capitulo-6-5">6.5 Modulo de Nominas (Payroll App)</h2>
+<p>Accesible en <strong>Nominas</strong> desde el menu lateral. Solo visible para usuarios <code>ADMIN</code> y <code>GESTORIA</code>.</p>
+
+<h3>6.5.1 Modelo NominaEstructura</h3>
+<table>
+    <tr><th>Campo</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
+    <tr><td><code>empleado</code></td><td>—</td><td>Usuario (rol OPERARIO)</td></tr>
+    <tr><td><code>fecha_nomina</code></td><td>—</td><td>Fecha de devengo</td></tr>
+    <tr><td><code>salario_bruto</code></td><td>640 (DEBE)</td><td>Sueldos y salarios</td></tr>
+    <tr><td><code>ss_patronal</code></td><td>642 (DEBE)</td><td>Seguridad Social a cargo de la empresa</td></tr>
+    <tr><td><code>retencion_irpf</code></td><td>4751 (HABER)</td><td>Retencion IRPF practicada</td></tr>
+    <tr><td><code>ss_obrera</code></td><td>476 (HABER)</td><td>Cuota obrera Seguridad Social</td></tr>
+    <tr><td><code>liquido_percibir</code></td><td>465 (HABER)</td><td>Remuneraciones pendientes de pago (neto)</td></tr>
+</table>
+
+<h3>6.5.2 Asiento Contable de Nomina (PGC Estandar)</h3>
+<pre><code>DEBE  640 (Sueldos y salarios):     salario_bruto
+DEBE  642 (Seguridad social):        ss_patronal
+HABER 4751 (HP Retenciones IRPF):    retencion_irpf
+HABER 476 (Organismos SS):           ss_obrera + ss_patronal
+HABER 465 (Remuneraciones pendientes): liquido_percibir
+
+Verificacion: DEBE = HABER
+  salario_bruto + ss_patronal = retencion_irpf + (ss_obrera + ss_patronal) + liquido_percibir</code></pre>
+
+<h3>6.5.3 Ejemplo: Nomina de Carlos Gomez (Operario Taller)</h3>
+<pre><code>Empleado: Carlos Gomez (OPERARIO)
+Fecha: 31/07/2026
+
+Devengos:
+  Salario Bruto (640):              1.800,00 EUR
+  SS Patronal 31,5% (642):            567,00 EUR
+  Total Devengos:                   2.367,00 EUR
+
+Deducciones:
+  Retencion IRPF 6% (4751):          108,00 EUR
+  SS Obrera 4,7% (476):               84,60 EUR
+  SS Patronal (476):                 567,00 EUR
+  Total Deducciones:                 759,60 EUR
+
+Liquido a Percibir (465):          1.607,40 EUR
+
+Asiento contable (auto-posteado si cuadrado):
+  DEBE  640 = 1.800,00
+  DEBE  642 =   567,00
+  HABER 4751 =   108,00
+  HABER 476  =   651,60 (84,60 + 567,00)
+  HABER 465  = 1.607,40
+  ———————————————————
+  Suma DEBE:  2.367,00 = Suma HABER: 2.367,00 ✓</code></pre>
+
+<h3>6.5.4 Crear Nomina Manualmente</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Nominas</strong> en el menu lateral (requiere ADMIN o GESTORIA)</li>
+    <li>Haga clic en <strong>"Nueva Nomina"</strong></li>
+    <li>Complete los campos: empleado, fecha, salario bruto, SS patronal, retencion IRPF, SS obrera</li>
+    <li>El liquido a percibir se calcula automaticamente al guardar</li>
+    <li>Haga clic en <strong>"Registrar Nomina"</strong></li>
+    <li>El asiento contable se genera y se postea automaticamente si esta cuadrado</li>
+</ol>
+
+<h3>6.5.5 Generar Nominas Mensuales Automaticamente</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Nominas</strong></li>
+    <li>Haga clic en <strong>"Generar mensual"</strong></li>
+    <li>El sistema itera todas las configuraciones de nomina activas</li>
+    <li>Crea una NominaEstructura por cada operario con:
+        <ul>
+            <li>Salario bruto de la configuracion</li>
+            <li>SS patronal = salario x % SS patronal / 100</li>
+            <li>SS obrera = salario x 4,7%</li>
+            <li>Retencion IRPF = salario x 6% (estimado)</li>
+        </ul>
+    </li>
+    <li>Cada nomina genera su asiento contable automaticamente</li>
+</ol>
+
+<div class="warning-box">
+    <strong>Proteccion RGPD:</strong> Las nominas contienen datos personales sensibles (salarios, IRPF, SS).
+    El acceso esta estrictamente limitado a ADMIN y GESTORIA. Cualquier intento de acceso por parte de
+    OPERARIO o VENDEDOR es rechazado con un mensaje de error.
+</div>
+
+<h2>6.6 Cambios en Gastos de Estructura (v3.0)</h2>
+<p>Las categorias <code>NOMINAS_ESTR</code> y <code>SEG_SOCIAL_ESTR</code> han sido <strong>eliminadas</strong> del modelo <code>GastoEstructura</code>. Los gastos de estructura ahora se limitan estrictamente a facturas de proveedores externos:</p>
+
+<table>
+    <tr><th>Categoria</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
+    <tr><td><code>ARRENDAMIENTO</code></td><td>621</td><td>Alquiler del galpon</td></tr>
+    <tr><td><code>SUMINISTROS</code></td><td>628</td><td>Luz, agua, conectividad</td></tr>
+    <tr><td><code>LIMPIEZA_PROD</code></td><td>602</td><td>Productos de limpieza</td></tr>
+    <tr><td><code>LIMPIEZA_SERV</code></td><td>629</td><td>Servicios de limpieza externa</td></tr>
+    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>Otros tributos (IBI, tasas, vados)</td></tr>
+    <tr><td><code>OTROS</code></td><td>620</td><td>Otros gastos no especificados</td></tr>
+</table>
 
 <!-- ==================== CAPITULO 7 ==================== -->
 <h1 id="capitulo-7">7. Garantias Postventa</h1>
@@ -1033,7 +1144,7 @@ vencimiento  reparacion
     <tr><td><strong>3xx</strong></td><td>Existencias</td><td>Mercancias (310) - vehiculos en inventario</td></tr>
     <tr><td><strong>4xx</strong></td><td>Acreedores y Deudas</td><td>Proveedores (400), Acreedores (410), Clientes (430), IVA Repercutido (471), IVA Soportado (472)</td></tr>
     <tr><td><strong>5xx</strong></td><td>Tesoreria</td><td>Banco (572)</td></tr>
-    <tr><td><strong>6xx</strong></td><td>Gastos</td><td>Compras (600), Servicios exteriores (602), Reparaciones (623), Sueldos (640), Seg. Social (642), Imp. Sociedades (680)</td></tr>
+    <tr><td><strong>6xx</strong></td><td>Gastos</td><td>Compras (600), Servicios ext. (602), Reparaciones (623), Suministros (628), Otros tributos (631), Sueldos (640), Seg. Social (642), Imp. Sociedades (680)</td></tr>
     <tr><td><strong>7xx</strong></td><td>Ingresos</td><td>Ventas mercancias (700)</td></tr>
 </table>
 
@@ -1043,6 +1154,8 @@ vencimiento  reparacion
     <tr><td><code>310</code></td><td>Mercancias</td><td>Inventario de vehiculos (se da de baja al vender)</td></tr>
     <tr><td><code>471</code></td><td>IVA Repercutido</td><td>IVA cobrado al cliente (sobre el margen)</td></tr>
     <tr><td><code>472</code></td><td>IVA Soportado</td><td>IVA pagado a proveedores</td></tr>
+    <tr><td><code>465</code></td><td>Remuneraciones pendientes de pago</td><td>Liquido neto a pagar al empleado</td></tr>
+    <tr><td><code>476</code></td><td>Organismos de la Seguridad Social, acreedores</td><td>SS obrera + patronal a pagar</td></tr>
     <tr><td><code>600</code></td><td>Compras</td><td>Coste de adquisicion del vehiculo</td></tr>
     <tr><td><code>623</code></td><td>Reparaciones</td><td>Costes de acondicionamiento (IVA no deducible)</td></tr>
     <tr><td><code>700</code></td><td>Ventas mercancias</td><td>Ingresos por venta (margen REBU)</td></tr>
@@ -1057,6 +1170,10 @@ vencimiento  reparacion
 </ol>
 
 <h2 id="capitulo-8-2">8.2 Asientos Contables</h2>
+
+<div class="warning-box">
+    <strong>Control de acceso (RGPD):</strong> Las operaciones de <em>postear</em> y <em>anular</em> asientos estan restringidas exclusivamente a usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code>. Los roles <code>OPERARIO</code> y <code>VENDEDOR</code> pueden ver los asientos pero no pueden modificar su estado.
+</div>
 
 <h3>Crear un Asiento</h3>
 <ol class="steps">
@@ -1139,7 +1256,7 @@ Verificacion: DEBE (150,00) = HABER (150,00) -> CUADRADO</code></pre>
 </div>
 
 <pre><code>Base Imponible = Margen / 1,21
-Cuota IVA = Base Imponible x 21%
+Cuota IVA = Margen - Base Imponible   (redondeo AEAT: base + cuota = margen)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
 El precio que paga el cliente es el precio de venta completo.</code></pre>
@@ -1148,15 +1265,15 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
     <strong>Ejemplo numerico completo:</strong><br><br>
     <strong>Datos del vehiculo:</strong><br>
     - Coste adquisicion: 8.150,00 EUR (precio subasta + tasas + grua)<br>
-    - Reparaciones (OT): 182,50 EUR<br>
-    - <strong>Coste Total = 8.332,50 EUR</strong><br><br>
+    - Reparaciones (OT): 117,85 EUR<br>
+    - <strong>Coste Total = 8.267,85 EUR</strong><br><br>
     <strong>Datos de la venta:</strong><br>
     - Precio de venta al cliente: 11.900 EUR<br><br>
     <strong>Calculo REBU:</strong><br>
-    - Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    - Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    - Cuota IVA (21%) = 2.948,35 x 0,21 = <strong>619,15 EUR</strong><br>
-    - Beneficio neto = 2.948,35 EUR<br><br>
+    - Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    - Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    - Cuota IVA (21%) = 3.001,78 x 0,21 = <strong>630,37 EUR</strong><br>
+    - Beneficio neto = 3.001,78 EUR<br><br>
     El cliente paga: <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -1166,20 +1283,20 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 <div class="diagram">
     <div class="title">Flujo del Asiento de Venta REBU</div>
     <div class="flow">
-Venta Registrada (precio: 11.900 EUR, coste: 8.332,50 EUR)
+Venta Registrada (precio: 11.900 EUR, coste: 8.267,85 EUR)
          |
          v
 Calcular REBU:
-  Margen = 3.567,50
-  Base = 2.948,35
-  IVA  = 619,15
+  Margen = 3.632,15
+  Base = 3.001,78
+  IVA  = 630,37
          |
          v
 Crear Asiento Contable (4 movimientos):
   DEBE  572 (Banco)        11.900,00  <-- Cobro del cliente
-  HABER 700 (Ventas)        2.948,35  <-- Ingresos (margen REBU)
-  HABER 471 (IVA Repercutido) 619,15  <-- IVA sobre el margen
-  HABER 310 (Mercancias)    8.332,50  <-- Baja de inventario (coste del vehiculo)
+  HABER 700 (Ventas)        3.001,78  <-- Ingresos (margen REBU)
+  HABER 471 (IVA Repercutido) 630,37  <-- IVA sobre el margen
+  HABER 310 (Mercancias)    8.267,85  <-- Baja de inventario (coste del vehiculo)
          |
          v
 Verificar: DEBE (11.900,00) = HABER (11.900,00) -> CUADRADO
@@ -1189,12 +1306,12 @@ Verificar: DEBE (11.900,00) = HABER (11.900,00) -> CUADRADO
 <pre><code>Asiento de Venta REBU - Vehiculo (11.900 EUR)
 
 Cuenta 572 (Banco)              - DEBE:  11.900,00 EUR
-Cuenta 700 (Ventas mercancias)  - HABER:  2.948,35 EUR
-Cuenta 471 (IVA Repercutido)    - HABER:    619,15 EUR
-Cuenta 310 (Mercancias)         - HABER:  8.332,50 EUR
+Cuenta 700 (Ventas mercancias)  - HABER:  3.001,78 EUR
+Cuenta 471 (IVA Repercutido)    - HABER:    630,37 EUR
+Cuenta 310 (Mercancias)         - HABER:  8.267,85 EUR
 
 DEBE:  11.900,00 EUR
-HABER: 2.948,35 + 619,15 + 8.332,50 = 11.900,00 EUR
+HABER: 3.001,78 + 630,37 + 8.267,85 = 11.900,00 EUR
 Verificacion: CUADRADO</code></pre>
 
 <div class="info-box">
@@ -1236,7 +1353,7 @@ NOTA: El IVA de 105,00 EUR NO es deducible -> va a la cuenta 623, NO a 472.</cod
     Si se vende a 16.500 EUR:<br>
     - Margen = 16.500 - 12.927,50 = 3.572,50 EUR<br>
     - Base Imponible = 3.572,50 / 1,21 = 2.952,48 EUR<br>
-    - Cuota IVA = 2.952,48 x 21% = 620,02 EUR
+    - Cuota IVA = 3.572,50 - 2.952,48 = 620,02 EUR (metodo AEAT: base + cuota = margen)
 </div>
 
 <h3>8.3.4 Cuentas Utilizadas en REBU</h3>
@@ -1353,13 +1470,22 @@ Siguiente ano comienza con balances limpios
     <tr><td><code>SUMINISTROS</code></td><td>628</td><td>Luz, agua, conectividad</td></tr>
     <tr><td><code>LIMPIEZA_PROD</code></td><td>602</td><td>Productos de limpieza e insumos globales</td></tr>
     <tr><td><code>LIMPIEZA_SERV</code></td><td>629</td><td>Servicios de limpieza externa</td></tr>
-    <tr><td><code>NOMINAS_ESTR</code></td><td>640</td><td>Salarios personal limpieza/admin</td></tr>
-    <tr><td><code>SEG_SOCIAL_ESTR</code></td><td>642</td><td>Aportes patronales personal estructura</td></tr>
-    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>IBI, tasas municipales, vados</td></tr>
+    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>Otros tributos (IBI, tasas, vados)</td></tr>
     <tr><td><code>OTROS</code></td><td>620</td><td>Otros gastos no especificados</td></tr>
 </table>
 
 <h3>8.6.3 Registrar un Gasto</h3>
+
+<div class="warning-box">
+    <strong>Ley Antifraude (v3.0):</strong> Al <strong>editar</strong> un gasto existente, el sistema NO borra el asiento original. En su lugar:
+    <ol>
+        <li>Marca el asiento original como <code>ANULADO</code></li>
+        <li>Crea un <strong>asiento inverso de reversion</strong> (mismas cuentas, debe y haber intercambiados) con tipo <code>AnulacionGasto</code></li>
+        <li>Genera un <strong>nuevo asiento</strong> con los importes actualizados</li>
+    </ol>
+    Esto garantiza la <strong>trazabilidad completa</strong> exigida por la Ley Antifraude y el Codigo de Comercio.
+</div>
+
 <ol class="steps">
     <li>Navegue a <strong>Gastos</strong> en el menu lateral</li>
     <li>Haga clic en <strong>"Nuevo Gasto"</strong></li>
@@ -1500,41 +1626,13 @@ Asiento contable generado:
 
 Verificacion: DEBE (544,50) = HABER (544,50) -> CUADRADO</code></pre>
 
-<h3>Ejemplo: Nomina Personal de Estructura</h3>
-<pre><code>Nomina mensual - Personal de limpieza y administracion:
-
-Proveedor: Nomina interna (sin factura externa)
-Categoria: NOMINAS_ESTR (640)
-Base imponible: 1.600,00 EUR (salario bruto)
-Tipo IVA: 0% (servicios personales exentos)
-Retencion IRPF: 0% (se contabiliza el gasto bruto)
-
-Nota: Las nominas se registran como gasto sin factura externa.
-El IVA no aplica a servicios personales.
-
-Asiento contable generado:
-  Debito  640 (Sueldos y salarios): 1.600,00 EUR
-  Credito 410 (Acreedores varios):               1.600,00 EUR
-
-Verificacion: DEBE (1.600,00) = HABER (1.600,00) -> CUADRADO</code></pre>
-
-<h3>Ejemplo: Aportes Patronales Seguridad Social</h3>
-<pre><code>Cuota mensual de Seguridad Social - Aportes patronales:
-
-Proveedor: Seguridad Social (TC 00/26)
-Categoria: SEG_SOCIAL_ESTR (642)
-Base imponible: 504,00 EUR (31,5% sobre 1.600,00 EUR)
-Tipo IVA: 0% (exento)
-Retencion IRPF: 0%
-
-Nota: La cuota patronal (31,5%) se calcula automaticamente
-sobre el salario bruto del personal de estructura.
-
-Asiento contable generado:
-  Debito  642 (Seguridad social): 504,00 EUR
-  Credito 410 (Acreedores varios):              504,00 EUR
-
-Verificacion: DEBE (504,00) = HABER (504,00) -> CUADRADO</code></pre>
+<h3>8.6.3.1 Modulo de Nominas (Payroll App)</h3>
+<div class="info-box">
+    <strong>Importante (v3.0):</strong> Las nominas y la Seguridad Social patronal se han separado
+    del modulo de Gastos de Estructura y ahora se gestionan en una aplicacion independiente
+    <strong>Payroll</strong> (<code>apps/payroll</code>) con acceso restringido por RGPD
+    (solo ADMIN y GESTORIA). Vea el <a href="#capitulo-6">Capitulo 6</a> para detalles completos.
+</div>
 
 <h3>Ejemplo: IBI y Tasas Municipales</h3>
 <pre><code>Recibo de IBI (Impuesto sobre Bienes Inmuebles):
@@ -1549,8 +1647,8 @@ Nota: Los tributos publicos (IBI, vados, tasas municipales)
 estan exentos de IVA y no tienen retencion.
 
 Asiento contable generado:
-  Debito  631 (Perdidas por deterioro y otorg. valore): 320,00 EUR
-  Credito 410 (Acreedores varios):                                   320,00 EUR
+  Debito  631 (Otros tributos): 320,00 EUR
+  Credito 410 (Acreedores varios):                    320,00 EUR
 
 Verificacion: DEBE (320,00) = HABER (320,00) -> CUADRADO</code></pre>
 
@@ -1665,7 +1763,7 @@ Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
     <tr><td>Cobro de plazo (fraccionado)</td><td>INGRESO</td><td>Se crea al marcar plazo como recibido</td></tr>
     <tr><td>Reserva / senal</td><td>INGRESO</td><td>Se crea al guardar la reserva en <code>apps/bank/views.py</code></td></tr>
     <tr><td>Compra de material (inventario)</td><td>EGRESO</td><td>Se crea al registrar la compra en <code>apps/workshop/</code></td></tr>
-    <tr><td>Gasto de estructura</td><td>EGRESO</td><td>Se crea al guardar el gasto en <code>apps/expenses/</code></td></tr>
+    <tr><td>Gasto de estructura</td><td>&mdash;</td><td>No genera movimiento: queda pendiente en la cuenta 410 (<code>apps/expenses/</code>)</td></tr>
     <tr><td>Devolucion de reserva</td><td>EGRESO</td><td>Se crea al cancelar reserva con accion "Devolver"</td></tr>
     <tr><td>Deposito inicial / subsiguiente</td><td>INGRESO</td><td>Se crea al crear cuenta (campo deposito inicial) o via boton "Agregar Deposito"</td></tr>
 </table>
@@ -1992,6 +2090,128 @@ CREAR CUENTA BANCARIA
          +-------------------+
 </div>
 </div>
+
+<!-- ==================== 9.5 GUIA PRACTICA ==================== -->
+<h2 id="capitulo-9-5">9.5 Guia Practica: Ejemplos Paso a Paso</h2>
+
+<p>Esta seccion reune ejemplos completos del modulo bancario, con las acciones a realizar y el asiento contable que el sistema genera automaticamente en cada caso.</p>
+
+<div class="info-box">
+<strong>Regla de oro:</strong> Los movimientos de banco <strong>nunca</strong> se crean manualmente. El sistema los genera automaticamente cuando registras una venta, compra, gasto o reserva.
+</div>
+
+<h3>9.5.1 Crear cuenta bancaria</h3>
+<p>Antes de usar el modulo bancario se necesita al menos una cuenta configurada, vinculada a una subcuenta del PGC grupo 572 (Banco).</p>
+<ol>
+    <li>Ir a <strong>Banco</strong> en el sidebar y pulsar <strong>"+ Nueva Cuenta"</strong>.</li>
+    <li>Rellenar el formulario. Ejemplo: Nombre <code>BBVA Empresa</code>, IBAN <code>ES91 2100 0418 4502 0005 1332</code>, SWIFT <code>BBVAESMMXXX</code> (opcional), Cuenta contable <code>572 - Banco</code>.</li>
+    <li>Pulsar <strong>"Crear Cuenta"</strong>.</li>
+</ol>
+<div class="success-box">
+<strong>Resultado:</strong> La cuenta aparece en el dashboard con saldo 0,00 &euro;. Los movimientos apareceran automaticamente al registrar ventas, compras o gastos. <strong>Asiento contable:</strong> ninguno (solo se crea la cuenta; si se indica deposito inicial, ver §9.4).
+</div>
+
+<h3>9.5.2 Venta de contado</h3>
+<p>Al vender un vehiculo de contado, el sistema genera automaticamente el movimiento bancario (INGRESO), el asiento contable REBU y da de baja el inventario.</p>
+<p><strong>Datos del ejemplo:</strong> VW Golf VIII &mdash; compra en subasta 8.000 &euro;, reparaciones 2.500 &euro; (coste total 10.500 &euro;), <strong>precio de venta 14.000 &euro;</strong> por transferencia.</p>
+<ol>
+    <li>Verificar que el vehiculo esta en estado <strong>ACONDICIONADO</strong> o <strong>EN_VENTA</strong>.</li>
+    <li>Ir a <strong>Ventas &rarr; "+ Nueva Venta"</strong>, seleccionar el vehiculo y rellenar los datos del cliente.</li>
+    <li>Metodo de pago: <strong>TRANSFERENCIA</strong>. Precio de venta: <strong>14000</strong>.</li>
+    <li>Pulsar <strong>"Registrar Venta"</strong>.</li>
+</ol>
+<p><strong>Asiento contable REBU generado (POSTEADO):</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>572 Banco</td><td>14.000,00</td><td></td></tr>
+    <tr><td>700 Ventas mercaderias (base REBU)</td><td></td><td>2.975,21</td></tr>
+    <tr><td>471 HP IVA repercutido</td><td></td><td>624,79</td></tr>
+    <tr><td>310 Mercaderias (baja inventario)</td><td></td><td>10.500,00</td></tr>
+</table>
+<p>Margen = 14.000 &minus; 10.500 = 3.500 &euro; &middot; Base REBU = 3.500 / 1,21 = 2.975,21 &euro; &middot; IVA REBU = 624,79 &euro;. <strong>Movimiento bancario:</strong> INGRESO 14.000 &euro; (pendiente de conciliar).</p>
+<div class="info-box">
+<strong>Nota:</strong> si el metodo de pago es FINANCIADO, el DEBE va a la cuenta 430 (Clientes) en lugar de 572 (Banco), y el cobro se registra despues con los plazos (§9.5.4).
+</div>
+
+<h3>9.5.3 Reserva (arras / senal)</h3>
+<p>Un cliente deja una senal de 500 &euro; para apartar un vehiculo (BMW Serie 3, precio 18.000 &euro;). El sistema crea un anticipo con IVA y un movimiento bancario; al convertir en venta, el anticipo se descuenta.</p>
+<ol>
+    <li>Ir a <strong>Reservas &rarr; "+ Nueva Reserva"</strong>, seleccionar el vehiculo y rellenar los datos del cliente (Maria Lopez).</li>
+    <li>Importe: <strong>500</strong>. Pulsar <strong>"Crear Reserva"</strong>.</li>
+</ol>
+<p><strong>Asiento contable del anticipo (POSTEADO):</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>572 Banco</td><td>500,00</td><td></td></tr>
+    <tr><td>438 Anticipos de Clientes</td><td></td><td>413,22</td></tr>
+    <tr><td>477 HP IVA Repercutido</td><td></td><td>86,78</td></tr>
+</table>
+<p>Base = 500 / 1,21 = 413,22 &euro; &middot; IVA = 86,78 &euro;. <strong>Movimiento bancario:</strong> INGRESO 500 &euro;.</p>
+<p><strong>Convertir en venta:</strong> en <strong>Reservas</strong>, abrir la reserva y pulsar <strong>"Convertir en Venta"</strong> (el formulario de venta se abre con el vehiculo pre-seleccionado). El asiento REBU se genera por el precio completo (18.000 &euro;); el anticipo queda en la 438 y se compensa cuando el cliente paga el resto (17.500 &euro;).</p>
+<p><strong>Cancelacion:</strong> <em>Devolver senal</em> crea un EGRESO de 500 &euro;; <em>Penalizar</em> retiene la senal sin movimiento de egreso.</p>
+
+<h3>9.5.4 Cobro fraccionado (plazos)</h3>
+<p>El cliente paga un vehiculo de 12.000 &euro; en 3 plazos de 4.000 &euro;. Cada plazo genera su propio movimiento bancario y asiento contable.</p>
+<ol>
+    <li>Registrar la venta normalmente (metodo FINANCIADO o DIRECTA).</li>
+    <li>En <strong>Ventas</strong>, abrir la venta y pulsar <strong>"Cobros"</strong>.</li>
+    <li>Pulsar <strong>"+ Anadir Plazo"</strong> 3 veces: vencimientos 15/08, 15/09 y 15/10/2026, financiacion "Directa S.L.", 4.000 &euro; cada uno.</li>
+    <li>En la lista de cobros, pulsar <strong>"Marcar recibido"</strong> en cada plazo al cobrarlo.</li>
+</ol>
+<p><strong>Asiento por plazo (financiacion directa S.L.):</strong> DEBE 572 (4.000) / HABER 430 Clientes (4.000).</p>
+<p><strong>Asiento por plazo (financiacion externa con comision):</strong> DEBE 572 (3.800 neto) + DEBE 626 Comisiones bancarias (200) / HABER 430 Clientes (4.000).</p>
+<div class="info-box">
+<strong>Tip:</strong> cuando el total cobrado alcanza el precio de venta, la venta se marca automaticamente como <strong>PAGADA</strong>.
+</div>
+
+<h3>9.5.5 Conciliacion bancaria</h3>
+<p>Subir el extracto del banco (Excel o CSV) y el sistema busca automaticamente los movimientos que coinciden con los del ERP (ver §9.3).</p>
+<ol>
+    <li>Ir a <strong>Banco &rarr; "Conciliacion Bancaria"</strong> y seleccionar la cuenta.</li>
+    <li>Subir el archivo Excel o CSV y pulsar <strong>"Procesar Extracto"</strong>.</li>
+    <li>Revisar el matching: <strong>verde</strong> = coincidencia automatica (mismo importe, fecha &plusmn;2 dias); <strong>amarillo</strong> = sin coincidencia (revision manual).</li>
+    <li>Marcar los movimientos y pulsar <strong>"Conciliacion automatica"</strong>.</li>
+</ol>
+<p><strong>Algoritmo de matching:</strong> 1) mismo tipo (INGRESO/EGRESO); 2) mismo importe exacto; 3) fecha &plusmn;2 dias (compensa la fecha valor); 4) similitud de concepto como desempate. Las columnas del Excel se mapean automaticamente por nombre ("fecha", "concepto", "importe", "tipo"), sin importar el orden ni las columnas extra.</p>
+
+<h3>9.5.6 Regularizacion anual de existencias</h3>
+<p>Al cierre del ejercicio (31 de diciembre), el sistema ajusta el valor del inventario de vehiculos no vendidos para el balance de la S.L.</p>
+<pre><code>cd backend
+python manage.py regularizar_existencias --ano 2025</code></pre>
+<p><strong>Ejemplo:</strong> con 3 vehiculos sin vender a 31/12/2025 (VW Golf 8.000 &euro;, BMW Serie 3 12.000 &euro;, Audi A4 9.500 &euro;), valor total del stock: 29.500 &euro;.</p>
+<p><strong>Asiento de regularizacion:</strong></p>
+<table>
+    <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>300 Existencias (Mercaderias)</td><td>29.500,00</td><td></td></tr>
+    <tr><td>611 Variacion de existencias</td><td></td><td>29.500,00</td></tr>
+</table>
+<div class="warning-box">
+<strong>Nota fiscal:</strong> la cuenta 300 refleja el valor del stock en el balance y la 611 ajusta la variacion de existencias en la cuenta de resultados. El asiento es idempotente: si ya existe uno para ese ano, se omite.
+</div>
+
+<h3>9.5.7 Referencia rapida</h3>
+<p><strong>Cuentas PGC del modulo bancario:</strong></p>
+<table>
+    <tr><th>Codigo</th><th>Nombre</th><th>Uso</th></tr>
+    <tr><td>430</td><td>Clientes</td><td>Ventas a credito / cobros fraccionados</td></tr>
+    <tr><td>438</td><td>Anticipos de Clientes</td><td>Reservas / senales</td></tr>
+    <tr><td>477</td><td>HP IVA Repercutido</td><td>IVA 21% de anticipos</td></tr>
+    <tr><td>477001</td><td>HP IVA Repercutido REBU</td><td>IVA sobre margen REBU</td></tr>
+    <tr><td>572</td><td>Banco</td><td>Todos los movimientos bancarios</td></tr>
+    <tr><td>626</td><td>Comisiones bancarias</td><td>Comision de financiacion externa</td></tr>
+</table>
+<p><strong>Flujos contables resumen:</strong></p>
+<table>
+    <tr><th>Operacion</th><th>DEBE</th><th>HABER</th><th>Banco</th></tr>
+    <tr><td>Venta contado</td><td>572</td><td>700 + 471 + 310</td><td>INGRESO</td></tr>
+    <tr><td>Venta credito</td><td>430</td><td>700 + 471 + 310</td><td>&mdash;</td></tr>
+    <tr><td>Cobro plazo</td><td>572</td><td>430</td><td>INGRESO</td></tr>
+    <tr><td>Cobro ext. (comision)</td><td>572 + 626</td><td>430</td><td>INGRESO</td></tr>
+    <tr><td>Reserva</td><td>572</td><td>438 + 477</td><td>INGRESO</td></tr>
+    <tr><td>Compra inventario</td><td>300 + 472</td><td>410</td><td>EGRESO</td></tr>
+    <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410 (+ 4751.115)</td><td>&mdash;</td></tr>
+    <tr><td>Devolucion reserva</td><td>438 + 477</td><td>572</td><td>EGRESO</td></tr>
+</table>
 
 <!-- ==================== CAPITULO 10 ==================== -->
 <h1 id="capitulo-10">10. Reservas (Arras / Senales)</h1>
@@ -2542,7 +2762,7 @@ Total: 6 vehiculos
     <tr><td>000002</td><td>Alquiler julio 2026 con retencion IRPF</td><td>2.420,00 EUR</td><td>2.420,00 EUR</td></tr>
 </table>
 
-<h3>13.1.9 Gastos de Estructura (8 categorias)</h3>
+<h3>13.1.9 Gastos de Estructura (6 categorias)</h3>
 <p>Formulario en <strong>Gastos &gt; Nuevo Gasto</strong>. Campos del <code>GastoForm</code>: Fecha factura, Proveedor/Acreedor, CIF/NIF, Numero factura, Categoria, Descripcion, Base imponible, Tipo IVA (%), Retencion IRPF (%), Pagado, Fecha pago.</p>
 <table>
     <tr><th>Categoria</th><th>Proveedor</th><th>CIF/NIF</th><th>Nº Factura</th><th>Base</th><th>IVA%</th><th>IRPF%</th><th>Total</th><th>Pagado</th><th>F. Pago</th></tr>
@@ -2550,14 +2770,12 @@ Total: 6 vehiculos
     <tr><td>SUMINISTROS</td><td>Endesa Energia S.A.U.</td><td>A12345678</td><td>EN-2026-456</td><td>350,00</td><td>21%</td><td>0%</td><td>423,50</td><td>Si</td><td>10/07/2026</td></tr>
     <tr><td>LIMPIEZA_PROD</td><td>Distrilimpia S.L.</td><td>B87654321</td><td>DL-2026-089</td><td>180,00</td><td>21%</td><td>0%</td><td>217,80</td><td>Si</td><td>12/07/2026</td></tr>
     <tr><td>LIMPIEZA_SERV</td><td>CleanPro Servicios S.A.</td><td>A87654321</td><td>CP-2026-201</td><td>450,00</td><td>21%</td><td>0%</td><td>544,50</td><td>No</td><td>-</td></tr>
-    <tr><td>NOMINAS_ESTR</td><td>Nomina interna personal limpieza</td><td>P00000000</td><td>NOM-2026-07</td><td>1.600,00</td><td>0%</td><td>0%</td><td>1.600,00</td><td>Si</td><td>30/06/2026</td></tr>
-    <tr><td>SEG_SOCIAL_ESTR</td><td>Seguridad Social (TC 00/26)</td><td>P00000000</td><td>SS-2026-07</td><td>504,00</td><td>0%</td><td>0%</td><td>504,00</td><td>Si</td><td>30/06/2026</td></tr>
     <tr><td>IMPUESTOS_ESTR</td><td>Ayuntamiento de Alcala de Henares</td><td>P00000000</td><td>IBI-2026-01</td><td>320,00</td><td>0%</td><td>0%</td><td>320,00</td><td>Si</td><td>15/07/2026</td></tr>
     <tr><td>OTROS</td><td>Jardines y Paisajismo S.L.</td><td>B11223344</td><td>JP-2026-014</td><td>120,00</td><td>21%</td><td>0%</td><td>145,20</td><td>No</td><td>-</td></tr>
 </table>
 
 <div class="info-box">
-    <strong>Calculo del Total:</strong> <code>Total = Base + (Base x IVA%) - (Base x IRPF%)</code>. Ej.: ARRENDAMIENTO = 2.000 + (2.000 x 21%) - (2.000 x 19%) = 2.000 + 420 - 380 = 2.040 EUR. El campo <code>Tipo IVA</code> admite 0-21% y <code>Retencion IRPF</code> 0-100%. Marque <code>Pagado</code> e indique <code>Fecha pago</code> solo cuando el gasto ya este abonado. Los gastos de NOMINAS, SEG_SOCIAL e IMPUESTOS tienen IVA 0% (servicios personales y tributos exentos).
+    <strong>Calculo del Total:</strong> <code>Total = Base + (Base x IVA%) - (Base x IRPF%)</code>. Ej.: ARRENDAMIENTO = 2.000 + (2.000 x 21%) - (2.000 x 19%) = 2.000 + 420 - 380 = 2.040 EUR. El campo <code>Tipo IVA</code> admite 0-21% y <code>Retencion IRPF</code> 0-100%. Marque <code>Pagado</code> e indique <code>Fecha pago</code> solo cuando el gasto ya este abonado. Los gastos de IMPUESTOS tienen IVA 0% (tributos exentos). Las nominas y SS patronal se gestionan en el modulo independiente Payroll (Capitulo 6).
 </div>
 
 <h2>13.2 Ejecutar el Script</h2>
@@ -2716,7 +2934,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <h3>13.5.4 Verificar Contabilidad y Asientos</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad</strong> (<code>/erp/contabilidad/</code>)</li>
-    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las ~33 cuentas del plan contable base</li>
+    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 56 cuentas del plan contable base</li>
     <li>Haga clic en <strong>"Asientos"</strong>: verifique los 2 asientos manuales:</li>
 </ol>
 <table>
@@ -2859,10 +3077,12 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
     <tr><td>Reparaciones Garantia</td><td>1 (en proceso - 300 EUR interno)</td></tr>
     <tr><td>Configuracion Nomina</td><td>2 (mecanico1, mecanico2)</td></tr>
     <tr><td>Marcajes</td><td>~14 (semana completa)</td></tr>
-    <tr><td>Cuentas Contables</td><td>~33 (plan base PGC)</td></tr>
+    <tr><td>Cuentas Contables</td><td>56 (plan base PGC con cuentas 465/476)</td></tr>
     <tr><td>Asientos Contables</td><td>~6 (2 manuales + 3 compras + 1 venta REBU)</td></tr>
-    <tr><td>Gastos de Estructura</td><td>8 (todas las categorias)</td></tr>
-    <tr><td>Movimientos Bancarios</td><td>~12 (auto-generados por ventas, compras y gastos)</td></tr>
+    <tr><td>Gastos de Estructura</td><td>6 (proveedores: 621, 628, 602, 629, 631, 620)</td></tr>
+    <tr><td>Nominas (Payroll)</td><td>Gestion independiente en app payroll (ver Cap. 6)</td></tr>
+    <tr><td>Movimientos Bancarios</td><td>~10 (auto-generados por ventas, compras y depositos)</td></tr>
+    <tr><td>Cuentas Contables</td><td>56 (plan base PGC con cuentas 465/476)</td></tr>
 </table>
 
 <!-- ==================== CAPITULO 14 (antiguo 12) ==================== -->
@@ -3375,6 +3595,10 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
 
 <h2 id="capitulo-16-1">16.1 Modelo 390 (BOE)</h2>
 
+<div class="warning-box">
+    <strong>Acceso restringido (RGPD):</strong> Las exportaciones fiscales (Modelo 390, 303, SII, Facturas de Compra) y el panel de tareas programadas solo estan disponibles para usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code>.
+</div>
+
 <p>El <strong>Modelo 390</strong> es la declaracion anual de IVA. El sistema genera un archivo de texto plano en formato BOE (Bienio de Explotacion Tributaria) listo para su presentacion.</p>
 
 <h3>14.1.1 Estructura del Archivo</h3>
@@ -3411,9 +3635,9 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
     <li>Suba el archivo al portal de la AEAT</li>
 </ol>
 
-<h2 id="capitulo-16-2">16.2 Pre-303 (CSV para Hacienda)</h2>
+<h2 id="capitulo-16-2">16.2 Pre-303 (CSV con Desglose por Tipo Impositivo)</h2>
 
-<p>El <strong>Pre-303</strong> es un archivo CSV que contiene los datos necesarios para rellenar el Modelo 303 (declaracion trimestral de IVA) en el portal de Hacienda.</p>
+<p>El <strong>Pre-303</strong> es un archivo CSV que contiene los datos necesarios para rellenar el Modelo 303. <strong>v3.0:</strong> el CSV ahora desglosa el IVA soportado deducible por tipo impositivo (21%, 10%, 4%), consultando las fuentes originales (<code>GastoEstructura</code> y <code>CompraMaterial</code>).</p>
 
 <h3>14.2.1 Estructura del CSV</h3>
 <pre><code>NIF;Nombre;Modelo;Periodo;Ano;Clave;Base21;Cuota21;Base10;Cuota10;Base4;Cuota4;TotalBase;TotalCuota;CuotaDeducir;Resultado
@@ -3498,6 +3722,10 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
 </ol>
 
 <h2 id="capitulo-16-4">16.4 Tareas Programadas (Celery Beat)</h2>
+
+<div class="warning-box">
+    <strong>Acceso restringido (RGPD):</strong> Solo usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code> pueden acceder al panel de tareas programadas.
+</div>
 
 <p>El sistema ejecuta automaticamente tareas de contabilidad mediante <strong>Celery Beat</strong>. Estas tareas se configuran una sola vez y se ejecutan segun la programacion establecida.</p>
 
@@ -3614,7 +3842,7 @@ Conciliacion        Reserva               (reparado)          Imagenes
         <td>0.3</td>
         <td>Inicializar PGC</td>
         <td>Contabilidad > Cuentas > <strong>"Inicializar Plan"</strong></td>
-        <td>33 cuentas contables (grupos 1-7). Requerido para TODO asiento contable</td>
+        <td>56 cuentas contables (grupos 1-7, incluyendo 465/476). Requerido para TODO asiento contable</td>
     </tr>
 </table>
 
@@ -3850,7 +4078,7 @@ DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
         <td>7.2</td>
         <td>Regularizar existencias (31 dic)</td>
         <td>Cierre anual</td>
-        <td>Asiento DEBE 300 / HABER 610 (ajuste de inventario)</td>
+        <td>Asiento DEBE 300 / HABER 611 (ajuste de inventario)</td>
     </tr>
     <tr>
         <td>7.3</td>
@@ -3998,9 +4226,9 @@ python manage.py backfill_asientos_banco
     </tr>
     <tr>
         <td>5</td>
-        <td>Registrar gasto de estructura</td>
-        <td>DEBE 6xx + DEBE 472 / HABER 410</td>
-        <td>EGRESO</td>
+         <td>Registrar gasto de estructura</td>
+         <td>DEBE 6xx + DEBE 472 / HABER 410</td>
+         <td>— (no genera movimiento bancario)</td>
         <td>&mdash;</td>
     </tr>
     <tr>
@@ -4054,7 +4282,7 @@ USUARIO REGISTRA OPERACION
 </table>
 
 <div class="info-box">
-    <strong>Condicion:</strong> Solo se genera si los campos de factura estan rellenos (proveedor, cif_nif, numero_factura, tipo_iva, base_imponible, cuota_iva, forma_pago). Sin factura, no hay asiento ni movimiento bancario.
+    <strong>Condicion:</strong> Solo se genera si los campos de factura estan rellenos (proveedor, cif_nif, numero_factura, tipo_iva, coste_total_adquisicion, cuota_iva, forma_pago). Sin factura, no hay asiento ni movimiento bancario.
 </div>
 
 <h2 id="capitulo-18-4">18.4 Crear Primera Orden de Trabajo</h2>
@@ -4062,7 +4290,7 @@ USUARIO REGISTRA OPERACION
 
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
-    <tr><td><strong>Cambio de estado</strong></td><td>El vehiculo pasa automaticamente de <code>ADQUIRIDO</code> a <code>TALLER</code>.</td></tr>
+    <tr><td><strong>Cambio de estado</strong></td><td>El vehiculo pasa de <code>ADQUIRIDO</code> a <code>TALLER</code> solo despues de guardar exitosamente la OT (proteccion atomica).</td></tr>
     <tr><td><strong>Asiento / Banco</strong></td><td>No genera asiento ni movimiento bancario. El coste de la OT se acumula en la OT y luego en el coste de reparacion del vehiculo.</td></tr>
 </table>
 
@@ -4111,8 +4339,8 @@ USUARIO REGISTRA OPERACION
 
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
-    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de gasto (6xx: 621, 628, 629, 640, 642, etc.) + DEBE 472 (IVA) + DEBE/HABER 4751 (IRPF, si aplica) / HABER 410 (Acreedores).</td></tr>
-    <tr><td><strong>Movimiento bancario</strong></td><td>EGRESO por el total de la factura (si el gasto esta marcado como pagado).</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de gasto (6xx: 621, 628, 629, 640, 642, etc.) + DEBE 472 (IVA) / HABER 4751.115 (IRPF, si aplica) + HABER 410 (Acreedores). Se postea automaticamente al cuadrar.</td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td><strong>No se crea</strong>: el gasto queda pendiente de pago en la cuenta 410 hasta que se abone al proveedor.</td></tr>
     <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (opcional).</td></tr>
 </table>
 
@@ -4226,12 +4454,12 @@ USUARIO REGISTRA OPERACION
 <!-- ==================== CAPITULO 20 ==================== -->
 <h1 id="capitulo-20">20. Prueba del Sistema</h1>
 
-<p>Este capitulo es una guia paso a paso para que el aprobador verifique el sistema completo en el entorno de staging, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado).</p>
+<p>Este capitulo es una guia paso a paso para verificar el sistema completo, siguiendo estrictamente la <a href="#capitulo-17">Pipeline de Datos (§17)</a>. Cada paso detalla la accion, los datos a introducir y los efectos automaticos esperados (asientos contables, movimientos bancarios y cambios de estado). Para el detalle de cada automatismo, consulte <a href="#capitulo-18">Flujos Automaticos (§18)</a>.</p>
 
 <div class="info-box">
-    <strong>Entorno de staging:</strong><br>
+    <strong>Entorno de prueba (staging):</strong><br>
     URL: <code>https://eurocar-staging.onrender.com/erp/</code><br>
-    Usuario: <code>tester</code> / Contrasena: <code>TestMadrid2024!</code><br>
+    Usuarios: los de la <a href="#credenciales">tabla de Credenciales de Prueba</a> (p. ej. <code>admin</code> / <code>admin123!</code>, <code>mecanico1</code> / <code>mecanico123!</code>)<br>
     Rol: ADMIN (<code>puede_eliminar=True</code>)
 </div>
 
@@ -4255,20 +4483,46 @@ USUARIO REGISTRA OPERACION
     <tr><th>Concepto</th><th>Vehiculo de Prueba</th></tr>
     <tr><td>Marca/Modelo</td><td>Volkswagen Golf 1.6 TDI 2018</td></tr>
     <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
-    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000020000000000</code> (17 caracteres, obligatorio)</td></tr>
     <tr><td>Precio subasta</td><td>7.500,00 EUR</td></tr>
     <tr><td>Tasas sala</td><td>400,00 EUR</td></tr>
     <tr><td>Logistica/grua</td><td>250,00 EUR</td></tr>
     <tr><td>Coste inicial</td><td><strong>8.150,00 EUR</strong></td></tr>
-    <tr><td>Coste reparacion</td><td><strong>182,50 EUR</strong> (materiales + mano de obra)</td></tr>
-    <tr><td>Coste total</td><td><strong>8.332,50 EUR</strong></td></tr>
+    <tr><td>Coste reparacion</td><td><strong>117,85 EUR</strong> (materiales + mano de obra)</td></tr>
+    <tr><td>Coste total</td><td><strong>8.267,85 EUR</strong></td></tr>
     <tr><td>Precio venta</td><td><strong>11.900,00 EUR</strong></td></tr>
-    <tr><td>Margen REBU</td><td><strong>3.567,50 EUR</strong></td></tr>
+    <tr><td>Margen REBU</td><td><strong>3.632,15 EUR</strong> (43,2%)</td></tr>
 </table>
 
-<h2 id="capitulo-20-2">20.2 Flujo Completo Paso a Paso</h2>
+<h2 id="capitulo-20-2">20.2 Vista General del Flujo</h2>
 
-<p>Cada paso sigue la numeracion de la Pipeline de Datos (§17). Complete los pasos en orden; cada uno depende del anterior.</p>
+<p>La prueba recorre el ciclo completo de un vehiculo, desde la subasta hasta la venta con garantia. El flujo es lineal y cada fase depende de la anterior:</p>
+
+<pre><code>Fase 0  Configuracion inicial (PGC)
+Fase 1  Infraestructura financiera (banco + inversion taller)
+Fase 2  Adquisicion del vehiculo + catalogo de materiales
+Fase 3  Taller: diagnostico, compra de material y reparacion
+Fase 4  Preparacion para la venta (EN_VENTA)
+Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
+
+<table>
+    <tr><th>Fase</th><th>Pasos de este capitulo</th><th>Referencia</th></tr>
+    <tr><td>0. Configuracion inicial</td><td>Paso 0.3 &mdash; Inicializar PGC</td><td><a href="#capitulo-17-2">§17.2</a></td></tr>
+    <tr><td>1. Infraestructura financiera</td><td>Pasos 1.1 a 1.3 &mdash; Banco + inversion</td><td><a href="#capitulo-17-3">§17.3</a>, <a href="#capitulo-18-9">§18.9</a></td></tr>
+    <tr><td>2. Adquisicion y catalogo</td><td>Pasos 2.1 y 2.2 &mdash; Vehiculo + materiales</td><td><a href="#capitulo-17-4">§17.4</a>, <a href="#capitulo-18-3">§18.3</a></td></tr>
+    <tr><td>3. Taller</td><td>Pasos 3.1 a 3.5 &mdash; OT, compras, reparacion</td><td><a href="#capitulo-17-5">§17.5</a>, <a href="#capitulo-18-4">§18.4</a>, <a href="#capitulo-18-5">§18.5</a></td></tr>
+    <tr><td>4. Preparacion para venta</td><td>Paso 4.1 &mdash; EN_VENTA + precio</td><td><a href="#capitulo-17-6">§17.6</a></td></tr>
+    <tr><td>5. Comercializacion</td><td>Paso 5.1 &mdash; Venta REBU + garantia</td><td><a href="#capitulo-17-7">§17.7</a>, <a href="#capitulo-18-6">§18.6</a></td></tr>
+    <tr><td>6. Gastos de estructura</td><td>Paso 8.6 &mdash; Alquiler del galpon (retencion IRPF)</td><td><a href="#capitulo-8-6">§8.6</a>, <a href="#capitulo-18-7">§18.7</a></td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Duracion estimada:</strong> 30&ndash;45 minutos con un unico operador conectado como <code>admin</code>. Al final, <strong>§20.4</strong> lista los registros esperados exactos y <strong>§20.5</strong> el checklist de verificacion.
+</div>
+
+<h2 id="capitulo-20-3">20.3 Flujo Completo Paso a Paso</h2>
+
+<p>Cada paso sigue la numeracion de la Pipeline de Datos (§17) y enlaza con el flujo automatico correspondiente (§18). Complete los pasos en orden; cada uno depende del anterior.</p>
 
 <h3>Paso 0.3 &mdash; Inicializar Plan Contable</h3>
 <table>
@@ -4276,7 +4530,7 @@ USUARIO REGISTRA OPERACION
     <tr>
         <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
         <td>1 clic en "Inicializar Plan"</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean ~33 cuentas (100-799)</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>56 cuentas</strong> (grupos 100-799, incluidas 465/476 de nominas y 4751.115 de retenciones IRPF)</td>
     </tr>
 </table>
 <div class="success-box">
@@ -4295,7 +4549,8 @@ USUARIO REGISTRA OPERACION
     <strong>Asiento contable generado automaticamente:</strong><br>
     DEBE 572 (Banco) &mdash; 50.000,00 EUR<br>
     HABER 110 (Resultados no asignados) &mdash; 50.000,00 EUR<br>
-    <strong>Estado: POSTEADO</strong>
+    <strong>Estado: POSTEADO</strong><br>
+    <span class="text-sm">Flujo detallado: <a href="#capitulo-17-3">§17.3 Fase 1</a> y <a href="#capitulo-18-9">§18.9 Crear Cuenta Bancaria</a>.</span>
 </div>
 <div class="info-box">
     <strong>Movimiento bancario:</strong> INGRESO 50.000,00 EUR &mdash; Concepto: "Deposito inicial" &mdash; Conciliado: No
@@ -4413,7 +4668,7 @@ USUARIO REGISTRA OPERACION
     </tr>
 </table>
 
-<h3>Paso 1.3 &mdash; Mejoras en Banco: Saldo sin Conciliar y Validacion</h3>
+<h3 id="paso-1-3">Paso 1.3 &mdash; Mejoras en Banco: Saldo sin Conciliar y Validacion</h3>
 <p>Se implementaron dos mejoras en el modulo bancario para evitar sobregiros y dar visibilidad del saldo real:</p>
 
 <h4>a) Saldo sin conciliar</h4>
@@ -4438,7 +4693,7 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Campo</th><th>Valor</th></tr>
     <tr><td>Matricula</td><td><code>1234ABC</code></td></tr>
-    <tr><td>Bastidor</td><td><code>VW000001</code></td></tr>
+    <tr><td>Bastidor</td><td><code>VW000020000000000</code> (17 caracteres, obligatorio)</td></tr>
     <tr><td>Marca</td><td>Volkswagen</td></tr>
     <tr><td>Modelo</td><td>Golf 1.6 TDI</td></tr>
     <tr><td>Anio</td><td>2018</td></tr>
@@ -4472,40 +4727,13 @@ USUARIO REGISTRA OPERACION
     DEBE 310 (Mercaderias) &mdash; 8.150,00 EUR (coste_inicial)<br>
     DEBE 472 (IVA soportado) &mdash; 136,50 EUR<br>
     HABER 572 (Banco Santander) &mdash; 8.286,50 EUR<br>
-    <strong>Estado: POSTEADO</strong>
+    <strong>Estado: POSTEADO</strong><br>
+    <span class="text-sm">Flujo detallado: <a href="#capitulo-17-4">§17.4 Fase 2</a> y <a href="#capitulo-18-3">§18.3 Crear Vehiculo con Factura de Compra</a>.</span>
 </div>
 <div class="info-box">
     <strong>Movimiento bancario:</strong> EGRESO 8.286,50 EUR &mdash; Concepto: "Compra VW Golf 1234ABC" &mdash; Conciliado: No<br>
     <strong>Coste inicial calculado:</strong> 7.500 + 400 + 250 = <strong>8.150,00 EUR</strong>
 </div>
-
-<h3>Incidencias y Correcciones aplicadas durante la prueba</h3>
-<p>Durante la ejecucion del pipeline de pruebas se detectaron y corrigieron los siguientes bugs:</p>
-
-<table>
-    <tr><th>#</th><th>Incidencia</th><th>Sintoma</th><th>Solucion</th><th>Archivo</th></tr>
-    <tr>
-        <td>1</td>
-        <td><strong>BancoMovimiento no creado en Inversión Inicial</strong></td>
-        <td>Saldo bancario no reflejaba el EGRESO de 2.480,50€ de la inversion del Paso 1.2. <code>saldo_pendiente</code> mostraba 50.000€ en vez de 47.519,50€.</td>
-        <td>Se agregó llamada a <code>crear_movimiento_banco()</code> dentro de <code>InversionInicial.crear_asiento_contable()</code> en <code>expenses/models.py</code>. Para la inversion existente se ejecutó script <code>fix_inversion_banco.py</code>.</td>
-        <td><code>apps/expenses/models.py</code></td>
-    </tr>
-    <tr>
-        <td>2</td>
-        <td><strong>Type mismatch en vehiculo <code>registrar_movimiento_banco</code></strong></td>
-        <td>Al crear vehiculo con "Forma de pago" = Banco Santander, no se generaba el EGRESO bancario. El asiento contable se creaba correctamente pero el banco no reflejaba el pago.</td>
-        <td>Se cambi&oacute; <code>cuenta = self.forma_pago</code> (CuentaContable) por <code>BancoCuenta.objects.filter(cuenta_contable=self.forma_pago).first()</code> en <code>vehicles/models.py</code>.</td>
-        <td><code>apps/vehicles/models.py</code></td>
-    </tr>
-    <tr>
-        <td>3</td>
-        <td><strong>Error 500 al editar OT de Taller</strong></td>
-        <td>Al hacer clic en "Editar" en una Orden de Trabajo, se mostraba <strong>Server Error (500)</strong>. Impedia modificar cualquier OT.</td>
-        <td>Se agreg&oacute; <code>from apps.accounts.models import User</code> dentro de <code>orden_trabajo_update()</code> en <code>workshop/views.py</code>. El <code>User</code> se usaba sin importar (<code>NameError</code>). Tambi&eacute;n se agreg&oacute; guarda <code>porcentaje_ss_patronal is not None</code> en <code>User.coste_hora</code> en <code>accounts/models.py</code>.</td>
-        <td><code>apps/workshop/views.py</code><br><code>apps/accounts/models.py</code></td>
-    </tr>
-</table>
 
 <h3>Paso 2.2 &mdash; Crear Catalogo de Materiales</h3>
 <p>Navegue a <strong>Sidebar &gt; 📋 Catalogo</strong> y cree los siguientes materiales (stock inicial = 0).</p>
@@ -4597,23 +4825,23 @@ USUARIO REGISTRA OPERACION
 </table>
 <div class="info-box">
     <strong>Coste total de la OT:</strong><br>
-    Mano de obra: 3h &times; 35,00 EUR/h = <strong>105,00 EUR</strong><br>
+    Mano de obra: 3h &times; 13,45 EUR/h = <strong>40,35 EUR</strong><br>
     Materiales: <strong>77,50 EUR</strong><br>
-    <strong>Total OT = 182,50 EUR</strong><br><br>
-    Este coste se suma al coste de reparacion del vehiculo.
+    <strong>Total OT = 117,85 EUR</strong><br><br>
+    <em>Nota: el coste/hora se calcula con la formula del sistema: (Salario Base &times; (1 + %SS/100)) / 176. Con 1.800 EUR de salario y 31,5% de SS patronal, da 13,45 EUR/h.</em>
 </div>
 <div class="success-box">
     <strong>Asiento de capitalizacion generado al completar la OT (POSTEADO):</strong><br>
-    DEBE 310 (Mercancias) &mdash; 182,50 EUR<br>
+    DEBE 310 (Mercancias) &mdash; 117,85 EUR<br>
     HABER 300 (Compras) &mdash; 77,50 EUR (materiales consumidos)<br>
-    HABER 610 (Variacion de existencias) &mdash; 105,00 EUR (mano de obra)<br>
+    HABER 611 (Variacion de existencias) &mdash; 40,35 EUR (mano de obra)<br>
     <strong>Estado: POSTEADO</strong> &mdash; el coste de la reparacion se capitaliza en el vehiculo (310) y se da de baja en la venta.
 </div>
 
 <h3>Paso 3.5 &mdash; Pasar a ACONDICIONADO</h3>
 <p>Desde la ficha del vehiculo, seccion "Cambiar Estado", seleccione <strong>ACONDICIONADO</strong>.</p>
 <div class="success-box">
-    <strong>Efecto:</strong> Vehiculo listo para preparar para venta. Coste total del vehiculo: 8.150,00 (inicial) + 182,50 (reparacion) = <strong>8.332,50 EUR</strong>
+    <strong>Efecto:</strong> Vehiculo listo para preparar para venta. Coste total del vehiculo: 8.150,00 (inicial) + 117,85 (reparacion) = <strong>8.267,85 EUR</strong>
 </div>
 
 <h3>Paso 4.1 &mdash; Poner EN_VENTA</h3>
@@ -4650,18 +4878,18 @@ USUARIO REGISTRA OPERACION
     <table>
         <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
         <tr><td>572 (Banco Santander)</td><td>11.900,00</td><td></td></tr>
-        <tr><td>700 (Ventas mercancias)</td><td></td><td>2.948,35</td></tr>
-        <tr><td>471 (IVA Repercutido)</td><td></td><td>619,15</td></tr>
-        <tr><td>310 (Mercancias)</td><td></td><td>8.332,50</td></tr>
+        <tr><td>700 (Ventas mercancias)</td><td></td><td>3.001,78</td></tr>
+        <tr><td>471 (IVA Repercutido)</td><td></td><td>630,37</td></tr>
+        <tr><td>310 (Mercancias)</td><td></td><td>8.267,85</td></tr>
         <tr><td colspan="3"><strong>DEBE = HABER = 11.900,00 EUR</strong></td></tr>
     </table>
 </div>
 
 <div class="info-box">
     <strong>Calculo REBU:</strong><br>
-    Margen = 11.900 - 8.332,50 = <strong>3.567,50 EUR</strong><br>
-    Base Imponible = 3.567,50 / 1,21 = <strong>2.948,35 EUR</strong><br>
-    Cuota IVA = 2.948,35 &times; 21% = <strong>619,15 EUR</strong><br>
+    Margen = 11.900 - 8.267,85 = <strong>3.632,15 EUR</strong><br>
+    Base Imponible = 3.632,15 / 1,21 = <strong>3.001,78 EUR</strong><br>
+    Cuota IVA = 3.632,15 - 3.001,78 = <strong>630,37 EUR</strong><br>
     El cliente paga <strong>11.900 EUR</strong> (IVA incluido en el precio)
 </div>
 
@@ -4677,7 +4905,79 @@ USUARIO REGISTRA OPERACION
     4. Se puede generar contrato de compraventa y mandato DGT
 </div>
 
-<h2 id="capitulo-20-3">20.3 Ejemplo Numerico del Vehiculo</h2>
+<h3>Paso 8.6 &mdash; Registrar Gasto de Estructura (Alquiler del Galpon)</h3>
+<p>Los gastos de estructura se devengan durante todo el ejercicio; en esta prueba lo registramos al final para no alterar la numeracion de los pasos anteriores. Navegue a <strong>Gastos &gt; Nuevo Gasto</strong> (<code>/erp/gastos/nuevo/</code>) y registre la factura de alquiler del galpon <strong>con retencion IRPF</strong> (detalle completo del modulo en <a href="#capitulo-8-6">§8.6</a>, flujo automatico en <a href="#capitulo-18-7">§18.7</a>):</p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Fecha factura</td><td>20/07/2026</td></tr>
+    <tr><td>Proveedor/Acreedor</td><td>Propietario Galpon S.L.</td></tr>
+    <tr><td>CIF/NIF</td><td>B87654321</td></tr>
+    <tr><td>Categoria</td><td><code>ARRENDAMIENTO</code> (Cuenta PGC 621)</td></tr>
+    <tr><td>Base imponible</td><td><strong>2.000,00 EUR</strong></td></tr>
+    <tr><td>Tipo IVA</td><td>21%</td></tr>
+    <tr><td>Retencion IRPF</td><td><strong>19%</strong> (obligatoria en arrendamientos)</td></tr>
+    <tr><td>Factura PDF</td><td><em>Opcional:</em> <code>backend/manual/ejemplos/factura_ejemplo.pdf</code></td></tr>
+</table>
+<div class="info-box">
+    <strong>Calculo del sistema:</strong><br>
+    Cuota IVA = 2.000,00 &times; 21% = <strong>420,00 EUR</strong><br>
+    Cuota retencion = 2.000,00 &times; 19% = <strong>380,00 EUR</strong><br>
+    Total factura = 2.000,00 + 420,00 - 380,00 = <strong>2.040,00 EUR</strong>
+</div>
+<div class="success-box">
+    <strong>Asiento contable generado automaticamente (POSTEADO):</strong><br>
+    DEBE 621 (Arrendamientos) &mdash; 2.000,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 420,00 EUR<br>
+    HABER 4751.115 (HP Retenciones IRPF) &mdash; 380,00 EUR<br>
+    HABER 410 (Acreedores varios) &mdash; 2.040,00 EUR<br>
+    <strong>Estado: POSTEADO</strong> &mdash; el sistema postea el asiento automaticamente al cuadrar (DEBE = HABER = 2.420,00 EUR)
+</div>
+<div class="warning-box">
+    <strong>Este gasto NO genera movimiento bancario ni toca el inventario:</strong><br>
+    &bull; El gasto queda <strong>pendiente de pago</strong> en la cuenta 410 (el banco sigue en 51.133,00 EUR).<br>
+    &bull; Regla AEAT (<a href="#capitulo-8-6">§8.6.1</a>): los gastos de estructura son gastos del ejercicio (6xx) y <strong>nunca</strong> incrementan el valor del inventario (cuenta 300). El informe de Existencias debe seguir sin descuadre.
+</div>
+
+<h4>Verificacion posterior</h4>
+<table>
+    <tr><th>#</th><th>Donde ir</th><th>Que comprobar</th></tr>
+    <tr>
+        <td>1</td>
+        <td><strong>💸 Gastos</strong></td>
+        <td>El gasto aparece en el listado: categoria ARRENDAMIENTO, base 2.000,00, IVA 420,00, retencion 380,00, total <strong>2.040,00 EUR</strong>, Pagado = No.</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
+        <td>Asiento auto-generado #000008: DEBE 621 + 472 / HABER 4751.115 + 410. <strong>Estado: POSTEADO</strong> y cuadrado.</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>📉 Contabilidad &gt; Informes &gt; PyG</strong></td>
+        <td>Otros gastos operativos &gt; Arrendamientos (621) = <strong>2.000,00 EUR</strong>. La PyG tambien muestra la Variacion de existencias (611) = <strong>40,35 EUR</strong> (mano de obra capitalizada en el Paso 3.4). Resultado neto: 3.001,78 + 40,35 - 2.000,00 = <strong>1.042,13 EUR</strong>.</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Libro IVA</strong></td>
+        <td>IVA soportado total: 624,75 + 420,00 = <strong>1.044,75 EUR</strong>.</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
+        <td>Pasivo: 410 = 2.372,75 (332,75 compras + 2.040 alquiler) y 4751.115 = 380,00. <strong>Sigue cuadrando</strong>.</td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <td><strong>🏦 Banco &gt; Cuentas</strong></td>
+        <td>Saldo sin cambios: <strong>51.133,00 EUR</strong>. No hay EGRESO del alquiler (pendiente en 410).</td>
+    </tr>
+</table>
+
+<h2 id="capitulo-20-4">20.4 Registros Esperados</h2>
+
+<p>Al completar el flujo, el sistema debe haber generado <strong>exactamente</strong> los siguientes registros. Si alguna cifra no coincide, revise el paso correspondiente antes de continuar.</p>
+
+<h3>Ejemplo numerico del vehiculo</h3>
 
 <div class="warning-box">
     <strong>Resumen financiero completo del VW Golf 1234ABC:</strong><br><br>
@@ -4689,20 +4989,61 @@ USUARIO REGISTRA OPERACION
     <strong>REPARACION (OT):</strong><br>
     &nbsp;&nbsp;- Aceite motor 5W30 (5L &times; 8,50): 42,50 EUR<br>
     &nbsp;&nbsp;- Pastillas de freno (1 juego &times; 35,00): 35,00 EUR<br>
-    &nbsp;&nbsp;- Mano de obra (3h &times; 35,00): 105,00 EUR<br>
-    &nbsp;&nbsp;- <strong>Coste reparacion = 182,50 EUR</strong><br><br>
-    <strong>COSTE TOTAL = 8.150,00 + 182,50 = 8.332,50 EUR</strong><br><br>
+    &nbsp;&nbsp;- Mano de obra (3h &times; 13,45): 40,35 EUR<br>
+    &nbsp;&nbsp;- <strong>Coste reparacion = 117,85 EUR</strong><br><br>
+    <strong>COSTE TOTAL = 8.150,00 + 117,85 = 8.267,85 EUR</strong><br><br>
     <strong>VENTA:</strong><br>
     &nbsp;&nbsp;- Precio venta: 11.900,00 EUR<br>
-    &nbsp;&nbsp;- Margen bruto: 3.567,50 EUR (42,4%)<br>
-    &nbsp;&nbsp;- Base imponible REBU: 2.948,35 EUR<br>
-    &nbsp;&nbsp;- IVA REBU (21%): 619,15 EUR<br><br>
-    <strong>Beneficio neto aproximado: 2.948,35 EUR</strong> (antes de gastos de estructura)
+    &nbsp;&nbsp;- Margen bruto: 3.632,15 EUR (43,2%)<br>
+    &nbsp;&nbsp;- Base imponible REBU: 3.001,78 EUR<br>
+    &nbsp;&nbsp;- IVA REBU (21%): 630,37 EUR<br><br>
+    <strong>Beneficio neto aproximado: 3.042,13 EUR</strong> (antes de gastos de estructura; incluye la variacion de existencias de 40,35 EUR por la mano de obra capitalizada)<br>
+    <strong>Beneficio tras gastos de estructura: 1.042,13 EUR</strong> (3.042,13 - 2.000,00 alquiler, ver Paso 8.6)
 </div>
 
-<h2 id="capitulo-20-4">20.4 Verificacion Post-Prueba</h2>
+<h3>Asientos contables generados (8)</h3>
+<p>Todos los asientos estan <strong>POSTEADOS</strong> y cuadran (DEBE = HABER):</p>
+<table>
+    <tr><th>#</th><th>Asiento</th><th>DEBE</th><th>HABER</th></tr>
+    <tr><td>1</td><td>Deposito inicial</td><td>572 (50.000,00)</td><td>110 (50.000,00)</td></tr>
+    <tr><td>2</td><td>Inversion taller (compresor + escaner)</td><td>214 (2.050,00) + 472 (430,50)</td><td>572 (2.480,50)</td></tr>
+    <tr><td>3</td><td>Compra vehiculo</td><td>310 (8.150,00) + 472 (136,50)</td><td>572 (8.286,50)</td></tr>
+    <tr><td>4</td><td>Compra material #1 (aceite)</td><td>300 (170,00) + 472 (35,70)</td><td>410 (205,70)</td></tr>
+    <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
+    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 611 (40,35)</td></tr>
+    <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
+    <tr><td>8</td><td>Gasto estructura (alquiler con retencion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td></tr>
+</table>
 
-<p>Despues de completar todos los pasos, verifique los siguientes indicadores:</p>
+<h3>Movimientos bancarios (4)</h3>
+<table>
+    <tr><th>#</th><th>Tipo</th><th>Importe</th><th>Concepto</th></tr>
+    <tr><td>1</td><td>INGRESO</td><td>50.000,00 EUR</td><td>Deposito inicial</td></tr>
+    <tr><td>2</td><td>EGRESO</td><td>2.480,50 EUR</td><td>Inversion taller</td></tr>
+    <tr><td>3</td><td>EGRESO</td><td>8.286,50 EUR</td><td>Compra VW Golf 1234ABC</td></tr>
+    <tr><td>4</td><td>INGRESO</td><td>11.900,00 EUR</td><td>Cobro venta REBU</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Saldo final del banco = 51.133,00 EUR</strong> (50.000,00 - 2.480,50 - 8.286,50 + 11.900,00)<br>
+    <strong>Nota (Paso 8.6):</strong> el gasto de estructura NO genera movimiento bancario: queda pendiente de pago en la cuenta 410 (Acreedores) hasta que se abone al proveedor.
+</div>
+
+<h2 id="capitulo-20-5">20.5 Verificacion Post-Prueba</h2>
+
+<p>Despues de completar todos los pasos, marque cada comprobacion del checklist:</p>
+
+<ul>
+    <li>&#9744; El vehiculo VW Golf 1234ABC esta en estado <strong>VENDIDO</strong></li>
+    <li>&#9744; Existen <strong>8 asientos</strong> contables, todos <strong>POSTEADOS</strong> y cuadrados</li>
+    <li>&#9744; Existen <strong>4 movimientos</strong> bancarios y el saldo es <strong>51.133,00 EUR</strong></li>
+    <li>&#9744; El gasto de estructura (alquiler) existe: total <strong>2.040,00 EUR</strong>, retencion 380,00, Pagado = No</li>
+    <li>&#9744; El asiento del gasto (621 + 472 / 4751.115 + 410) esta <strong>POSTEADO</strong> automaticamente</li>
+    <li>&#9744; El Balance de situacion cuadra (Activo = Pasivo + Patrimonio)</li>
+    <li>&#9744; El informe de Existencias no muestra aviso de descuadre (diferencia = 0,00) &mdash; el gasto no toca la cuenta 300</li>
+    <li>&#9744; La PyG muestra Arrendamientos (621) = <strong>2.000,00 EUR</strong>, Variacion de existencias (611) = <strong>40,35 EUR</strong> y resultado neto = <strong>1.042,13 EUR</strong></li>
+    <li>&#9744; La garantia de 12 meses existe y esta <strong>VIGENTE</strong></li>
+</ul>
 
 <h3>Dashboard (KPIs)</h3>
 <table>
@@ -4729,10 +5070,10 @@ USUARIO REGISTRA OPERACION
 <h3>Contabilidad</h3>
 <table>
     <tr><th>Informe</th><th>Que verificar</th></tr>
-    <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto</td></tr>
-    <tr><td>PyG</td><td>Ingresos (700): 2.948,35 EUR | Gastos: 0,00 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
-    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 619,15 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 = 624,75 EUR</td></tr>
-    <tr><td>Asientos</td><td>7 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU. Todos POSTEADOS</td></tr>
+    <tr><td>Balance situacion</td><td>Activo (Banco + Inventario + Inmovilizado) = Pasivo + Patrimonio Neto. Pasivo: 410 = 2.372,75 (332,75 compras + 2.040 alquiler) | 4751.115 = 380,00</td></tr>
+    <tr><td>PyG</td><td>Ingresos (700): 3.001,78 EUR | Variacion existencias (611): 40,35 EUR | Gastos estructura (621): 2.000,00 EUR | Resultado neto: 1.042,13 EUR (el coste del vehiculo se da de baja en 310)</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 430,50 + 136,50 + 35,70 + 22,05 + 420,00 = 1.044,75 EUR</td></tr>
+    <tr><td>Asientos</td><td>8 asientos creados: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU, gasto estructura (alquiler). Todos POSTEADOS</td></tr>
 </table>
 
 <h3>Garantia</h3>
@@ -4740,29 +5081,38 @@ USUARIO REGISTRA OPERACION
     Al ser venta B2C (Particular), se creo automaticamente una <strong>garantia de 12 meses</strong> para el VW Golf. Verifique en Garantias que el registro existe y tiene estado VIGENTE.
 </div>
 
-<h2 id="capitulo-20-5">20.5 Limpieza (Reinicio para Produccion)</h2>
+<h2 id="capitulo-20-6">20.6 Limpieza (Reinicio para Produccion)</h2>
 
-<p>Una vez completada la prueba, puede limpiar el sistema para dejarlo listo para datos reales:</p>
+<p>El <code>flush</code> borra absolutamente todos los registros de prueba y deja el sistema listo para datos reales. Se usa tanto para preparar el entorno antes de la prueba (partir de cero) como para limpiarlo despues de ella.</p>
 
-<h3>Opcion A: Eliminar usuario tester (recomendado)</h3>
-<pre><code># Desde la consola de Render (Shell)
-python create_tester_user.py --delete</code></pre>
-
-<h3>Opcion B: Reset completo de la base de datos</h3>
-<p>Esto borra TODOS los datos de prueba pero mantiene la estructura de tablas:</p>
+<h3>Reset completo de la base de datos</h3>
+<p>Ejecutar desde la consola de Render (Shell). Borra todos los datos pero mantiene la estructura de tablas:</p>
 <pre><code>python manage.py flush --noinput
-python manage.py migrate
-python create_test_users.py</code></pre>
+python manage.py migrate</code></pre>
+
+<h3>Recrear los usuarios de prueba</h3>
+<p><code>create_test_users.py</code> no se despliega en Render (la raiz del servicio es <code>backend/</code>), asi que los usuarios se crean via shell. Incluya <code>first_name</code> y <code>last_name</code> para que los desplegables de operarios, vendedores y gestoria muestren nombres legibles:</p>
+<pre><code>python manage.py shell -c "
+from apps.accounts.models import User
+User.objects.create_superuser('admin', 'admin@eurocar.local', 'admin123!', first_name='Administrador', last_name='Rogil')
+User.objects.create_user('mecanico1', email='mecanico1@eurocar.local', password='mecanico123!', first_name='Carlos', last_name='Garcia', rol='OPERARIO', pin_kiosco='1234', salario_base_mensual=1800, porcentaje_ss_patronal=31.50)
+User.objects.create_user('mecanico2', email='mecanico2@eurocar.local', password='mecanico123!', first_name='Ana', last_name='Lopez', rol='OPERARIO', pin_kiosco='5678', salario_base_mensual=1800, porcentaje_ss_patronal=31.50)
+User.objects.create_user('vendedor1', email='vendedor1@eurocar.local', password='vendedor123!', first_name='Pedro', last_name='Martinez', rol='VENDEDOR')
+User.objects.create_user('gestoria1', email='gestoria1@eurocar.local', password='gestoria123!', first_name='Laura', last_name='Fernandez', rol='GESTORIA')
+print('Usuarios de prueba creados')"</code></pre>
+
+<h3>Reinicializar el plan contable</h3>
+<pre><code>python manage.py shell -c "
+from apps.accounting.models import PlanContableDefault
+PlanContableDefault.crear_plan_base()
+print('Plan contable inicializado (56 cuentas)')"</code></pre>
 
 <div class="warning-box">
     <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.
 </div>
 
-<h3>Opcion C: Reset de contrasena del tester (si se queda)</h3>
-<pre><code>python create_tester_user.py --reset-password</code></pre>
-
 <div class="info-box">
-    <strong>Nota:</strong> Si el tester se queda en el sistema para produccion, cambie su contrasena por una segura y ajuste <code>puede_eliminar</code> segun la politica de la empresa.
+    <strong>Nota final:</strong> Tras la prueba, el operador debe cambiar la contrasena del usuario <code>admin</code> a una segura (<code>python manage.py changepassword admin</code>) y ajustar <code>puede_eliminar</code> segun la politica de la empresa antes de dar de alta datos reales.
 </div>
 
 </body>

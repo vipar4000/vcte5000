@@ -15,6 +15,7 @@ urlpatterns = [
     path('erp/garantias/', include('apps.warranty.urls')),
     path('erp/contabilidad/', include('apps.accounting.urls')),
     path('erp/gastos/', include('apps.expenses.urls')),
+    path('erp/nominas/', include('apps.payroll.urls')),
     path('erp/banco/', include('apps.bank.urls')),
     path('api/', include('apps.api.urls')),
 ]

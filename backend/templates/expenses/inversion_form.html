@@ -144,11 +144,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const template = document.getElementById('lineaTemplate');
     const totalForms = document.getElementById('id_lineas-TOTAL_FORMS');
 
+    function parseSpanishNumber(value) {
+        if (!value) return 0;
+        value = String(value);
+        // Formato español: 1.234,56 → 1234.56
+        if (value.includes(',')) {
+            value = value.replace(/\./g, '').replace(',', '.');
+        }
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
     function recalc() {
         let total = 0;
         document.querySelectorAll('.linea-row').forEach(row => {
-            const base = parseFloat(row.querySelector('.base-imponible')?.value || 0) || 0;
-            const iva = parseFloat(row.querySelector('.tipo-iva')?.value || 0) || 0;
+            const base = parseSpanishNumber(row.querySelector('.base-imponible')?.value || 0);
+            const iva = parseSpanishNumber(row.querySelector('.tipo-iva')?.value || 0);
             const cuota = base * iva / 100;
             const lineaTotal = base + cuota;
             total += lineaTotal;
@@ -159,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         totalCalculadoEl.textContent = total.toFixed(2) + ' €';
 
-        const fisico = parseFloat(totalFisicoInput?.value || 0) || 0;
+        const fisico = parseSpanishNumber(totalFisicoInput?.value || 0);
         if (fisico > 0) {
             if (Math.abs(total - fisico) < 0.01) {
                 descuadreMsg.innerHTML = '<span class="text-green-600">✔ Cuadrado</span>';

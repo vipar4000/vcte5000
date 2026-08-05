@@ -9,11 +9,23 @@ from django.http import HttpResponse
 from django.utils import timezone
 from datetime import date
 
+from .report_views import parse_int_query
+
+
+def _requiere_admin_o_gestoria(request, permiso='acceder a esta sección'):
+    """Verifica que el usuario tenga rol ADMIN o GESTORIA."""
+    if not request.user.is_admin and not request.user.is_gestoria:
+        messages.error(request, f'Solo administradores pueden {permiso}.')
+        return True
+    return False
+
 
 @login_required
 def exportar_modelo_390(request):
     """Genera y descarga el fichero plano del Modelo 390."""
-    anio = int(request.GET.get('anio', date.today().year))
+    if _requiere_admin_o_gestoria(request, 'exportar el Modelo 390'):
+        return redirect('accounting:informes')
+    anio = parse_int_query(request, 'anio', date.today().year)
     
     try:
         from .exports import generar_modelo_390
@@ -30,7 +42,9 @@ def exportar_modelo_390(request):
 @login_required
 def exportar_csv_303(request):
     """Genera y descarga el CSV para pre-declaración Modelo 303."""
-    anio = int(request.GET.get('anio', date.today().year))
+    if _requiere_admin_o_gestoria(request, 'exportar el Modelo 303'):
+        return redirect('accounting:iva')
+    anio = parse_int_query(request, 'anio', date.today().year)
     trimestre = int(request.GET.get('trimestre', (date.today().month - 1) // 3 + 1))
     
     try:
@@ -48,6 +62,8 @@ def exportar_csv_303(request):
 @login_required
 def exportar_facturas_compra_csv(request):
     """Genera y descarga el CSV del reporte Facturas de Compra (filtros aplicados)."""
+    if _requiere_admin_o_gestoria(request, 'exportar facturas de compra'):
+        return redirect('accounting:informes')
     import csv
     from decimal import Decimal
     from django.utils.encoding import smart_str
@@ -100,7 +116,9 @@ def exportar_facturas_compra_csv(request):
 @login_required
 def exportar_sii_xml(request):
     """Genera y descarga el XML del SII."""
-    anio = int(request.GET.get('anio', date.today().year))
+    if _requiere_admin_o_gestoria(request, 'exportar el SII'):
+        return redirect('accounting:informes')
+    anio = parse_int_query(request, 'anio', date.today().year)
     trimestre = int(request.GET.get('trimestre', (date.today().month - 1) // 3 + 1))
     
     try:
@@ -118,6 +136,8 @@ def exportar_sii_xml(request):
 @login_required
 def tareas_programadas(request):
     """Panel de tareas Celery Beat programadas."""
+    if _requiere_admin_o_gestoria(request, 'gestionar tareas programadas'):
+        return redirect('accounting:informes')
     from django_celery_beat.models import PeriodicTask
     
     tareas = PeriodicTask.objects.all()

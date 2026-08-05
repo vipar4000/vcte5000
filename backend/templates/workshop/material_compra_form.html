@@ -95,40 +95,73 @@
 
             {{ linea_formset.management_form }}
 
-            <div class="overflow-x-auto mt-2">
+            <div class="mt-2 border border-gray-200 rounded-lg overflow-hidden">
                 <table id="lineas-table" class="w-full text-sm">
                     <thead>
-                        <tr class="border-b text-left text-gray-600">
-                            <th class="py-2 pr-2 w-2/5">Material</th>
-                            <th class="py-2 px-2 w-1/6">Cantidad</th>
-                            <th class="py-2 px-2 w-1/6">Precio Ud. (€)</th>
-                            <th class="py-2 pl-2 w-10"></th>
+                        <tr class="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
+                            <th class="px-3 py-2.5 text-left" style="width:42%">Material</th>
+                            <th class="px-3 py-2.5 text-right" style="width:12%">Cantidad</th>
+                            <th class="px-3 py-2.5 text-right" style="width:16%">Precio Ud.</th>
+                            <th class="px-3 py-2.5 text-right" style="width:15%">Base</th>
+                            <th class="px-3 py-2.5 text-right" style="width:15%">Cuota IVA</th>
+                            <th class="px-2 py-2.5 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-gray-100 bg-white">
                         {% for form in linea_formset %}
-                        <tr class="linea-row border-b hover:bg-gray-50">
-                            <td class="py-2 pr-2">{{ form.material }}</td>
-                            <td class="py-2 px-2">{{ form.cantidad }}</td>
-                            <td class="py-2 px-2">{{ form.precio_unitario }}</td>
-                            <td class="py-2 pl-2 text-center">
+                        <tr class="linea-row hover:bg-blue-50/40 transition-colors">
+                            <td class="px-3 py-2">{{ form.material }}</td>
+                            <td class="px-3 py-2">{{ form.cantidad }}</td>
+                            <td class="px-3 py-2">{{ form.precio_unitario }}</td>
+                            <td class="px-3 py-2 text-right base-imponible text-gray-700 tabular-nums whitespace-nowrap">0,00 €</td>
+                            <td class="px-3 py-2 text-right cuota-iva text-gray-700 tabular-nums whitespace-nowrap">0,00 €</td>
+                            <td class="px-2 py-2 text-center">
                                 {% if form.DELETE %}
-                                <input type="checkbox" name="{{ form.DELETE.name }}"
+                                <input type="checkbox" name="{{ form.DELETE.html_name }}"
                                        id="{{ form.DELETE.id_for_label }}" class="delete-checkbox hidden">
-                                <button type="button" class="delete-linea text-red-500 hover:text-red-700 text-lg"
-                                        title="Eliminar línea">&times;</button>
+                                <button type="button" title="Eliminar línea"
+                                        class="delete-linea inline-flex items-center justify-center w-8 h-8 rounded-md
+                                               text-gray-400 hover:text-red-600 hover:bg-red-50 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
+                                    </svg>
+                                </button>
                                 {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-50 border-t border-gray-200">
+                            <td colspan="3" class="px-3 py-2.5 text-right text-sm font-medium text-gray-500">Totales</td>
+                            <td class="px-3 py-2.5 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
+                                <span id="total-base">0,00 €</span>
+                            </td>
+                            <td class="px-3 py-2.5 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
+                                <span id="total-cuota">0,00 €</span>
+                            </td>
+                            <td class="px-2 py-2.5"></td>
+                        </tr>
+                        <tr class="bg-blue-50 border-t border-blue-100">
+                            <td colspan="3" class="px-3 py-3 text-right font-semibold text-eurocar-blue">
+                                Total factura (IVA incluido)
+                            </td>
+                            <td colspan="2" class="px-3 py-3 text-right font-bold text-eurocar-blue text-lg tabular-nums whitespace-nowrap">
+                                <span id="total-factura">0,00 €</span>
+                            </td>
+                            <td class="px-2 py-3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
             <button type="button" id="add-linea"
-                    class="mt-3 px-4 py-2 text-sm border border-dashed border-gray-400 rounded-lg
-                           hover:bg-gray-50 transition text-gray-600">
-                ➕ Añadir material
+                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                           text-eurocar-blue border border-eurocar-light rounded-lg
+                           hover:bg-blue-50 transition">
+                <span class="text-lg leading-none font-bold">+</span> Añadir material
             </button>
         </fieldset>
 
@@ -145,6 +178,16 @@
         </div>
     </form>
 </div>
+
+<style>
+/* Altura uniforme de inputs/selects dentro de la tabla de líneas */
+#lineas-table select,
+#lineas-table input[type="number"] {
+    height: 2.5rem;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -153,38 +196,135 @@
     var tbody = document.querySelector('#lineas-table tbody');
     var totalForms = document.getElementById('id_lineas-TOTAL_FORMS');
     var addBtn = document.getElementById('add-linea');
+    var tipoIvaInput = document.getElementById('id_tipo_iva');
 
-    if (!tbody || !totalForms || !addBtn) return;
+    // Precios registrados de cada material (para auto-rellenar Precio Ud.)
+    var preciosMateriales = {
+        {% for m in materiales %}{{ m.pk }}: "{{ m.precio_unitario }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
 
-    // Eliminar línea
-    tbody.addEventListener('click', function(e) {
-        var btn = e.target.closest('.delete-linea');
-        if (!btn) return;
-        var row = btn.closest('.linea-row');
-        var delCheckbox = row.querySelector('.delete-checkbox');
-        if (delCheckbox) {
-            delCheckbox.checked = true;
+    function parseSpanishNumber(value) {
+        if (!value) return 0;
+        value = String(value).replace(/\s/g, '');
+        if (value.includes(',')) {
+            value = value.replace(/\./g, '').replace(',', '.');
         }
-        row.style.display = 'none';
-    });
+        var parsed = parseFloat(value);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function formatEuros(value) {
+        return value.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function bindInputs(row) {
+        var inputs = row.querySelectorAll('input[name$="-cantidad"], input[name$="-precio_unitario"]');
+        inputs.forEach(function(input) {
+            input.addEventListener('input', calcularLineas);
+            input.addEventListener('change', calcularLineas);
+        });
+        // Auto-rellenar precio al elegir material
+        var materialSelect = row.querySelector('select[name$="-material"]');
+        if (materialSelect) {
+            materialSelect.addEventListener('change', function() {
+                var precio = preciosMateriales[materialSelect.value];
+                var precioInput = row.querySelector('input[name$="-precio_unitario"]');
+                if (precio && precioInput) {
+                    precioInput.value = precio;
+                }
+                calcularLineas();
+            });
+        }
+    }
+
+    function calcularLineas() {
+        var tipoIva = parseSpanishNumber(tipoIvaInput ? tipoIvaInput.value : 0);
+        var totalBase = 0;
+        var totalCuota = 0;
+
+        document.querySelectorAll('#lineas-table tbody .linea-row').forEach(function(row) {
+            if (row.style.display === 'none') return;
+            var cantidadInput = row.querySelector('input[name$="-cantidad"]');
+            var precioInput = row.querySelector('input[name$="-precio_unitario"]');
+            var baseCell = row.querySelector('.base-imponible');
+            var cuotaCell = row.querySelector('.cuota-iva');
+
+            var cantidad = parseSpanishNumber(cantidadInput ? cantidadInput.value : 0);
+            var precio = parseSpanishNumber(precioInput ? precioInput.value : 0);
+            var base = cantidad * precio;
+            var cuota = base * (tipoIva / 100);
+
+            if (baseCell) baseCell.textContent = formatEuros(base);
+            if (cuotaCell) cuotaCell.textContent = formatEuros(cuota);
+
+            totalBase += base;
+            totalCuota += cuota;
+        });
+
+        var totalFactura = totalBase + totalCuota;
+        var totalBaseEl = document.getElementById('total-base');
+        var totalCuotaEl = document.getElementById('total-cuota');
+        var totalFacturaEl = document.getElementById('total-factura');
+        if (totalBaseEl) totalBaseEl.textContent = formatEuros(totalBase);
+        if (totalCuotaEl) totalCuotaEl.textContent = formatEuros(totalCuota);
+        if (totalFacturaEl) totalFacturaEl.textContent = formatEuros(totalFactura);
+    }
+
+    if (tipoIvaInput) {
+        tipoIvaInput.addEventListener('input', calcularLineas);
+        tipoIvaInput.addEventListener('change', calcularLineas);
+    }
+
+    if (tbody) {
+        tbody.querySelectorAll('.linea-row').forEach(function(row) {
+            bindInputs(row);
+        });
+
+        // Eliminar línea
+        tbody.addEventListener('click', function(e) {
+            var btn = e.target.closest('.delete-linea');
+            if (!btn) return;
+            var row = btn.closest('.linea-row');
+            var delCheckbox = row.querySelector('.delete-checkbox');
+            if (delCheckbox) {
+                delCheckbox.checked = true;
+            }
+            row.style.display = 'none';
+            calcularLineas();
+        });
+    }
 
     // Añadir línea
-    addBtn.addEventListener('click', function() {
-        var num = parseInt(totalForms.value);
-        var template = tbody.querySelector('.linea-row');
-        if (!template) return;
-        var clone = template.cloneNode(true);
-        clone.innerHTML = clone.innerHTML.replace(/lineas-0-/g, 'lineas-' + num + '-');
-        clone.querySelectorAll('input').forEach(function(inp) {
-            if (inp.type !== 'hidden') inp.value = '';
+    if (addBtn && tbody && totalForms) {
+        addBtn.addEventListener('click', function() {
+            var num = parseInt(totalForms.value);
+            var template = tbody.querySelector('.linea-row');
+            if (!template) return;
+            var clone = template.cloneNode(true);
+            clone.innerHTML = clone.innerHTML.replace(/lineas-0-/g, 'lineas-' + num + '-');
+            clone.innerHTML = clone.innerHTML.replace(/lineas_0_/g, 'lineas_' + num + '_');
+            clone.querySelectorAll('input').forEach(function(inp) {
+                if (inp.type !== 'hidden') {
+                    inp.value = '';
+                    inp.checked = false;
+                }
+            });
+            clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
+            var delCb = clone.querySelector('.delete-checkbox');
+            if (delCb) delCb.checked = false;
+            clone.style.display = '';
+            clone.querySelectorAll('.base-imponible').forEach(function(el) { el.textContent = '0,00 €'; });
+            clone.querySelectorAll('.cuota-iva').forEach(function(el) { el.textContent = '0,00 €'; });
+            tbody.appendChild(clone);
+            totalForms.value = num + 1;
+            bindInputs(clone);
+            calcularLineas();
         });
-        clone.querySelectorAll('select').forEach(function(sel) { sel.selectedIndex = 0; });
-        var delCb = clone.querySelector('.delete-checkbox');
-        if (delCb) delCb.checked = false;
-        clone.style.display = '';
-        tbody.appendChild(clone);
-        totalForms.value = num + 1;
-    });
+    }
+
+    // Calcular al cargar
+    calcularLineas();
 })();
 </script>
 {% endblock %}
