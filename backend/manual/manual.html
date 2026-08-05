@@ -17,8 +17,8 @@
         <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
     </div>
     <div class="cover-footer">
-        <div class="cover-version">Manual de Usuario v2.0</div>
-        <div class="cover-date">Julio 2026 &mdash; Madrid, Espana</div>
+        <div class="cover-version">Manual de Usuario v3.0</div>
+        <div class="cover-date">Agosto 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
 </div>
@@ -40,7 +40,16 @@
         </li>
         <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a></li>
         <li><a href="#capitulo-5"><span class="chapter-num">5.</span> Ventas y Documentacion</a></li>
-        <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nomina</a></li>
+        <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nominas (Payroll RGPD)</a>
+        <ul>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.1</span> Kiosco de Fichaje</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.2</span> Marcaje Manual</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.3</span> Configuracion de Nomina</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.4</span> Reporte de Jornada</a></li>
+            <li><a href="#capitulo-6-5"><span class="chapter-num">6.5</span> Modulo de Nominas (Payroll App)</a></li>
+            <li><a href="#capitulo-6"><span class="chapter-num">6.6</span> Cambios en Gastos de Estructura</a></li>
+        </ul>
+    </li>
         <li><a href="#capitulo-7"><span class="chapter-num">7.</span> Garantias Postventa</a></li>
         <li><a href="#capitulo-8"><span class="chapter-num">8.</span> Contabilidad</a>
             <ul>
@@ -255,6 +264,7 @@
     <tr><td><code>/erp/asistencia/</code></td><td>Asistencia</td><td>Marcajes y nomina</td></tr>
     <tr><td><code>/erp/garantias/</code></td><td>Garantias</td><td>Garantias postventa</td></tr>
     <tr><td><code>/erp/contabilidad/</code></td><td>Contabilidad</td><td>Asientos, plan contable, informes y exportacion fiscal</td></tr>
+    <tr><td><code>/erp/nominas/</code></td><td>Payroll</td><td>Nominas (solo ADMIN/GESTORIA)</td></tr>
     <tr><td><code>/erp/gastos/</code></td><td>Gastos</td><td>Gastos de estructura</td></tr>
     <tr><td><code>/erp/banco/</code></td><td>Banco</td><td>Cuentas, movimientos, conciliacion y reservas</td></tr>
     <tr><td><code>/api/</code></td><td>API</td><td>Endpoints JSON publicos (sin prefijo /erp/)</td></tr>
@@ -398,7 +408,7 @@ ADQUIRIDO --> TALLER --> ACONDICIONADO --> EN_VENTA --> VENDIDO
     <tr><td><code>cif_nif</code></td><td>Texto (15 chars)</td><td>No</td><td><code>B12345678</code></td></tr>
     <tr><td><code>numero_factura</code></td><td>Texto (20 chars)</td><td>No</td><td><code>FC-2026-001</code></td></tr>
     <tr><td><code>tipo_iva</code></td><td>Select</td><td>No</td><td><code>GENERAL_21</code>, <code>REDUCIDO_10</code>, <code>SUPERREDUCIDO_4</code>, <code>EXENTO</code></td></tr>
-    <tr><td><code>base_imponible</code></td><td>Decimal</td><td>No</td><td><code>8000.00</code></td></tr>
+    <tr><td><code>coste_total_adquisicion</code></td><td>Decimal</td><td>No</td><td><code>8000.00</code></td></tr>
     <tr><td><code>cuota_iva</code></td><td>Decimal</td><td>No</td><td><code>1680.00</code></td></tr>
     <tr><td><code>forma_pago</code></td><td>Select (CuentaContable)</td><td>No</td><td><code>Caja Chica</code>, <code>Banco Santander</code></td></tr>
     <tr><td><code>factura_compra_pdf</code></td><td>Archivo PDF</td><td>No</td><td>Factura original escaneada</td></tr>
@@ -797,7 +807,7 @@ Material (stock: 100)
 
 <pre><code>Margen = Precio de Venta - Coste Total del Vehiculo
 Base Imponible = Margen / 1,21
-Cuota IVA = Base Imponible x 21% (si Base Imponible > 0)
+Cuota IVA = Margen - Base Imponible   (redondeo AEAT: base + cuota = margen sin descuadre) (si Base Imponible > 0)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
 El precio que paga el cliente es el precio de venta completo.</code></pre>
@@ -851,7 +861,11 @@ El precio que paga el cliente es el precio de venta completo.</code></pre>
 </ol>
 
 <!-- ==================== CAPITULO 6 ==================== -->
-<h1 id="capitulo-6">6. Control de Asistencia y Nomina</h1>
+<h1 id="capitulo-6">6. Control de Asistencia y Nominas (Payroll RGPD)</h1>
+
+<div class="warning-box">
+    <strong>v3.0 — Modulo independiente Payroll:</strong> Las nominas y la Seguridad Social patronal se han separado del modulo de Gastos de Estructura y ahora se gestionan en la aplicacion <strong>Payroll</strong> (<code>apps/payroll</code>). El acceso esta <strong>restringido por RGPD</strong>: solo usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code> pueden ver, crear o gestionar nominas. Los roles <code>OPERARIO</code> y <code>VENDEDOR</code> no tienen acceso.
+</div>
 
 <h2>6.1 Kiosco de Fichaje</h2>
 <p>El kiosco esta disenado para tablets o pantallas tactiles en el galpon.</p>
@@ -904,7 +918,7 @@ SALIDA    ENTRADA
     <li>Confirme el registro</li>
 </ol>
 
-<h2>6.3 Configuracion de Nomina</h2>
+<h2>6.3 Configuracion de Nomina (Coste/Hora)</h2>
 <p>Para calcular el coste real por hora de cada operario:</p>
 
 <pre><code>Coste Mensual Total = Salario Base x (1 + % SS Patronal / 100)
@@ -929,6 +943,102 @@ Ejemplo con Convenio del Metal de Madrid:
         </ul>
     </li>
 </ol>
+
+<h2 id="capitulo-6-5">6.5 Modulo de Nominas (Payroll App)</h2>
+<p>Accesible en <strong>Nominas</strong> desde el menu lateral. Solo visible para usuarios <code>ADMIN</code> y <code>GESTORIA</code>.</p>
+
+<h3>6.5.1 Modelo NominaEstructura</h3>
+<table>
+    <tr><th>Campo</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
+    <tr><td><code>empleado</code></td><td>—</td><td>Usuario (rol OPERARIO)</td></tr>
+    <tr><td><code>fecha_nomina</code></td><td>—</td><td>Fecha de devengo</td></tr>
+    <tr><td><code>salario_bruto</code></td><td>640 (DEBE)</td><td>Sueldos y salarios</td></tr>
+    <tr><td><code>ss_patronal</code></td><td>642 (DEBE)</td><td>Seguridad Social a cargo de la empresa</td></tr>
+    <tr><td><code>retencion_irpf</code></td><td>4751 (HABER)</td><td>Retencion IRPF practicada</td></tr>
+    <tr><td><code>ss_obrera</code></td><td>476 (HABER)</td><td>Cuota obrera Seguridad Social</td></tr>
+    <tr><td><code>liquido_percibir</code></td><td>465 (HABER)</td><td>Remuneraciones pendientes de pago (neto)</td></tr>
+</table>
+
+<h3>6.5.2 Asiento Contable de Nomina (PGC Estandar)</h3>
+<pre><code>DEBE  640 (Sueldos y salarios):     salario_bruto
+DEBE  642 (Seguridad social):        ss_patronal
+HABER 4751 (HP Retenciones IRPF):    retencion_irpf
+HABER 476 (Organismos SS):           ss_obrera + ss_patronal
+HABER 465 (Remuneraciones pendientes): liquido_percibir
+
+Verificacion: DEBE = HABER
+  salario_bruto + ss_patronal = retencion_irpf + (ss_obrera + ss_patronal) + liquido_percibir</code></pre>
+
+<h3>6.5.3 Ejemplo: Nomina de Carlos Gomez (Operario Taller)</h3>
+<pre><code>Empleado: Carlos Gomez (OPERARIO)
+Fecha: 31/07/2026
+
+Devengos:
+  Salario Bruto (640):              1.800,00 EUR
+  SS Patronal 31,5% (642):            567,00 EUR
+  Total Devengos:                   2.367,00 EUR
+
+Deducciones:
+  Retencion IRPF 6% (4751):          108,00 EUR
+  SS Obrera 4,7% (476):               84,60 EUR
+  SS Patronal (476):                 567,00 EUR
+  Total Deducciones:                 759,60 EUR
+
+Liquido a Percibir (465):          1.607,40 EUR
+
+Asiento contable (auto-posteado si cuadrado):
+  DEBE  640 = 1.800,00
+  DEBE  642 =   567,00
+  HABER 4751 =   108,00
+  HABER 476  =   651,60 (84,60 + 567,00)
+  HABER 465  = 1.607,40
+  ———————————————————
+  Suma DEBE:  2.367,00 = Suma HABER: 2.367,00 ✓</code></pre>
+
+<h3>6.5.4 Crear Nomina Manualmente</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Nominas</strong> en el menu lateral (requiere ADMIN o GESTORIA)</li>
+    <li>Haga clic en <strong>"Nueva Nomina"</strong></li>
+    <li>Complete los campos: empleado, fecha, salario bruto, SS patronal, retencion IRPF, SS obrera</li>
+    <li>El liquido a percibir se calcula automaticamente al guardar</li>
+    <li>Haga clic en <strong>"Registrar Nomina"</strong></li>
+    <li>El asiento contable se genera y se postea automaticamente si esta cuadrado</li>
+</ol>
+
+<h3>6.5.5 Generar Nominas Mensuales Automaticamente</h3>
+<ol class="steps">
+    <li>Navegue a <strong>Nominas</strong></li>
+    <li>Haga clic en <strong>"Generar mensual"</strong></li>
+    <li>El sistema itera todas las configuraciones de nomina activas</li>
+    <li>Crea una NominaEstructura por cada operario con:
+        <ul>
+            <li>Salario bruto de la configuracion</li>
+            <li>SS patronal = salario x % SS patronal / 100</li>
+            <li>SS obrera = salario x 4,7%</li>
+            <li>Retencion IRPF = salario x 6% (estimado)</li>
+        </ul>
+    </li>
+    <li>Cada nomina genera su asiento contable automaticamente</li>
+</ol>
+
+<div class="warning-box">
+    <strong>Proteccion RGPD:</strong> Las nominas contienen datos personales sensibles (salarios, IRPF, SS).
+    El acceso esta estrictamente limitado a ADMIN y GESTORIA. Cualquier intento de acceso por parte de
+    OPERARIO o VENDEDOR es rechazado con un mensaje de error.
+</div>
+
+<h2>6.6 Cambios en Gastos de Estructura (v3.0)</h2>
+<p>Las categorias <code>NOMINAS_ESTR</code> y <code>SEG_SOCIAL_ESTR</code> han sido <strong>eliminadas</strong> del modelo <code>GastoEstructura</code>. Los gastos de estructura ahora se limitan estrictamente a facturas de proveedores externos:</p>
+
+<table>
+    <tr><th>Categoria</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
+    <tr><td><code>ARRENDAMIENTO</code></td><td>621</td><td>Alquiler del galpon</td></tr>
+    <tr><td><code>SUMINISTROS</code></td><td>628</td><td>Luz, agua, conectividad</td></tr>
+    <tr><td><code>LIMPIEZA_PROD</code></td><td>602</td><td>Productos de limpieza</td></tr>
+    <tr><td><code>LIMPIEZA_SERV</code></td><td>629</td><td>Servicios de limpieza externa</td></tr>
+    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>Otros tributos (IBI, tasas, vados)</td></tr>
+    <tr><td><code>OTROS</code></td><td>620</td><td>Otros gastos no especificados</td></tr>
+</table>
 
 <!-- ==================== CAPITULO 7 ==================== -->
 <h1 id="capitulo-7">7. Garantias Postventa</h1>
@@ -1034,7 +1144,7 @@ vencimiento  reparacion
     <tr><td><strong>3xx</strong></td><td>Existencias</td><td>Mercancias (310) - vehiculos en inventario</td></tr>
     <tr><td><strong>4xx</strong></td><td>Acreedores y Deudas</td><td>Proveedores (400), Acreedores (410), Clientes (430), IVA Repercutido (471), IVA Soportado (472)</td></tr>
     <tr><td><strong>5xx</strong></td><td>Tesoreria</td><td>Banco (572)</td></tr>
-    <tr><td><strong>6xx</strong></td><td>Gastos</td><td>Compras (600), Servicios exteriores (602), Reparaciones (623), Sueldos (640), Seg. Social (642), Imp. Sociedades (680)</td></tr>
+    <tr><td><strong>6xx</strong></td><td>Gastos</td><td>Compras (600), Servicios ext. (602), Reparaciones (623), Suministros (628), Otros tributos (631), Sueldos (640), Seg. Social (642), Imp. Sociedades (680)</td></tr>
     <tr><td><strong>7xx</strong></td><td>Ingresos</td><td>Ventas mercancias (700)</td></tr>
 </table>
 
@@ -1044,6 +1154,8 @@ vencimiento  reparacion
     <tr><td><code>310</code></td><td>Mercancias</td><td>Inventario de vehiculos (se da de baja al vender)</td></tr>
     <tr><td><code>471</code></td><td>IVA Repercutido</td><td>IVA cobrado al cliente (sobre el margen)</td></tr>
     <tr><td><code>472</code></td><td>IVA Soportado</td><td>IVA pagado a proveedores</td></tr>
+    <tr><td><code>465</code></td><td>Remuneraciones pendientes de pago</td><td>Liquido neto a pagar al empleado</td></tr>
+    <tr><td><code>476</code></td><td>Organismos de la Seguridad Social, acreedores</td><td>SS obrera + patronal a pagar</td></tr>
     <tr><td><code>600</code></td><td>Compras</td><td>Coste de adquisicion del vehiculo</td></tr>
     <tr><td><code>623</code></td><td>Reparaciones</td><td>Costes de acondicionamiento (IVA no deducible)</td></tr>
     <tr><td><code>700</code></td><td>Ventas mercancias</td><td>Ingresos por venta (margen REBU)</td></tr>
@@ -1058,6 +1170,10 @@ vencimiento  reparacion
 </ol>
 
 <h2 id="capitulo-8-2">8.2 Asientos Contables</h2>
+
+<div class="warning-box">
+    <strong>Control de acceso (RGPD):</strong> Las operaciones de <em>postear</em> y <em>anular</em> asientos estan restringidas exclusivamente a usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code>. Los roles <code>OPERARIO</code> y <code>VENDEDOR</code> pueden ver los asientos pero no pueden modificar su estado.
+</div>
 
 <h3>Crear un Asiento</h3>
 <ol class="steps">
@@ -1140,7 +1256,7 @@ Verificacion: DEBE (150,00) = HABER (150,00) -> CUADRADO</code></pre>
 </div>
 
 <pre><code>Base Imponible = Margen / 1,21
-Cuota IVA = Base Imponible x 21%
+Cuota IVA = Margen - Base Imponible   (redondeo AEAT: base + cuota = margen)
 
 NOTA: El desglose de IVA NO se muestra al cliente en la factura.
 El precio que paga el cliente es el precio de venta completo.</code></pre>
@@ -1237,7 +1353,7 @@ NOTA: El IVA de 105,00 EUR NO es deducible -> va a la cuenta 623, NO a 472.</cod
     Si se vende a 16.500 EUR:<br>
     - Margen = 16.500 - 12.927,50 = 3.572,50 EUR<br>
     - Base Imponible = 3.572,50 / 1,21 = 2.952,48 EUR<br>
-    - Cuota IVA = 2.952,48 x 21% = 620,02 EUR
+    - Cuota IVA = 3.572,50 - 2.952,48 = 620,02 EUR (metodo AEAT: base + cuota = margen)
 </div>
 
 <h3>8.3.4 Cuentas Utilizadas en REBU</h3>
@@ -1354,13 +1470,22 @@ Siguiente ano comienza con balances limpios
     <tr><td><code>SUMINISTROS</code></td><td>628</td><td>Luz, agua, conectividad</td></tr>
     <tr><td><code>LIMPIEZA_PROD</code></td><td>602</td><td>Productos de limpieza e insumos globales</td></tr>
     <tr><td><code>LIMPIEZA_SERV</code></td><td>629</td><td>Servicios de limpieza externa</td></tr>
-    <tr><td><code>NOMINAS_ESTR</code></td><td>640</td><td>Salarios personal limpieza/admin</td></tr>
-    <tr><td><code>SEG_SOCIAL_ESTR</code></td><td>642</td><td>Aportes patronales personal estructura</td></tr>
-    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>IBI, tasas municipales, vados</td></tr>
+    <tr><td><code>IMPUESTOS_ESTR</code></td><td>631</td><td>Otros tributos (IBI, tasas, vados)</td></tr>
     <tr><td><code>OTROS</code></td><td>620</td><td>Otros gastos no especificados</td></tr>
 </table>
 
 <h3>8.6.3 Registrar un Gasto</h3>
+
+<div class="warning-box">
+    <strong>Ley Antifraude (v3.0):</strong> Al <strong>editar</strong> un gasto existente, el sistema NO borra el asiento original. En su lugar:
+    <ol>
+        <li>Marca el asiento original como <code>ANULADO</code></li>
+        <li>Crea un <strong>asiento inverso de reversion</strong> (mismas cuentas, debe y haber intercambiados) con tipo <code>AnulacionGasto</code></li>
+        <li>Genera un <strong>nuevo asiento</strong> con los importes actualizados</li>
+    </ol>
+    Esto garantiza la <strong>trazabilidad completa</strong> exigida por la Ley Antifraude y el Codigo de Comercio.
+</div>
+
 <ol class="steps">
     <li>Navegue a <strong>Gastos</strong> en el menu lateral</li>
     <li>Haga clic en <strong>"Nuevo Gasto"</strong></li>
@@ -1501,41 +1626,13 @@ Asiento contable generado:
 
 Verificacion: DEBE (544,50) = HABER (544,50) -> CUADRADO</code></pre>
 
-<h3>Ejemplo: Nomina Personal de Estructura</h3>
-<pre><code>Nomina mensual - Personal de limpieza y administracion:
-
-Proveedor: Nomina interna (sin factura externa)
-Categoria: NOMINAS_ESTR (640)
-Base imponible: 1.600,00 EUR (salario bruto)
-Tipo IVA: 0% (servicios personales exentos)
-Retencion IRPF: 0% (se contabiliza el gasto bruto)
-
-Nota: Las nominas se registran como gasto sin factura externa.
-El IVA no aplica a servicios personales.
-
-Asiento contable generado:
-  Debito  640 (Sueldos y salarios): 1.600,00 EUR
-  Credito 410 (Acreedores varios):               1.600,00 EUR
-
-Verificacion: DEBE (1.600,00) = HABER (1.600,00) -> CUADRADO</code></pre>
-
-<h3>Ejemplo: Aportes Patronales Seguridad Social</h3>
-<pre><code>Cuota mensual de Seguridad Social - Aportes patronales:
-
-Proveedor: Seguridad Social (TC 00/26)
-Categoria: SEG_SOCIAL_ESTR (642)
-Base imponible: 504,00 EUR (31,5% sobre 1.600,00 EUR)
-Tipo IVA: 0% (exento)
-Retencion IRPF: 0%
-
-Nota: La cuota patronal (31,5%) se calcula automaticamente
-sobre el salario bruto del personal de estructura.
-
-Asiento contable generado:
-  Debito  642 (Seguridad social): 504,00 EUR
-  Credito 410 (Acreedores varios):              504,00 EUR
-
-Verificacion: DEBE (504,00) = HABER (504,00) -> CUADRADO</code></pre>
+<h3>8.6.3.1 Modulo de Nominas (Payroll App)</h3>
+<div class="info-box">
+    <strong>Importante (v3.0):</strong> Las nominas y la Seguridad Social patronal se han separado
+    del modulo de Gastos de Estructura y ahora se gestionan en una aplicacion independiente
+    <strong>Payroll</strong> (<code>apps/payroll</code>) con acceso restringido por RGPD
+    (solo ADMIN y GESTORIA). Vea el <a href="#capitulo-6">Capitulo 6</a> para detalles completos.
+</div>
 
 <h3>Ejemplo: IBI y Tasas Municipales</h3>
 <pre><code>Recibo de IBI (Impuesto sobre Bienes Inmuebles):
@@ -1550,8 +1647,8 @@ Nota: Los tributos publicos (IBI, vados, tasas municipales)
 estan exentos de IVA y no tienen retencion.
 
 Asiento contable generado:
-  Debito  631 (Perdidas por deterioro y otorg. valore): 320,00 EUR
-  Credito 410 (Acreedores varios):                                   320,00 EUR
+  Debito  631 (Otros tributos): 320,00 EUR
+  Credito 410 (Acreedores varios):                    320,00 EUR
 
 Verificacion: DEBE (320,00) = HABER (320,00) -> CUADRADO</code></pre>
 
@@ -2665,7 +2762,7 @@ Total: 6 vehiculos
     <tr><td>000002</td><td>Alquiler julio 2026 con retencion IRPF</td><td>2.420,00 EUR</td><td>2.420,00 EUR</td></tr>
 </table>
 
-<h3>13.1.9 Gastos de Estructura (8 categorias)</h3>
+<h3>13.1.9 Gastos de Estructura (6 categorias)</h3>
 <p>Formulario en <strong>Gastos &gt; Nuevo Gasto</strong>. Campos del <code>GastoForm</code>: Fecha factura, Proveedor/Acreedor, CIF/NIF, Numero factura, Categoria, Descripcion, Base imponible, Tipo IVA (%), Retencion IRPF (%), Pagado, Fecha pago.</p>
 <table>
     <tr><th>Categoria</th><th>Proveedor</th><th>CIF/NIF</th><th>Nº Factura</th><th>Base</th><th>IVA%</th><th>IRPF%</th><th>Total</th><th>Pagado</th><th>F. Pago</th></tr>
@@ -2673,14 +2770,12 @@ Total: 6 vehiculos
     <tr><td>SUMINISTROS</td><td>Endesa Energia S.A.U.</td><td>A12345678</td><td>EN-2026-456</td><td>350,00</td><td>21%</td><td>0%</td><td>423,50</td><td>Si</td><td>10/07/2026</td></tr>
     <tr><td>LIMPIEZA_PROD</td><td>Distrilimpia S.L.</td><td>B87654321</td><td>DL-2026-089</td><td>180,00</td><td>21%</td><td>0%</td><td>217,80</td><td>Si</td><td>12/07/2026</td></tr>
     <tr><td>LIMPIEZA_SERV</td><td>CleanPro Servicios S.A.</td><td>A87654321</td><td>CP-2026-201</td><td>450,00</td><td>21%</td><td>0%</td><td>544,50</td><td>No</td><td>-</td></tr>
-    <tr><td>NOMINAS_ESTR</td><td>Nomina interna personal limpieza</td><td>P00000000</td><td>NOM-2026-07</td><td>1.600,00</td><td>0%</td><td>0%</td><td>1.600,00</td><td>Si</td><td>30/06/2026</td></tr>
-    <tr><td>SEG_SOCIAL_ESTR</td><td>Seguridad Social (TC 00/26)</td><td>P00000000</td><td>SS-2026-07</td><td>504,00</td><td>0%</td><td>0%</td><td>504,00</td><td>Si</td><td>30/06/2026</td></tr>
     <tr><td>IMPUESTOS_ESTR</td><td>Ayuntamiento de Alcala de Henares</td><td>P00000000</td><td>IBI-2026-01</td><td>320,00</td><td>0%</td><td>0%</td><td>320,00</td><td>Si</td><td>15/07/2026</td></tr>
     <tr><td>OTROS</td><td>Jardines y Paisajismo S.L.</td><td>B11223344</td><td>JP-2026-014</td><td>120,00</td><td>21%</td><td>0%</td><td>145,20</td><td>No</td><td>-</td></tr>
 </table>
 
 <div class="info-box">
-    <strong>Calculo del Total:</strong> <code>Total = Base + (Base x IVA%) - (Base x IRPF%)</code>. Ej.: ARRENDAMIENTO = 2.000 + (2.000 x 21%) - (2.000 x 19%) = 2.000 + 420 - 380 = 2.040 EUR. El campo <code>Tipo IVA</code> admite 0-21% y <code>Retencion IRPF</code> 0-100%. Marque <code>Pagado</code> e indique <code>Fecha pago</code> solo cuando el gasto ya este abonado. Los gastos de NOMINAS, SEG_SOCIAL e IMPUESTOS tienen IVA 0% (servicios personales y tributos exentos).
+    <strong>Calculo del Total:</strong> <code>Total = Base + (Base x IVA%) - (Base x IRPF%)</code>. Ej.: ARRENDAMIENTO = 2.000 + (2.000 x 21%) - (2.000 x 19%) = 2.000 + 420 - 380 = 2.040 EUR. El campo <code>Tipo IVA</code> admite 0-21% y <code>Retencion IRPF</code> 0-100%. Marque <code>Pagado</code> e indique <code>Fecha pago</code> solo cuando el gasto ya este abonado. Los gastos de IMPUESTOS tienen IVA 0% (tributos exentos). Las nominas y SS patronal se gestionan en el modulo independiente Payroll (Capitulo 6).
 </div>
 
 <h2>13.2 Ejecutar el Script</h2>
@@ -2839,7 +2934,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <h3>13.5.4 Verificar Contabilidad y Asientos</h3>
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad</strong> (<code>/erp/contabilidad/</code>)</li>
-    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 54 cuentas del plan contable base</li>
+    <li>Haga clic en <strong>"Cuentas"</strong>: verifique las 56 cuentas del plan contable base</li>
     <li>Haga clic en <strong>"Asientos"</strong>: verifique los 2 asientos manuales:</li>
 </ol>
 <table>
@@ -2982,10 +3077,12 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
     <tr><td>Reparaciones Garantia</td><td>1 (en proceso - 300 EUR interno)</td></tr>
     <tr><td>Configuracion Nomina</td><td>2 (mecanico1, mecanico2)</td></tr>
     <tr><td>Marcajes</td><td>~14 (semana completa)</td></tr>
-    <tr><td>Cuentas Contables</td><td>52 (plan base PGC)</td></tr>
+    <tr><td>Cuentas Contables</td><td>56 (plan base PGC con cuentas 465/476)</td></tr>
     <tr><td>Asientos Contables</td><td>~6 (2 manuales + 3 compras + 1 venta REBU)</td></tr>
-    <tr><td>Gastos de Estructura</td><td>8 (todas las categorias)</td></tr>
-    <tr><td>Movimientos Bancarios</td><td>~12 (auto-generados por ventas, compras y gastos)</td></tr>
+    <tr><td>Gastos de Estructura</td><td>6 (proveedores: 621, 628, 602, 629, 631, 620)</td></tr>
+    <tr><td>Nominas (Payroll)</td><td>Gestion independiente en app payroll (ver Cap. 6)</td></tr>
+    <tr><td>Movimientos Bancarios</td><td>~10 (auto-generados por ventas, compras y depositos)</td></tr>
+    <tr><td>Cuentas Contables</td><td>56 (plan base PGC con cuentas 465/476)</td></tr>
 </table>
 
 <!-- ==================== CAPITULO 14 (antiguo 12) ==================== -->
@@ -3498,6 +3595,10 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
 
 <h2 id="capitulo-16-1">16.1 Modelo 390 (BOE)</h2>
 
+<div class="warning-box">
+    <strong>Acceso restringido (RGPD):</strong> Las exportaciones fiscales (Modelo 390, 303, SII, Facturas de Compra) y el panel de tareas programadas solo estan disponibles para usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code>.
+</div>
+
 <p>El <strong>Modelo 390</strong> es la declaracion anual de IVA. El sistema genera un archivo de texto plano en formato BOE (Bienio de Explotacion Tributaria) listo para su presentacion.</p>
 
 <h3>14.1.1 Estructura del Archivo</h3>
@@ -3534,9 +3635,9 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
     <li>Suba el archivo al portal de la AEAT</li>
 </ol>
 
-<h2 id="capitulo-16-2">16.2 Pre-303 (CSV para Hacienda)</h2>
+<h2 id="capitulo-16-2">16.2 Pre-303 (CSV con Desglose por Tipo Impositivo)</h2>
 
-<p>El <strong>Pre-303</strong> es un archivo CSV que contiene los datos necesarios para rellenar el Modelo 303 (declaracion trimestral de IVA) en el portal de Hacienda.</p>
+<p>El <strong>Pre-303</strong> es un archivo CSV que contiene los datos necesarios para rellenar el Modelo 303. <strong>v3.0:</strong> el CSV ahora desglosa el IVA soportado deducible por tipo impositivo (21%, 10%, 4%), consultando las fuentes originales (<code>GastoEstructura</code> y <code>CompraMaterial</code>).</p>
 
 <h3>14.2.1 Estructura del CSV</h3>
 <pre><code>NIF;Nombre;Modelo;Periodo;Ano;Clave;Base21;Cuota21;Base10;Cuota10;Base4;Cuota4;TotalBase;TotalCuota;CuotaDeducir;Resultado
@@ -3621,6 +3722,10 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
 </ol>
 
 <h2 id="capitulo-16-4">16.4 Tareas Programadas (Celery Beat)</h2>
+
+<div class="warning-box">
+    <strong>Acceso restringido (RGPD):</strong> Solo usuarios con rol <code>ADMIN</code> o <code>GESTORIA</code> pueden acceder al panel de tareas programadas.
+</div>
 
 <p>El sistema ejecuta automaticamente tareas de contabilidad mediante <strong>Celery Beat</strong>. Estas tareas se configuran una sola vez y se ejecutan segun la programacion establecida.</p>
 
@@ -3737,7 +3842,7 @@ Conciliacion        Reserva               (reparado)          Imagenes
         <td>0.3</td>
         <td>Inicializar PGC</td>
         <td>Contabilidad > Cuentas > <strong>"Inicializar Plan"</strong></td>
-        <td>33 cuentas contables (grupos 1-7). Requerido para TODO asiento contable</td>
+        <td>56 cuentas contables (grupos 1-7, incluyendo 465/476). Requerido para TODO asiento contable</td>
     </tr>
 </table>
 
@@ -4121,9 +4226,9 @@ python manage.py backfill_asientos_banco
     </tr>
     <tr>
         <td>5</td>
-        <td>Registrar gasto de estructura</td>
-        <td>DEBE 6xx + DEBE 472 / HABER 410</td>
-        <td>EGRESO</td>
+         <td>Registrar gasto de estructura</td>
+         <td>DEBE 6xx + DEBE 472 / HABER 410</td>
+         <td>— (no genera movimiento bancario)</td>
         <td>&mdash;</td>
     </tr>
     <tr>
@@ -4177,7 +4282,7 @@ USUARIO REGISTRA OPERACION
 </table>
 
 <div class="info-box">
-    <strong>Condicion:</strong> Solo se genera si los campos de factura estan rellenos (proveedor, cif_nif, numero_factura, tipo_iva, base_imponible, cuota_iva, forma_pago). Sin factura, no hay asiento ni movimiento bancario.
+    <strong>Condicion:</strong> Solo se genera si los campos de factura estan rellenos (proveedor, cif_nif, numero_factura, tipo_iva, coste_total_adquisicion, cuota_iva, forma_pago). Sin factura, no hay asiento ni movimiento bancario.
 </div>
 
 <h2 id="capitulo-18-4">18.4 Crear Primera Orden de Trabajo</h2>
@@ -4185,7 +4290,7 @@ USUARIO REGISTRA OPERACION
 
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
-    <tr><td><strong>Cambio de estado</strong></td><td>El vehiculo pasa automaticamente de <code>ADQUIRIDO</code> a <code>TALLER</code>.</td></tr>
+    <tr><td><strong>Cambio de estado</strong></td><td>El vehiculo pasa de <code>ADQUIRIDO</code> a <code>TALLER</code> solo despues de guardar exitosamente la OT (proteccion atomica).</td></tr>
     <tr><td><strong>Asiento / Banco</strong></td><td>No genera asiento ni movimiento bancario. El coste de la OT se acumula en la OT y luego en el coste de reparacion del vehiculo.</td></tr>
 </table>
 
@@ -4425,7 +4530,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>Contabilidad &gt; Cuentas &gt; Inicializar PGC</td>
         <td>1 clic en "Inicializar Plan"</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>54 cuentas</strong> (grupos 100-799, incluida la 4751.115 de retenciones IRPF)</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>56 cuentas</strong> (grupos 100-799, incluidas 465/476 de nominas y 4751.115 de retenciones IRPF)</td>
     </tr>
 </table>
 <div class="success-box">
@@ -5000,7 +5105,7 @@ print('Usuarios de prueba creados')"</code></pre>
 <pre><code>python manage.py shell -c "
 from apps.accounting.models import PlanContableDefault
 PlanContableDefault.crear_plan_base()
-print('Plan contable inicializado (54 cuentas)')"</code></pre>
+print('Plan contable inicializado (56 cuentas)')"</code></pre>
 
 <div class="warning-box">
     <strong>ADVERTENCIA:</strong> <code>flush</code> borra absolutamente todos los registros. Solo use esta opcion si desea empezar desde cero. Asegurese de tener un backup si hay datos importantes.
