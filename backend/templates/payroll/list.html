@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-eurocar-blue">💵 Nóminas de Estructura</h1>
+            <p class="text-gray-600 mt-1">Gestión de nóminas del personal no imputable al inventario de vehículos</p>
+        </div>
+        <div class="flex gap-2">
+            {% if is_admin %}
+            <a href="{% url 'payroll:generar_mensual' %}"
+               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                🤖 Generar mensual
+            </a>
+            <a href="{% url 'payroll:create' %}"
+               class="px-4 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-opacity-90 transition">
+                + Nueva Nómina
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Empleado</th>
+                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Fecha</th>
+                    <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">Salario Bruto</th>
+                    <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">SS Patronal</th>
+                    <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">Líquido</th>
+                    <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">Asiento</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for nomina in nominas %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm">
+                        <a href="{% url 'payroll:detail' pk=nomina.pk %}" class="text-eurocar-blue hover:underline font-medium">
+                            {{ nomina.empleado.get_full_name|default:nomina.empleado.username }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ nomina.fecha_nomina|date:"m/Y" }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-mono">€{{ nomina.salario_bruto|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-mono">€{{ nomina.ss_patronal|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-mono font-medium">€{{ nomina.liquido_percibir|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right">
+                        {% if nomina.asiento_contable %}
+                        <span class="text-green-600 text-xs">#{{ nomina.asiento_contable.numero }}</span>
+                        {% else %}
+                        <span class="text-gray-400 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        No se encontraron nóminas registradas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

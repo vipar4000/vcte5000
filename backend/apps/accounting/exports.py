@@ -96,6 +96,57 @@ def generar_modelo_390(anio):
     return '\n'.join(lineas)
 
 
+def _desglosar_iva_por_tipo(fecha_desde, fecha_hasta):
+    """
+    Desglosa IVA soportado por tipo impositivo (21%, 10%, 4%)
+    consultando las fuentes originales: GastoEstructura y CompraMaterial.
+    
+    Retorna (repercutido_base, repercutido_cuota, soportado_base, soportado_cuota)
+    donde cada uno es un dict {'21': Decimal, '10': Decimal, '4': Decimal}.
+    """
+    from apps.expenses.models import GastoEstructura
+    from apps.workshop.models import CompraMaterial
+    from decimal import Decimal
+    
+    def dict_cero():
+        return {'21': Decimal('0'), '10': Decimal('0'), '4': Decimal('0')}
+    
+    sop_base = dict_cero()
+    sop_cuota = dict_cero()
+    
+    # IVA soportado desde gastos de estructura
+    for gasto in GastoEstructura.objects.filter(
+        fecha_factura__gte=fecha_desde,
+        fecha_factura__lte=fecha_hasta,
+    ):
+        clave = str(int(gasto.tipo_iva))
+        if clave in sop_base:
+            sop_base[clave] += gasto.base_imponible
+            sop_cuota[clave] += gasto.cuota_iva
+    
+    # IVA soportado desde compras de material
+    for compra in CompraMaterial.objects.filter(
+        fecha_compra__gte=fecha_desde,
+        fecha_compra__lte=fecha_hasta,
+    ):
+        clave = str(int(compra.tipo_iva))
+        if clave in sop_base:
+            sop_base[clave] += compra.base_imponible
+            sop_cuota[clave] += compra.cuota_iva
+    
+    # IVA repercutido: todas las ventas son REBU 21%
+    rep_base = {'21': Decimal('0'), '10': Decimal('0'), '4': Decimal('0')}
+    rep_cuota = {'21': Decimal('0'), '10': Decimal('0'), '4': Decimal('0')}
+    
+    # Las ventas REBU llevan IVA oculto al 21% — extraemos del libro de IVA
+    from .reports import calcular_libro_iva
+    libro = calcular_libro_iva(fecha_desde, fecha_hasta)
+    rep_base['21'] = libro['iva_repercutido']['base_imponible']
+    rep_cuota['21'] = libro['iva_repercutido']['total']
+    
+    return rep_base, rep_cuota, sop_base, sop_cuota
+
+
 def generar_csv_pre303(anio, trimestre):
     """
     Genera CSV para la pre-declaración del Modelo 303.
@@ -111,20 +162,29 @@ def generar_csv_pre303(anio, trimestre):
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
     
-    # Cabecera CSV
+    # Cabecera CSV — Modelo 303: IVA devengado (repercutido) + deducible (soportado)
     writer.writerow([
         'NIF', 'Nombre', 'Modelo', 'Periodo', 'Año',
         'Clave Operación',
-        'Base Imponible 21%', 'Cuota 21%',
-        'Base Imponible 10%', 'Cuota 10%',
-        'Base Imponible 4%', 'Cuota 4%',
-        'Total Base Imponible', 'Total Cuota',
+        'Base Dev. 21%', 'Cuota Dev. 21%',
+        'Base Ded. 21%', 'Cuota Ded. 21%',
+        'Base Ded. 10%', 'Cuota Ded. 10%',
+        'Base Ded. 4%', 'Cuota Ded. 4%',
+        'Total Base', 'Total Cuota',
         'Cuota a Deducir', 'Resultado Liquidación'
     ])
     
-    # Datos (simplificado: solo 21% IVA general)
-    base_21 = libro['iva_repercutido']['base_imponible']
-    cuota_21 = libro['iva_repercutido']['total']
+    # Desglose de IVA por tipo impositivo desde las fuentes originales
+    rep_base, rep_cuota, sop_base, sop_cuota = _desglosar_iva_por_tipo(
+        desde, hasta
+    )
+    
+    base_devengado_total = sum(rep_base.values())
+    cuota_devengado_total = sum(rep_cuota.values())
+    base_deducible_total = sum(sop_base.values())
+    cuota_deducible_total = sum(sop_cuota.values())
+    base_total = base_devengado_total + base_deducible_total
+    cuota_total = cuota_devengado_total + cuota_deducible_total
     
     writer.writerow([
         'B26729731',
@@ -132,14 +192,21 @@ def generar_csv_pre303(anio, trimestre):
         '303',
         f'T{trimestre}',
         anio,
-        '05',  # Clave operación: Liquidación corriente
-        f'{base_21:.2f}',
-        f'{cuota_21:.2f}',
-        '0.00', '0.00',
-        '0.00', '0.00',
-        f'{base_21:.2f}',
-        f'{cuota_21:.2f}',
-        f'{libro["iva_soportado"]["total"]:.2f}',
+        '05',
+        # IVA devengado (repercutido) — REBU 21%
+        f'{rep_base["21"]:.2f}',
+        f'{rep_cuota["21"]:.2f}',
+        # IVA soportado deducible por tipo
+        f'{sop_base["21"]:.2f}',
+        f'{sop_cuota["21"]:.2f}',
+        f'{sop_base["10"]:.2f}',
+        f'{sop_cuota["10"]:.2f}',
+        f'{sop_base["4"]:.2f}',
+        f'{sop_cuota["4"]:.2f}',
+        # Totales
+        f'{base_total:.2f}',
+        f'{cuota_total:.2f}',
+        f'{cuota_deducible_total:.2f}',
         f'{libro["cuota_liquidar"]:.2f}',
     ])
     

@@ -90,14 +90,13 @@ def orden_trabajo_create(request):
         if form.is_valid():
             ot = form.save(commit=False)
             ot.created_by = request.user
-            
+            ot.save()
+
             # Si es la primera OT del vehículo, cambiar estado a TALLER
             vehiculo = ot.vehiculo
             if vehiculo.estado == 'ADQUIRIDO':
                 vehiculo.estado = 'TALLER'
-                vehiculo.save()
-            
-            ot.save()
+                vehiculo.save(update_fields=['estado'])
             
             # Guardar materiales usados
             formset = MaterialUsadoFormSet(request.POST, instance=ot)

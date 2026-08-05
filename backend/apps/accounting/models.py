@@ -202,6 +202,8 @@ class PlanContableDefault(models.Model):
             ('477001', 'HP IVA Repercutido REBU', 'P'),
             ('4751', 'Retenciones y anticipos IRPF', 'P'),
             ('4751.115', 'HP Retenciones IRPF arrendamientos', 'P'),
+            ('465', 'Remuneraciones pendientes de pago', 'P'),
+            ('476', 'Organismos de la Seguridad Social, acreedores', 'P'),
             
             # Grupo 5 - Tesorería
             ('570', 'Caja', 'A'),
@@ -222,7 +224,7 @@ class PlanContableDefault(models.Model):
             ('628', 'Suministros y otros gastos', 'G'),
             ('629', 'Otros servicios exteriores', 'G'),
             ('630', 'Gastos financieros', 'G'),
-            ('631', 'Pérdidas por deterioro y otorg. valore', 'G'),
+            ('631', 'Otros tributos', 'G'),
             ('640', 'Sueldos y salarios', 'G'),
             ('642', 'Seguridad social', 'G'),
             ('680', 'Impuesto sobre sociedades', 'G'),

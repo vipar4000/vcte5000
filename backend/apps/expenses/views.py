@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponse
 from django.db.models import Q, Sum
+from datetime import date
 import csv
 from .models import GastoEstructura, InversionInicial, LineaInversionInicial
 from .forms import (
@@ -142,8 +144,23 @@ def gasto_update(request, pk):
     if request.method == 'POST':
         form = GastoEstructuraForm(request.POST, request.FILES, instance=gasto)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Gasto actualizado correctamente.')
+            with transaction.atomic():
+                _anular_y_revertir_asiento_gasto(gasto, request.user)
+                gasto = form.save()
+                try:
+                    nuevo = gasto.crear_asiento_contable()
+                    if nuevo and nuevo.esta_cuadrado:
+                        nuevo.estado = 'POSTEADO'
+                        nuevo.save(update_fields=['estado'])
+                    messages.success(
+                        request,
+                        f'Gasto actualizado. Asiento anterior anulado y nuevo asiento #{nuevo.numero} creado.'
+                    )
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f'Gasto actualizado pero no se pudo crear el nuevo asiento contable: {str(e)}'
+                    )
             return redirect('expenses:detail', pk=gasto.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
@@ -323,3 +340,45 @@ def inversion_detail(request, pk):
         'asiento': asiento,
     }
     return render(request, 'expenses/inversion_detail.html', context)
+
+
+def _anular_y_revertir_asiento_gasto(gasto, user):
+    """
+    Anula el asiento contable existente del gasto y crea un asiento inverso
+    (reversión/rectificativa) que compensa los movimientos originales.
+    
+    Cumplimiento: Ley Antifraude — los asientos no se borran, se anulan
+    mediante contrapartida.
+    """
+    from apps.accounting.models import AsientoContable, MovimientoContable
+    from apps.accounting.views import generar_numero_asiento
+    
+    old_asiento = AsientoContable.objects.filter(
+        tipo_documento='GastoEstructura',
+        documento_id=gasto.pk
+    ).first()
+    
+    if not old_asiento or old_asiento.estado == 'ANULADO':
+        return
+    
+    rev = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=date.today(),
+        concepto=f'ANULACIÓN: {old_asiento.concepto}',
+        estado='BORRADOR',
+        tipo_documento='AnulacionGasto',
+        documento_id=gasto.pk,
+        created_by=user,
+    )
+    
+    for mov in old_asiento.movimientos.all():
+        MovimientoContable.objects.create(
+            asiento=rev,
+            cuenta=mov.cuenta,
+            debe=mov.haber,
+            haber=mov.debe,
+            descripcion=f'Reversión: {mov.descripcion}',
+        )
+    
+    old_asiento.estado = 'ANULADO'
+    old_asiento.save(update_fields=['estado'])

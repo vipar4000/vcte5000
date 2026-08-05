@@ -1,0 +1,104 @@
+================================================================================
+  SOPORTES CONTABLES - PRUEBA DEL SISTEMA (CAPITULO 20 DEL MANUAL)
+  R Car Rogil ERP - Prueba de Madrid (miercoles 05/08/2026)
+================================================================================
+
+Esta carpeta contiene los documentos soporte (facturas PDF y extracto
+bancario) que acompanan a la prueba del Capitulo 20. Cada documento
+reproduce EXACTAMENTE los proveedores, CIFs, numeros, fechas e importes
+que el manual indica en cada paso.
+
+
+CONTENIDO
+---------
+
+  Archivo                                            Paso del cap. 20
+  -------------------------------------------------  ----------------------
+  01_INV-2026-001_factura_inversion_taller.pdf  -->  Paso 1.2 (Inversion)
+  02_FC-2026-001_factura_compra_vehiculo.pdf    -->  Paso 2.1 (Vehiculo)
+  03_CM-001_factura_aceite.pdf                  -->  Paso 3.2 (Compra #1)
+  04_CM-002_factura_pastillas.pdf               -->  Paso 3.2 (Compra #2)
+  05_ALQ-2026-07_factura_alquiler_galpon.pdf    -->  Paso 8.6 (Gasto)
+  06_extracto_bancario_santander.csv            -->  Paso 1.3 / Conciliacion
+  LEEME.txt                                     -->  Este archivo
+
+
+CIFRAS QUE DEBE MOSTRAR CADA SOPORTE
+------------------------------------
+
+01 - Factura INV-2026-001 (Taller Equipamiento S.L., CIF B87654321, 01/07/2026)
+     Compresor industrial 500L ..... 1.200,00
+     Escaner diagnostico OBD2 ......   850,00
+     Base imponible ................ 2.050,00
+     IVA 21% .......................   430,50
+     TOTAL ......................... 2.480,50 EUR
+     (Campo "Factura PDF" del asistente de Inversion Inicial)
+
+02 - Factura FC-2026-001 (Subastas Online S.A., CIF B12345678, 01/07/2026)
+     Precio subasta ................ 7.500,00
+     Tasas de sala .................   400,00
+     Logistica/grua ................   250,00
+     Base imponible ................ 8.150,00
+     IVA 21% (s/ 650,00) ...........   136,50
+     TOTAL ......................... 8.286,50 EUR
+     (Campo "Factura PDF" del formulario de alta del vehiculo)
+
+03 - Factura CM-001 (Distribuciones Auto S.L., CIF C12345678, 02/07/2026)
+     Aceite motor 5W30 (20 L x 8,50)  170,00
+     IVA 21% ........................  35,70
+     TOTAL .......................... 205,70 EUR
+
+04 - Factura CM-002 (Recambios Martinez S.L., CIF D12345678, 02/07/2026)
+     Pastillas de freno (3 x 35,00)   105,00
+     IVA 21% ........................  22,05
+     TOTAL .......................... 127,05 EUR
+
+05 - Factura ALQ-2026-07 (Propietario Galpon S.L., CIF B87654321, 20/07/2026)
+     Alquiler del galpon - julio 2026
+     Base imponible ................. 2.000,00
+     IVA 21% ........................   420,00
+     Retencion IRPF 19% .............  -380,00
+     TOTAL A PAGAR .................. 2.040,00 EUR
+     (Campo "Factura PDF" del formulario Gastos > Nuevo Gasto; opcional)
+
+
+CONCILIACION BANCARIA (06_extracto_bancario_santander.csv)
+----------------------------------------------------------
+
+Cuando terminen el Paso 5.1 (venta), el banco del ERP tendra 4 movimientos.
+Para conciliarlos:
+
+  1. Vaya a Banco > Conciliacion Bancaria y seleccione "Banco Santander".
+  2. Suba el archivo 06_extracto_bancario_santander.csv y pulse
+     "Procesar Extracto".
+  3. El sistema mostrara las 4 lineas en VERDE (coincidencia automatica:
+     mismo tipo, mismo importe exacto, fecha +/-2 dias).
+  4. Pulse "Conciliacion automatica". Resultado esperado:
+     Saldo real (conciliado) = 51.133,00 EUR | Sin conciliar = 0,00 EUR.
+
+  Lineas del extracto:
+    05/08/2026  Deposito inicial ................  INGRESO   50.000,00
+    01/07/2026  Inversion INV-2026-001 ........... EGRESO     2.480,50
+    01/07/2026  Compra VW Golf 1234ABC .......... EGRESO     8.286,50
+    15/07/2026  Cobro venta - Antonio Perez ..... INGRESO   11.900,00
+
+  NOTAS IMPORTANTES:
+  - El alquiler del galpon (Paso 8.6) NO aparece en el extracto a
+    proposito: el gasto queda pendiente de pago en la cuenta 410
+    (no genera movimiento bancario). Es coherente con el manual.
+  - La fecha de la linea del DEPOSITO es la del dia en que ejecuten la
+    prueba (el sistema la registra con la fecha del dia). Si ejecutan la
+    prueba en una fecha distinta del 05/08/2026, editen esa fecha en el
+    CSV: el matcher admite una tolerancia de +/-2 dias.
+  - El archivo es CSV (delimitador ';', codificacion UTF-8). No hace
+    falta abrirlo en Excel; subalo directamente al ERP.
+
+
+NO INCLUIDO A PROPOSITO
+-----------------------
+
+  - Factura de venta REBU (Paso 5.1): la genera el PROPIO SISTEMA
+    durante la prueba (con cadena VeriFactu), igual que el contrato de
+    compraventa y el mandato DGT. No lleva soporte externo.
+  - Extracto en formato .xlsx: el importador del ERP procesa CSV
+    (aunque el formulario tambien admite .xlsx, el parser es CSV).

@@ -93,7 +93,7 @@ def cierre_anual():
     from apps.accounting.reports import calcular_pyg
     
     hoy = date.today()
-    anio = hoy.year - 1  # Cerramos el año anterior
+    anio = hoy.year  # Cerramos el año que termina hoy, 31 de diciembre
     
     pyg = calcular_pyg(date(anio, 1, 1), date(anio, 12, 31))
     resultado_neto = pyg['resultado_neto']
@@ -242,19 +242,13 @@ def generar_cuotas_seguridad_social():
         asiento = AsientoContable.objects.create(
             numero=generar_numero_asiento(),
             fecha=hoy,
-            concepto=f'Cuarto Seguridad Social {hoy.strftime("%m/%Y")} - Borrador para revisar',
+            concepto=f'Cuota Seguridad Social {hoy.strftime("%m/%Y")} - Borrador para revisar',
             estado='BORRADOR',
             tipo_documento='SeguridadSocial',
             created_by_id=1,
         )
         
-        MovimientoContable.objects.create(
-            asiento=asiento, cuenta=cuenta_ss,
-            debe=Decimal('0'), haber=Decimal('0'),
-            descripcion=f'SS {hoy.strftime("%m/%Y")} - Pendiente importe',
-        )
-        
-        logger.info(f'Asiento SS mensual creado: {asiento.numero} (borrador)')
+        logger.info(f'Asiento SS mensual creado: {asiento.numero} (borrador, sin movimientos)')
         return {'status': 'ok', 'asiento': asiento.numero}
         
     except Exception as e:

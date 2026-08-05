@@ -12,8 +12,6 @@ class GastoEstructura(models.Model):
         ('SUMINISTROS', 'Luz, Agua, Conectividad (Cuenta PGC 628)'),
         ('LIMPIEZA_PROD', 'Productos de Limpieza e Insumos Globales (Cuenta PGC 602)'),
         ('LIMPIEZA_SERV', 'Servicios de Empresa de Limpieza Externa (Cuenta PGC 629)'),
-        ('NOMINAS_ESTR', 'Salarios Personal Limpieza/Admin (Cuenta PGC 640)'),
-        ('SEG_SOCIAL_ESTR', 'Aportes Patronales Personal Estructura (Cuenta PGC 642)'),
         ('IMPUESTOS_ESTR', 'IBI, Tasas Municipales, Vados (Cuenta PGC 631)'),
         ('OTROS', 'Otros gastos no especificados'),
     ]
@@ -23,8 +21,6 @@ class GastoEstructura(models.Model):
         'SUMINISTROS': '628',
         'LIMPIEZA_PROD': '602',
         'LIMPIEZA_SERV': '629',
-        'NOMINAS_ESTR': '640',
-        'SEG_SOCIAL_ESTR': '642',
         'IMPUESTOS_ESTR': '631',
         'OTROS': '620',
     }

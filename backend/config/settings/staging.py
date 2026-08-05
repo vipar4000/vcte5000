@@ -1,6 +1,7 @@
-from .development import *
+from .base import *
 
 # Staging settings for Render deployment (no Redis, no async tasks)
+
 # Redis no está disponible en el plan Starter de Render — usamos caché en memoria
 CACHES = {
     'default': {
@@ -14,13 +15,12 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_BROKER_URL = None
 CELERY_RESULT_BACKEND = None
 
-# development.py hardcodea ALLOWED_HOSTS a solo localhost — sobrescribimos
-# para que Render (render.yaml) pueda controlarlo via env var
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
-
-# DEBUG desde env (render.yaml lo fija a False)
-DEBUG = env('DEBUG')
-
 # Servir estáticos con WhiteNoise (necesario cuando DEBUG=False)
 MIDDLEWARE.insert(0, 'whitenoise.middleware.WhiteNoiseMiddleware')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Render proxy SSL — necesario para que Django detecte HTTPS detrás del proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Email backend para staging (consola/logs)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

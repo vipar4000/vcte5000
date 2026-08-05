@@ -147,9 +147,9 @@ class Vehiculo(models.Model):
         verbose_name='IVA soportado (€)',
         help_text='Importe del IVA facturado. 0 si no factura IVA',
     )
-    base_imponible = models.DecimalField(
+    coste_total_adquisicion = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
-        verbose_name='base imponible',
+        verbose_name='coste total de adquisición',
     )
     cuota_iva = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
@@ -218,7 +218,7 @@ class Vehiculo(models.Model):
             self.tasas_sala + 
             self.logistica_grua
         )
-        self.base_imponible = self.tasas_sala + self.logistica_grua
+        self.coste_total_adquisicion = self.precio_subasta + self.tasas_sala + self.logistica_grua
         self.cuota_iva = self.tipo_iva
         super().save(*args, **kwargs)
     

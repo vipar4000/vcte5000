@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'payroll:list' %}" class="text-eurocar-blue hover:underline text-sm">
+            ← Volver a Nóminas
+        </a>
+    </div>
+
+    <h1 class="text-2xl font-bold text-eurocar-blue mb-6">Nómina de {{ nomina.empleado.get_full_name|default:nomina.empleado.username }}</h1>
+
+    <!-- Datos de la nómina -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Datos de la Nómina</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-500">Empleado:</span>
+                <span class="font-medium ml-2">{{ nomina.empleado.get_full_name|default:nomina.empleado.username }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Fecha:</span>
+                <span class="font-medium ml-2">{{ nomina.fecha_nomina|date:"F Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desglose de importes -->
+    <div class="grid grid-cols-2 gap-6 mb-6">
+        <!-- Devengos -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-green-700 mb-4">Devengos</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Salario Bruto (640)</span>
+                    <span class="font-mono font-medium">€{{ nomina.salario_bruto|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">SS Patronal (642)</span>
+                    <span class="font-mono font-medium">€{{ nomina.ss_patronal|floatformat:2 }}</span>
+                </div>
+                <div class="border-t pt-2 flex justify-between text-sm font-bold">
+                    <span>Total Devengos</span>
+                    <span class="font-mono">€{{ nomina.total_devengos|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deducciones -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-red-700 mb-4">Deducciones</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Retención IRPF (4751)</span>
+                    <span class="font-mono text-red-600">€{{ nomina.retencion_irpf|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">SS Obrera (476)</span>
+                    <span class="font-mono text-red-600">€{{ nomina.ss_obrera|floatformat:2 }}</span>
+                </div>
+                <div class="border-t pt-2 flex justify-between text-sm font-bold">
+                    <span>Total Deducciones</span>
+                    <span class="font-mono text-red-600">€{{ nomina.total_deducciones|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Líquido a percibir -->
+    <div class="bg-eurocar-blue text-white rounded-lg shadow p-6 mb-6">
+        <div class="flex justify-between items-center">
+            <span class="text-lg font-semibold">Líquido a Percibir (465)</span>
+            <span class="text-2xl font-bold font-mono">€{{ nomina.liquido_percibir|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- Asiento contable -->
+    {% if asiento %}
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Asiento Contable Vinculado</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div>
+                <span class="text-gray-500">Nº Asiento:</span>
+                <span class="font-mono font-medium ml-2">#{{ asiento.numero }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Fecha:</span>
+                <span class="font-medium ml-2">{{ asiento.fecha|date:"d/m/Y" }}</span>
+            </div>
+            <div class="col-span-2">
+                <span class="text-gray-500">Concepto:</span>
+                <span class="font-medium ml-2">{{ asiento.concepto }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Estado:</span>
+                {% if asiento.estado == 'POSTEADO' %}
+                <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Posteado</span>
+                {% elif asiento.estado == 'BORRADOR' %}
+                <span class="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">Borrador</span>
+                {% else %}
+                <span class="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{{ asiento.estado }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-gray-600">Cuenta</th>
+                    <th class="px-3 py-2 text-right text-gray-600">Debe</th>
+                    <th class="px-3 py-2 text-right text-gray-600">Haber</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for mov in asiento.movimientos.all %}
+                <tr>
+                    <td class="px-3 py-2 font-mono text-xs">{{ mov.cuenta.codigo }} — {{ mov.cuenta.nombre }}</td>
+                    <td class="px-3 py-2 text-right font-mono">{% if mov.debe > 0 %}€{{ mov.debe|floatformat:2 }}{% endif %}</td>
+                    <td class="px-3 py-2 text-right font-mono">{% if mov.haber > 0 %}€{{ mov.haber|floatformat:2 }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Audit -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Información de Registro</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>Creado por: <span class="font-medium">{{ nomina.created_by.get_full_name|default:nomina.created_by.username }}</span></div>
+            <div>Creado el: <span class="font-medium">{{ nomina.created_at|date:"d/m/Y H:i" }}</span></div>
+            <div>Última actualización: <span class="font-medium">{{ nomina.updated_at|date:"d/m/Y H:i" }}</span></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

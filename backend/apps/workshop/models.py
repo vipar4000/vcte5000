@@ -338,14 +338,17 @@ class CompraMaterial(models.Model):
         )
         # Entrada a inventario: incrementar stock solo al crear
         if not self.pk:
-            super().save(*args, **kwargs)
-            self.material.stock_actual += self.cantidad
-            self.material.alerta_stock = (
-                self.material.stock_actual <= self.material.stock_minimo
-            )
-            self.material.save(
-                update_fields=['stock_actual', 'alerta_stock']
-            )
+            from django.db import transaction
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+                material = Material.objects.select_for_update().get(pk=self.material.pk)
+                material.stock_actual += self.cantidad
+                material.alerta_stock = (
+                    material.stock_actual <= material.stock_minimo
+                )
+                material.save(
+                    update_fields=['stock_actual', 'alerta_stock']
+                )
         else:
             super().save(*args, **kwargs)
 
@@ -400,4 +403,9 @@ class CompraMaterial(models.Model):
 
             self.asiento_contable = asiento
             self.save(update_fields=['asiento_contable'])
+
+            if asiento.esta_cuadrado:
+                asiento.estado = 'POSTEADO'
+                asiento.save(update_fields=['estado'])
+
             return asiento

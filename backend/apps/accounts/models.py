@@ -16,7 +16,7 @@ class User(AbstractUser):
     ]
     
     email = models.EmailField(unique=True, verbose_name='correo electrónico')
-    rol = models.CharField(max_length=20, choices=ROLES, default='ADMIN', verbose_name='rol')
+    rol = models.CharField(max_length=20, choices=ROLES, default='OPERARIO', verbose_name='rol')
     movil = models.CharField(max_length=15, blank=True, verbose_name='móvil')
     pin_kiosco = models.CharField(max_length=4, blank=True, verbose_name='PIN kiosco')
     qr_code = models.ImageField(upload_to='qr/', blank=True, verbose_name='código QR')

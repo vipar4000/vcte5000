@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.core.paginator import Paginator
 from datetime import date
@@ -152,6 +153,9 @@ def asiento_update(request, pk):
 @login_required
 def asiento_postear(request, pk):
     """Postear un asiento contable (validar y marcar como final)."""
+    if not request.user.is_admin and not request.user.is_gestoria:
+        messages.error(request, 'Solo administradores pueden postear asientos.')
+        return redirect('accounting:detail', pk=pk)
     asiento = get_object_or_404(AsientoContable, pk=pk)
     
     if asiento.estado != 'BORRADOR':
@@ -181,6 +185,9 @@ def asiento_postear(request, pk):
 @login_required
 def asiento_anular(request, pk):
     """Anular un asiento contable."""
+    if not request.user.is_admin and not request.user.is_gestoria:
+        messages.error(request, 'Solo administradores pueden anular asientos.')
+        return redirect('accounting:detail', pk=pk)
     asiento = get_object_or_404(AsientoContable, pk=pk)
     
     if asiento.estado == 'ANULADO':
@@ -250,13 +257,14 @@ def inicializar_plan_contable(request):
 
 
 def generar_numero_asiento():
-    """Genera el siguiente número de asiento."""
-    ultimo = AsientoContable.objects.order_by('-numero').first()
-    if ultimo:
-        try:
-            numero = int(ultimo.numero) + 1
-        except ValueError:
+    """Genera el siguiente número de asiento con bloqueo de fila para evitar duplicados por concurrencia."""
+    with transaction.atomic():
+        ultimo = AsientoContable.objects.select_for_update().order_by('-numero').first()
+        if ultimo:
+            try:
+                numero = int(ultimo.numero) + 1
+            except ValueError:
+                numero = 1
+        else:
             numero = 1
-    else:
-        numero = 1
-    return str(numero).zfill(6)
+        return str(numero).zfill(6)
