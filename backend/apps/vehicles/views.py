@@ -76,15 +76,22 @@ def vehiculo_create(request):
     
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
-        estado_es_venta = form.data.get('estado') == 'EN_VENTA'
-        imagenes_formset = ImagenVehiculoFormSet(
-            request.POST, request.FILES, prefix='imagenes'
-        ) if estado_es_venta else None
+        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+
+        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+            imagenes_formset = ImagenVehiculoFormSet(
+                request.POST, request.FILES, prefix='imagenes'
+            )
+        elif mostrar_imagenes:
+            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
+        else:
+            imagenes_formset = None
+
         if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
-            if estado_es_venta:
+            if imagenes_formset:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif any(request.FILES.getlist('imagenes-' + k) for k in ('imagen',)) or request.FILES.get('imagen_principal'):
@@ -94,7 +101,6 @@ def vehiculo_create(request):
                 )
                 return redirect('vehicles:detail', pk=vehiculo.pk)
 
-            # Crear asiento contable y movimiento bancario
             try:
                 asiento = vehiculo.crear_asiento_contable()
                 vehiculo.registrar_movimiento_banco(asiento=asiento)
@@ -114,10 +120,12 @@ def vehiculo_create(request):
     else:
         form = VehiculoForm()
         imagenes_formset = None
+        mostrar_imagenes = False
     
     context = {
         'form': form,
         'imagenes_formset': imagenes_formset,
+        'mostrar_imagenes': mostrar_imagenes,
         'action': 'crear',
     }
     return render(request, 'vehicles/form.html', context)
@@ -134,10 +142,19 @@ def vehiculo_update(request, pk):
     
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
-        estado_es_venta = form.data.get('estado') == 'EN_VENTA'
-        imagenes_formset = ImagenVehiculoFormSet(
-            request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
-        ) if estado_es_venta else None
+        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+
+        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+            imagenes_formset = ImagenVehiculoFormSet(
+                request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
+            )
+        elif mostrar_imagenes:
+            imagenes_formset = ImagenVehiculoFormSet(
+                instance=vehiculo, prefix='imagenes'
+            )
+        else:
+            imagenes_formset = None
+
         if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
             nuevo_estado = form.cleaned_data.get('estado')
             if nuevo_estado != 'EN_VENTA':
@@ -145,7 +162,7 @@ def vehiculo_update(request, pk):
                     vehiculo.imagen_principal.delete(save=False)
                 vehiculo.imagenes.all().delete()
             vehiculo = form.save()
-            if estado_es_venta:
+            if imagenes_formset:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif request.FILES.get('imagen_principal') or any(
@@ -156,13 +173,11 @@ def vehiculo_update(request, pk):
                     'Las imágenes solo se pueden subir cuando el vehículo está en estado EN_VENTA.'
                 )
 
-            # Regenerar asiento si los costes cambiaron
             try:
                 if vehiculo.asiento_contable:
                     vehiculo.asiento_contable.delete()
                     vehiculo.asiento_contable = None
                 asiento = vehiculo.crear_asiento_contable()
-                # Regenerar movimiento bancario
                 from apps.bank.models import BancoMovimiento
                 BancoMovimiento.objects.filter(vehiculo_asociado=vehiculo).delete()
                 vehiculo.registrar_movimiento_banco(asiento=asiento)
@@ -181,12 +196,14 @@ def vehiculo_update(request, pk):
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm(instance=vehiculo)
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes') if vehiculo.estado == 'EN_VENTA' else None
-    
+        mostrar_imagenes = vehiculo.estado == 'EN_VENTA'
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes') if mostrar_imagenes else None
+
     context = {
         'form': form,
         'vehiculo': vehiculo,
         'imagenes_formset': imagenes_formset,
+        'mostrar_imagenes': mostrar_imagenes,
         'action': 'editar',
     }
     return render(request, 'vehicles/form.html', context)
