@@ -25,4 +25,4 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Web pública (SPA Vue) - catch-all SIEMPRE al final
-urlpatterns += [re_path(r'^.*$', spa_index)]
+urlpatterns += [re_path(r'^(?!(?:admin|erp|api|media|static)/).*$', spa_index)]

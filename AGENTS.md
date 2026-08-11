@@ -4,10 +4,11 @@
 
 - **`backend/`** — Django 4.2.8 ERP (server-rendered + HTMX). **`frontend/`** — Vue 3 + Vite SPA, builds into `backend/static/web/`.
 - `docker-compose.yml`: 5 services — `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
-- Python 3.11.9 (`.python-version`). Backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly.
+- Python 3.11.9 (`.python-version`). 12 backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly. `apps.payroll` also exists (route `/erp/nominas/`).
+- `soportes madrid/` — sample PDF/CSV supporting documents (facturas, extractos bancarios) used by test and simulation scripts.
 - Settings modules in `config/settings/`: `development` (default; SQLite unless `DATABASE_URL` set), `staging` (Render staging: no Redis — locmem cache, Celery eager/sync, WhiteNoise), `production` (S3 media only when `AWS_STORAGE_BUCKET_NAME` set). Root test scripts set `DJANGO_SETTINGS_MODULE=config.settings.development` themselves.
 
-Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, admin at `/admin/`. **Catch-all `spa_index` must stay last** — serves the Vue SPA for unmatched paths.
+Routing (`backend/config/urls.py:7-28`): ERP under `/erp/*`, API at `/api/`, admin at `/admin/`. **Catch-all `spa_index` must stay last** — serves the Vue SPA for unmatched paths.
 
 ## Key views
 
@@ -27,10 +28,14 @@ Routing (`backend/config/urls.py:7-27`): ERP under `/erp/*`, API at `/api/`, adm
 | Integration tests | `python test_modules.py` (needs test users + `migrate` first) |
 | Report data check | `python check_report_data.py` (needs dev data + `migrate`) |
 | File I/O tests | `python -m unittest test_io.py` |
-| §20 pipeline test | `python test_pipeline_capitulo20.py` (needs Docker Postgres + test users) |
+| Frontend deps | `cd frontend && npm install` (required before `dev`/`build`) |
 | Frontend dev server | `cd frontend && npm run dev` (port 3000, proxies `/api`, `/media` → :8000) |
 | Build frontend | `cd frontend && npm run build` → `backend/static/web/` |
 | Full sample data | `python create_full_test.py` (after test users) |
+| Tester user (staging/prod) | `python create_tester_user.py` (`--reset-password`, `--delete`) — user `tester` / `TestMadrid2024!` |
+| Prod users (6, adds `roger`) | `DJANGO_SETTINGS_MODULE=config.settings.production python create_users_prod.py` |
+| §20 pipeline (safe) | `python test_pipeline_capitulo20.py` (needs Docker Postgres + test users) |
+| §20 full simulation (**destructive**) | `python simulacion_capitulo20.py` — deletes `db.sqlite3`, runs `migrate --run-syncdb`, recreates everything |
 
 **No lint/typecheck/format gates exist**. Only CI: `.github/workflows/backup.yml` (daily pg_dump). `render.yaml` defines the Render deploy; `Procfile` starts gunicorn.
 
@@ -41,6 +46,7 @@ No pytest. Three layers:
 - **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 56 tests (~100s). `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`; `apps/workshop/tests.py` covers la creación de OTs y el desplegable de operarios. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres). Subaccount `4751.115` (retención IRPF) is part of the base PGC (54 cuentas) — `expenses/tests.py` still seeds it defensively with `get_or_create`.
 - **Integration smoke** (`python test_modules.py`) — Django `Client` against the dev DB, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). Uses `/erp/`-prefixed paths plus a `FINANCIAL REPORTS` section; 54 checks. Needs test users + `migrate` first.
 - **Data check** (`python check_report_data.py`) — runs the report generators against real dev data and asserts the Balance squares (Activo = Pasivo + Patrimonio) and that every posted asiento is balanced.
+- **Full simulation** (`python simulacion_capitulo20.py`) — **DESTRUCTIVE**: deletes `db.sqlite3`, runs `migrate --run-syncdb` from scratch, then executes the complete §20 pipeline covering all bug fixes #1-#26 plus payroll, IVA 303, and Ley Antifraude gasto editing. Does NOT use transaction rollback — the DB is nuked. Use only when you need a clean-slate verification.
 
 Test users from `create_test_users.py`:
 
@@ -69,12 +75,7 @@ All report logic lives in `apps/accounting/reports.py`; views are in `apps/accou
 | Libro Mayor | `libro-mayor/` | `obtener_movimientos_cuenta()` | `libro_mayor.html` |
 | Valoración existencias | `existencias/` | `obtener_valor_existencias()` | `existencias.html` |
 
-**Key functions in `reports.py`:**
-- `obtener_saldo_cuenta(codigo, fecha_desde, fecha_hasta)` — core helper, returns `(debe, haber)` for any account prefix, filtered by date and posted status.
-- `obtener_asientos_diario(fecha_desde, fecha_hasta)` — returns all posted `AsientoContable` with their `MovimientoContable` rows, ordered chronologically.
-- `obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta)` — returns all movements for a specific `CuentaContable` with running balance (saldo corrido).
-- `obtener_valor_existencias()` — values materials at `stock_actual × precio_unitario` plus unsold vehicles at `coste_total`, compares against accounting balance in accounts 300-330.
-- `calcular_balance()` — now also passes `cuentas_balance` context with per-account detail for activo no corriente, existencias, clientes, and proveedores.
+**Key functions in `reports.py`:** `obtener_saldo_cuenta()`, `obtener_asientos_diario()`, `obtener_movimientos_cuenta()`, `obtener_valor_existencias()`, `calcular_balance()`, `calcular_pyg()`, `calcular_libro_iva()`, `calcular_comparativa()`.
 
 **Balance template** (`balance.html`) has expandable `<details>` sections showing individual account balances under each category.
 
