@@ -87,6 +87,20 @@ def gasto_create(request):
                     f'Gasto registrado, pero no se pudo crear el asiento contable: {str(e)}'
                 )
 
+            if gasto.pagado:
+                try:
+                    pago = gasto.crear_asiento_pago()
+                    if pago:
+                        messages.success(
+                            request,
+                            f'Asiento de pago #{pago.numero} (DEBE 410 / HABER {gasto.forma_pago.codigo if gasto.forma_pago else "572"}) generado automáticamente.'
+                        )
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        f'Gasto marcado como pagado, pero no se pudo generar el asiento de pago: {str(e)}'
+                    )
+
             return redirect('expenses:detail', pk=gasto.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
@@ -116,18 +130,24 @@ def gasto_detail(request, pk):
     )
 
     asiento = None
+    asiento_pago = None
     try:
         from apps.accounting.models import AsientoContable
         asiento = AsientoContable.objects.filter(
             tipo_documento='GastoEstructura',
             documento_id=gasto.pk
         ).first()
+        asiento_pago = AsientoContable.objects.filter(
+            tipo_documento='PagoGastoEstructura',
+            documento_id=gasto.pk
+        ).exclude(estado='ANULADO').first()
     except Exception:
         pass
 
     context = {
         'gasto': gasto,
         'asiento': asiento,
+        'asiento_pago': asiento_pago,
     }
     return render(request, 'expenses/detail.html', context)
 
@@ -146,6 +166,7 @@ def gasto_update(request, pk):
         if form.is_valid():
             with transaction.atomic():
                 _anular_y_revertir_asiento_gasto(gasto, request.user)
+                _anular_asiento_pago(gasto, request.user)
                 gasto = form.save()
                 try:
                     nuevo = gasto.crear_asiento_contable()
@@ -161,6 +182,21 @@ def gasto_update(request, pk):
                         request,
                         f'Gasto actualizado pero no se pudo crear el nuevo asiento contable: {str(e)}'
                     )
+                if gasto.pagado:
+                    try:
+                        pago = gasto.crear_asiento_pago()
+                        if pago:
+                            cuenta_pago = pago.movimientos.filter(haber__gt=0).first()
+                            codigo_pago = cuenta_pago.cuenta.codigo if cuenta_pago else 'tesorería'
+                            messages.success(
+                                request,
+                                f'Asiento de pago #{pago.numero} (DEBE 410 / HABER {codigo_pago}) generado automáticamente.'
+                            )
+                    except Exception as e:
+                        messages.warning(
+                            request,
+                            f'Gasto marcado como pagado, pero no se pudo generar el asiento de pago: {str(e)}'
+                        )
             return redirect('expenses:detail', pk=gasto.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
@@ -380,5 +416,50 @@ def _anular_y_revertir_asiento_gasto(gasto, user):
             descripcion=f'Reversión: {mov.descripcion}',
         )
     
+    old_asiento.estado = 'ANULADO'
+    old_asiento.save(update_fields=['estado'])
+
+
+def _anular_asiento_pago(gasto, user):
+    """
+    Anula el asiento de pago (PagoGastoEstructura) del gasto y elimina el
+    movimiento bancario EGRESO vinculado, restaurando el saldo del banco.
+
+    Cumplimiento: Ley Antifraude — el asiento se anula mediante contrapartida;
+    el movimiento bancario se elimina (patrón idempotente de InversionInicial).
+    """
+    from apps.accounting.models import AsientoContable, MovimientoContable
+    from apps.accounting.views import generar_numero_asiento
+    from apps.bank.models import BancoMovimiento
+
+    old_asiento = AsientoContable.objects.filter(
+        tipo_documento='PagoGastoEstructura',
+        documento_id=gasto.pk,
+    ).exclude(estado='ANULADO').first()
+
+    if not old_asiento:
+        return
+
+    BancoMovimiento.objects.filter(asiento_asociado=old_asiento).delete()
+
+    rev = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=date.today(),
+        concepto=f'ANULACIÓN: {old_asiento.concepto}',
+        estado='BORRADOR',
+        tipo_documento='AnulacionPagoGasto',
+        documento_id=gasto.pk,
+        created_by=user,
+    )
+
+    for mov in old_asiento.movimientos.all():
+        MovimientoContable.objects.create(
+            asiento=rev,
+            cuenta=mov.cuenta,
+            debe=mov.haber,
+            haber=mov.debe,
+            descripcion=f'Reversión: {mov.descripcion}',
+        )
+
     old_asiento.estado = 'ANULADO'
     old_asiento.save(update_fields=['estado'])

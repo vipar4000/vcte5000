@@ -66,7 +66,7 @@ class GastoEstructuraForm(forms.ModelForm):
         fields = [
             'fecha_factura', 'proveedor_acreedor', 'cif_nif', 'categoria',
             'base_imponible', 'tipo_iva', 'retencion_irpf',
-            'documento_pdf', 'pagado', 'fecha_pago',
+            'documento_pdf', 'pagado', 'fecha_pago', 'forma_pago',
         ]
         widgets = {
             'fecha_factura': forms.DateInput(attrs={
@@ -92,12 +92,22 @@ class GastoEstructuraForm(forms.ModelForm):
                 'class': 'w-full px-3 py-2 border rounded-lg',
                 'type': 'date',
             }),
+            'forma_pago': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['fecha_pago'].required = False
         self.fields['documento_pdf'].required = False
+        self.fields['forma_pago'].required = False
+        self.fields['forma_pago'].help_text = (
+            'Cuenta desde la que se pagará (caja 570 o banco 572). '
+            'Al marcar como pagado se genera automáticamente el asiento de pago '
+            '(DEBE 410 / HABER tesorería) y el movimiento bancario de EGRESO. '
+            'Si se deja vacío se usa 572.'
+        )
 
 
 class GastoBusquedaForm(forms.Form):

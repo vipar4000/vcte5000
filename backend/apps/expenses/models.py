@@ -38,6 +38,14 @@ class GastoEstructura(models.Model):
     documento_pdf = models.FileField(upload_to='facturas_gastos/', null=True, blank=True, verbose_name='factura PDF')
     pagado = models.BooleanField(default=False, verbose_name='pagado')
     fecha_pago = models.DateField(null=True, blank=True, verbose_name='fecha de pago')
+    forma_pago = models.ForeignKey(
+        'accounting.CuentaContable',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='gastos_forma_pago',
+        verbose_name='cuenta de pago (banco/caja)',
+        limit_choices_to={'codigo__in': ['570', '572']},
+    )
 
     created_by = models.ForeignKey(
         'accounts.User',
@@ -129,6 +137,80 @@ class GastoEstructura(models.Model):
             # Postear automaticamente si cuadra (igual que inversiones, compras y ventas)
             asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
             asiento.save()
+
+            return asiento
+
+    def crear_asiento_pago(self):
+        """Genera el asiento de pago (DEBE 410 / HABER 570/572) y el EGRESO bancario.
+
+        Cierra el ciclo de pago: reduce el pasivo con el proveedor (410) contra
+        la tesorería. Idempotente: si ya existe un asiento de pago activo para
+        este gasto, no crea otro.
+        """
+        from django.db import transaction
+        from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoCuenta
+        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+        from datetime import date
+
+        with transaction.atomic():
+            existente = AsientoContable.objects.filter(
+                tipo_documento='PagoGastoEstructura',
+                documento_id=self.pk,
+            ).exclude(estado='ANULADO').first()
+            if existente:
+                return existente
+
+            cuenta_410 = CuentaContable.objects.get(codigo='410')
+            cuenta_pago = self.forma_pago or CuentaContable.objects.get(codigo='572')
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_pago or date.today(),
+                concepto=f"Pago {self.get_categoria_display()}: {self.proveedor_acreedor}",
+                estado='BORRADOR',
+                tipo_documento='PagoGastoEstructura',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_410,
+                debe=self.total_factura,
+                haber=Decimal('0'),
+                descripcion=f"Pago proveedor: {self.proveedor_acreedor}",
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_pago,
+                debe=Decimal('0'),
+                haber=self.total_factura,
+                descripcion=f"Pago (tesorería): {self.proveedor_acreedor}",
+            )
+
+            asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
+            asiento.save()
+
+            # Movimiento bancario EGRESO vinculado al asiento (solo pagos por banco 572;
+            # la caja 570 no genera movimientos en el módulo Banco)
+            if cuenta_pago.codigo == '572':
+                banco_cuenta = BancoCuenta.objects.filter(
+                    cuenta_contable=cuenta_pago
+                ).first()
+                if not banco_cuenta:
+                    banco_cuenta = obtener_cuenta_banco_default()
+                if banco_cuenta:
+                    crear_movimiento_banco(
+                        banco_cuenta=banco_cuenta,
+                        fecha=asiento.fecha,
+                        concepto=asiento.concepto,
+                        tipo='EGRESO',
+                        importe=self.total_factura,
+                        asiento=asiento,
+                    )
 
             return asiento
 
