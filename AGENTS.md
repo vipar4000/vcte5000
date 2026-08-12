@@ -8,6 +8,7 @@ Repo root = `vcte5000/`. All path-relative commands below assume this as the wor
 - `docker-compose.yml`: 5 services — `db` (Postgres 15), `redis`, `backend`, `celery_worker`, `nginx`.
 - Python 3.11.9 (`.python-version`). 12 backend apps under `apps/` — import as `apps.<name>`. `apps.api` is **not** in `INSTALLED_APPS` but works because its `urls.py` is imported directly. `apps.payroll` also exists (route `/erp/nominas/`).
 - `soportes madrid/` — sample PDF/CSV supporting documents (facturas, extractos bancarios) used by test and simulation scripts.
+- `backend/manual/` — user manuals (`manual.html` full manual, `roger.html` operator view). The §20 pipeline scripts (`test_pipeline_capitulo20.py`, `simulacion_capitulo20.py`) implement "capítulo 20" of that manual.
 - Settings modules in `config/settings/`: `development` (default; SQLite unless `DATABASE_URL` set), `staging` (Render staging: no Redis — locmem cache, Celery eager/sync, WhiteNoise), `production` (S3 media only when `AWS_STORAGE_BUCKET_NAME` set). Root test scripts set `DJANGO_SETTINGS_MODULE=config.settings.development` themselves.
 
 Routing (`backend/config/urls.py:7-28`): ERP under `/erp/*`, API at `/api/`, admin at `/admin/`. **Catch-all `spa_index` must stay last** — serves the Vue SPA for unmatched paths.
@@ -49,7 +50,7 @@ Agent instruction sources beyond this file: `.claude/skills/` contains TestSprit
 
 No pytest. Three layers:
 
-- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 56 tests (~100s). `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`; `apps/workshop/tests.py` covers la creación de OTs y el desplegable de operarios. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres). Subaccount `4751.115` (retención IRPF) is part of the base PGC (54 cuentas) — `expenses/tests.py` still seeds it defensively with `get_or_create`.
+- **Django test runner** (`cd backend && python manage.py test`) — isolated test DB, 63 tests (1 skipped, ~70s). `apps/accounting/tests.py` covers the report logic (Diario, Mayor con saldo corrido, Existencias, Balance con cuadre + desglose, PyG, IVA, Comparativa) and all 9 report views; `apps/expenses/tests.py` covers `GastoEstructura`; `apps/workshop/tests.py` covers la creación de OTs y el desplegable de operarios. For the runner to work on SQLite: `sales/0004_trigger_inmutabilidad` is vendor-aware (skips the Postgres-only trigger on non-Postgres). Subaccount `4751.115` (retención IRPF) is part of the base PGC (54 cuentas) — `expenses/tests.py` still seeds it defensively with `get_or_create`.
 - **Integration smoke** (`python test_modules.py`) — Django `Client` against the dev DB, runs from repo root (sets `DJANGO_SETTINGS_MODULE=config.settings.development`, inserts `backend/` into `sys.path`). Uses `/erp/`-prefixed paths plus a `FINANCIAL REPORTS` section; 54 checks. Needs test users + `migrate` first.
 - **Data check** (`python check_report_data.py`) — runs the report generators against real dev data and asserts the Balance squares (Activo = Pasivo + Patrimonio) and that every posted asiento is balanced.
 - **Full simulation** (`python simulacion_capitulo20.py`) — **DESTRUCTIVE**: deletes `db.sqlite3`, runs `migrate --run-syncdb` from scratch, then executes the complete §20 pipeline covering all bug fixes #1-#26 plus payroll, IVA 303, and Ley Antifraude gasto editing. Does NOT use transaction rollback — the DB is nuked. Use only when you need a clean-slate verification.
@@ -90,7 +91,7 @@ Accounting also has **export views** in `apps/accounting/export_views.py` (not `
 ## Gotchas
 
 - **Custom User** = `accounts.User` (`AUTH_USER_MODEL`). Import from `apps.accounts.models`, never `django.contrib.auth`.
-- **`User.puede_eliminar`** (default True) gates delete permission. `rol` defaults to `'ADMIN'`; `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties also return True for any `is_superuser`, so a `createsuperuser` user passes every role check.
+- **`User.puede_eliminar`** (default True) gates delete permission. `rol` default is inconsistent: model field says `'OPERARIO'` (`accounts/models.py:19`) but migration `0003_alter_user_rol` sets the DB default to `'ADMIN'` — update both together if you change it. The login view auto-repairs empty `rol` to `'ADMIN'` for staff users. `is_admin`/`is_operario`/`is_vendedor`/`is_gestoria` properties also return True for any `is_superuser`, so a `createsuperuser` user passes every role check.
 - **Keep `base.py:5-14` monkey-patch** of `BaseContext.__copy__` (Python 3.14 compat even though we run 3.11).
 - **`debug_toolbar` removed** — incompatible with Python 3.14. Don't re-add.
 - **`.env` split**: `backend/.env` is read by Django (`base.py:23`). Root `.env.example` is for docker-compose only.
@@ -99,7 +100,7 @@ Accounting also has **export views** in `apps/accounting/export_views.py` (not `
 - **Session**: expires in 1h and on browser close. `SESSION_SAVE_EVERY_REQUEST=True`.
 - **`django-cleanup`** auto-deletes orphaned files when records are removed.
 - **Development** has `AUTH_PASSWORD_VALIDATORS = []` — weak passwords work locally but not in production.
-- **`SECRET_KEY` has no default** (`base.py:25` `env('SECRET_KEY')`) — local Django runs fail without `backend/.env`. Docker works zero-config because `docker-compose.yml` supplies an insecure dev fallback.
+- **`SECRET_KEY` has no default** (`base.py:25` `env('SECRET_KEY')`) — local Django runs fail without `backend/.env`. Docker works zero-config because `docker-compose.yml` supplies an insecure dev fallback. Note: migration `0003_alter_user_rol` was generated by Django 6.0.7 — never run `makemigrations` with a newer Django than the pinned 4.2.8.
 - **Bank movements** are never created manually — `apps.bank.services:crear_movimiento_banco()` is the single entry point. `BancoCuenta.saldo` is computed on-the-fly.
 - **Vehicle images**: vehicle must be `EN_VENTA` or images are deleted. Max 8 per vehicle.
 - **Workshop stock** changes via `CompraMaterial` (stock input path). `save()` updates stock and computes invoice amounts, but the view explicitly calls `crear_asiento_contable()` and posts it if balanced; the model does not auto-post.
@@ -116,4 +117,4 @@ Deployed on **Render** (Python runtime, not Docker). Self-hosted alternative: `d
 - **Staging quirks** (`config/settings/staging.py`): no Redis — locmem cache, Celery tasks run eagerly/sync, WhiteNoise serves statics. Don't assume a Redis-backed cache or a Celery worker there.
 - **Auto-Deploy**: push to the service's configured branch. If a push doesn't go live, click **Manual Deploy → Clear build cache & deploy**.
 - **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:33`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
-- UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts. DB backed up daily by `.github/workflows/backup.yml`.
+- UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts (`/api/ping/` returns plain-text "OK", no DB access — also Render's `healthCheckPath`). DB backed up daily by `.github/workflows/backup.yml`.
