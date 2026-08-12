@@ -259,10 +259,10 @@ class CompraMaterial(models.Model):
     """Compra de material de inventario de taller con factura y asiento contable."""
 
     TIPOS_INVENTARIO = [
+        ('300', 'Compras (Grupo 3)'),
         ('310', 'Mercaderías (A)'),
         ('320', 'Materias primas (A)'),
         ('330', 'Otros aprovisionamientos (A)'),
-        ('300', 'Compras (Grupo 3)'),
     ]
 
     material = models.ForeignKey(
@@ -285,7 +285,7 @@ class CompraMaterial(models.Model):
         help_text='Permite agrupar varias compras (materiales) de la misma factura de proveedor.',
     )
     tipo_inventario = models.CharField(
-        max_length=3, choices=TIPOS_INVENTARIO, default='310',
+        max_length=3, choices=TIPOS_INVENTARIO, default='300',
         verbose_name='cuenta de inventario',
     )
     base_imponible = models.DecimalField(

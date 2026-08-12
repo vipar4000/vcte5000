@@ -4,6 +4,7 @@ Ejecutar con: python manage.py regularizar_existencias --ano 2025
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from decimal import Decimal
 from datetime import date
 
@@ -47,12 +48,8 @@ def regularizar_existencias_anual(ano):
     with transaction.atomic():
         # Obtener vehículos no vendidos comprados en o antes del año dado
         stock_no_vendido = Vehiculo.objects.filter(
-            vendido=False,
+            ~Q(estado='VENDIDO'),
             fecha_adquisicion__year__lte=ano,
-        )
-
-        valor_inventario = stock_no_vendido.aggregate(
-            total=Decimal('0') if not stock_no_vendido.exists() else None
         )
 
         # Calcular valor total del inventario usando coste_inicial
@@ -102,7 +99,7 @@ def regularizar_existencias_anual(ano):
                 f'Stock no vendido: {format_euros(valor_total)} '
                 f'({stock_no_vendido.count()} vehículos)'
             ),
-            estado='BORRADOR',
+            estado='POSTEADO',
             tipo_documento='RegularizacionExistencias',
             documento_id=ano,
             created_by=admin_user,

@@ -78,7 +78,7 @@ compras_data = [
     {'material': 'Aceite motor 5W30', 'cantidad': Decimal('20'), 'precio_unitario': Decimal('8.50'),
      'proveedor': 'Distribuciones Auto S.L.', 'cif_nif': 'B11111111', 'tipo_inventario': '300', 'tipo_iva': Decimal('21')},
     {'material': 'Filtros de aire', 'cantidad': Decimal('10'), 'precio_unitario': Decimal('12.00'),
-     'proveedor': 'Filtros Ibérica S.A.', 'cif_nif': 'B22222222', 'tipo_inventario': '310', 'tipo_iva': Decimal('21')},
+      'proveedor': 'Filtros Ibérica S.A.', 'cif_nif': 'B22222222', 'tipo_inventario': '300', 'tipo_iva': Decimal('21')},
     {'material': 'Neumaticos 205/55R16', 'cantidad': Decimal('4'), 'precio_unitario': Decimal('75.00'),
      'proveedor': 'Neumáticos Express S.L.', 'cif_nif': 'B33333333', 'tipo_inventario': '330', 'tipo_iva': Decimal('21')},
 ]
