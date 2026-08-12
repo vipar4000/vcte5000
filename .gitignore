@@ -15,6 +15,7 @@ __pycache__/
 db.sqlite3
 backend/db.sqlite3
 backend/test.db
+backend/test_staging.db
 
 # Media (user uploads)
 media/
