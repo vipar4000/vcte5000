@@ -1,29 +1,43 @@
 %PDF-1.4
 1 0 obj
-<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R>>>/Contents 4 0 R>>
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<</Type/Pages/Kids[1 0 R]>>
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
 endobj
 3 0 obj
-<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]
+   /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
 endobj
 4 0 obj
-<</Length 118>>
+<< /Length 762 >>
 stream
-BT/F1 12 Tf
-(Factura de ejemplo Eurocar - Vehiculo de prueba) Tj
-ET
+BT /F1 12 Tf 50 700 Td (FACTURA - ALQ-EJEMPLO) Tj ET
+BT /F1 10 Tf 50 670 Td (Propietario Ejemplo S.L.  |  CIF: B00000000) Tj ET
+BT /F1 10 Tf 50 648 Td (Fecha de emision: 01/07/2026) Tj ET
+BT /F1 10 Tf 50 626 Td (Cliente: R Car Rogil S.L. - Madrid) Tj ET
+BT /F1 10 Tf 50 604 Td () Tj ET
+BT /F1 10 Tf 50 582 Td (Concepto: Alquiler de local - mensualidad de ejemplo) Tj ET
+BT /F1 10 Tf 50 560 Td () Tj ET
+BT /F1 10 Tf 50 538 Td (Base imponible ............................. 1.000,00 EUR) Tj ET
+BT /F1 10 Tf 50 516 Td (IVA 21% ......................................   210,00 EUR) Tj ET
+BT /F1 10 Tf 50 494 Td (Retencion IRPF 19% \(arrendamiento\) .........  -190,00 EUR) Tj ET
+BT /F1 10 Tf 50 472 Td (**TOTAL A PAGAR ............................ 1.020,00 EUR) Tj ET
 endstream
 endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
 xref
-0 5
-0000000015 00000 n 
-0000000009 000000 n 
-0000000115 000000 n 
-0000000227 000000 n 
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000244 00000 n 
+0000001056 00000 n 
 trailer
-<</Size 5/Root 1 0 R>>
+<< /Size 6 /Root 1 0 R >>
 startxref
-466
-/%%EOF
+1126
+%%EOF

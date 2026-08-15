@@ -628,7 +628,7 @@ Material (stock: 100)
     <li>Si el material no existe, despliegue <strong>"¿El material no existe? Crear uno nuevo"</strong> e indique nombre y unidad; se dara de alta al guardar con stock 0.</li>
     <li>Indique <strong>Precio Unitario</strong>, <strong>Fecha de Compra</strong>, <strong>Proveedor</strong> y <strong>CIF/NIF</strong>.</li>
     <li>En "Datos de la Factura", adjunte el <strong>PDF de la factura</strong> del proveedor (opcional, maximo 20 MB).</li>
-    <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos) y el <strong>Tipo IVA</strong>%.</li>
+    <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos), el <strong>Tipo IVA</strong>% y la <strong>Forma de pago</strong>: Credito (410, por defecto), Contado Banco (572) o Contado Caja (570).</li>
     <li>Haga clic en <strong>"Registrar Compra"</strong>.</li>
 </ol>
 
@@ -638,7 +638,7 @@ Material (stock: 100)
     2. Se genera y <strong>postea automaticamente</strong> el <strong>asiento contable</strong> (cuadrado, estado POSTEADO) de entrada a inventario, por lo que aparece de inmediato en el libro diario, balance, PyG e informes de IVA:<br>
     &nbsp;&nbsp;&bull; <strong>DEBE</strong> cuenta de inventario (300/310/320/330) = Base imponible<br>
     &nbsp;&nbsp;&bull; <strong>DEBE</strong> 472 (IVA soportado) = Cuota IVA<br>
-    &nbsp;&nbsp;&bull; <strong>HABER</strong> 410 (Acreedores) = Total (Base + IVA)<br>
+    &nbsp;&nbsp;&bull; <strong>HABER</strong> la contrapartida de la forma de pago: 410 (Acreedores) a credito, 572 (Banco, genera EGRESO) o 570 (Caja) al contado = Total (Base + IVA)<br>
     3. El PDF de la factura se guarda en <code>media/facturas_gastos/</code> (o R2 en produccion).
 </div>
 

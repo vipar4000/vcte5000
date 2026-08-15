@@ -1,5 +1,12 @@
 import os
 
+
+def _pdf_str(s):
+    """Codifica y escapa un string para un literal de texto PDF (latin-1)."""
+    enc = s.encode('latin-1', 'replace')
+    return enc.replace(b'\\', b'\\\\').replace(b'(', b'\\(').replace(b')', b'\\)')
+
+
 def generar_pdf(path, titulo, lineas):
     """
     Genera un PDF mínimo con Helvetica.
@@ -14,13 +21,12 @@ def generar_pdf(path, titulo, lineas):
 
     # Construir stream con todas las líneas
     y = 700
-    stream = b'BT /F1 12 Tf 50 ' + str(y).encode() + b' Td (' + titulo.encode('latin-1', 'replace') + b') Tj\n'
+    stream = b'BT /F1 12 Tf 50 ' + str(y).encode() + b' Td (' + _pdf_str(titulo) + b') Tj ET\n'
     y -= 30
     for linea in lineas:
-        stream += b'BT /F1 10 Tf 50 ' + str(y).encode() + b' Td (' + linea.encode('latin-1', 'replace') + b') Tj\n'
+        stream += b'BT /F1 10 Tf 50 ' + str(y).encode() + b' Td (' + _pdf_str(linea) + b') Tj ET\n'
         y -= 22
 
-    stream += b'ET\n'
     objects.append(b'4 0 obj\n<< /Length ' + str(len(stream)).encode() + b' >>\nstream\n' + stream + b'endstream\nendobj\n')
     objects.append(b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n')
 
@@ -34,7 +40,7 @@ def generar_pdf(path, titulo, lineas):
         xref_offset = f.tell()
         num_objects = len(objects) + 1
         f.write(b'xref\n')
-        f.write(str(num_objects).encode() + b'\n')
+        f.write(b'0 ' + str(num_objects).encode() + b'\n')
         f.write(b'0000000000 65535 f \n')
         for offset in xref_offsets:
             f.write(f'{offset:010d} 00000 n \n'.encode())
@@ -48,7 +54,7 @@ def generar_pdf(path, titulo, lineas):
     print(f'PDF creado: {path} ({size} bytes)')
 
 
-base = r'C:\eurocar\backend\manual\ejemplos'
+base = os.path.dirname(os.path.abspath(__file__))
 
 # --- Factura inversión inicial ---
 generar_pdf(
@@ -99,5 +105,23 @@ generar_pdf(
         'Base imponible ............... 8.150,00 EUR',
         'IVA 21%  ...................... 1.711,50 EUR',
         'TOTAL  ....................... 9.861,50 EUR',
+    ],
+)
+
+# --- Factura de ejemplo (gasto de estructura / arrendamiento) ---
+generar_pdf(
+    os.path.join(base, 'factura_ejemplo.pdf'),
+    'FACTURA - ALQ-EJEMPLO',
+    [
+        'Propietario Ejemplo S.L.  |  CIF: B00000000',
+        'Fecha de emision: 01/07/2026',
+        'Cliente: R Car Rogil S.L. - Madrid',
+        '',
+        'Concepto: Alquiler de local - mensualidad de ejemplo',
+        '',
+        'Base imponible ............................. 1.000,00 EUR',
+        'IVA 21% ......................................   210,00 EUR',
+        'Retencion IRPF 19% (arrendamiento) .........  -190,00 EUR',
+        '**TOTAL A PAGAR ............................ 1.020,00 EUR',
     ],
 )

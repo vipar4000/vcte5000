@@ -18,8 +18,9 @@ CONTENIDO
   02_FC-2026-001_factura_compra_vehiculo.pdf    -->  Paso 2.1 (Vehiculo)
   03_CM-001_factura_aceite.pdf                  -->  Paso 3.2 (Compra #1)
   04_CM-002_factura_pastillas.pdf               -->  Paso 3.2 (Compra #2)
-  05_ALQ-2026-07_factura_alquiler_galpon.pdf    -->  Paso 8.6 (Gasto)
-  06_extracto_bancario_santander.csv            -->  Paso 1.3 / Conciliacion
+  05_CM-003_factura_filtro.pdf                  -->  Paso 3.2 (Compra #3)
+  06_ALQ-2026-07_factura_alquiler_galpon.pdf    -->  Paso 8.6 (Gasto)
+  07_extracto_bancario_santander.csv            -->  Paso 1.3 / Conciliacion
   LEEME.txt                                     -->  Este archivo
 
 
@@ -53,7 +54,12 @@ CIFRAS QUE DEBE MOSTRAR CADA SOPORTE
      IVA 21% ........................  22,05
      TOTAL .......................... 127,05 EUR
 
-05 - Factura ALQ-2026-07 (Propietario Galpon S.L., CIF B87654321, 20/07/2026)
+05 - Factura CM-003 (Filtros Madrid S.L., CIF E12345678, 02/07/2026)
+     Filtro de aire (5 uds x 12,00)    60,00
+     IVA 21% ........................  12,60
+     TOTAL ..........................  72,60 EUR
+
+06 - Factura ALQ-2026-07 (Propietario Galpon S.L., CIF B87654321, 20/07/2026)
      Alquiler del galpon - julio 2026
      Base imponible ................. 2.000,00
      IVA 21% ........................   420,00
@@ -62,14 +68,14 @@ CIFRAS QUE DEBE MOSTRAR CADA SOPORTE
      (Campo "Factura PDF" del formulario Gastos > Nuevo Gasto; opcional)
 
 
-CONCILIACION BANCARIA (06_extracto_bancario_santander.csv)
+CONCILIACION BANCARIA (07_extracto_bancario_santander.csv)
 ----------------------------------------------------------
 
 Cuando terminen el Paso 5.1 (venta), el banco del ERP tendra 4 movimientos.
 Para conciliarlos:
 
   1. Vaya a Banco > Conciliacion Bancaria y seleccione "Banco Santander".
-  2. Suba el archivo 06_extracto_bancario_santander.csv y pulse
+  2. Suba el archivo 07_extracto_bancario_santander.csv y pulse
      "Procesar Extracto".
   3. El sistema mostrara las 4 lineas en VERDE (coincidencia automatica:
      mismo tipo, mismo importe exacto, fecha +/-2 dias).
@@ -86,6 +92,9 @@ Para conciliarlos:
   - El alquiler del galpon (Paso 8.6) NO aparece en el extracto a
     proposito: el gasto queda pendiente de pago en la cuenta 410
     (no genera movimiento bancario). Es coherente con el manual.
+  - Las compras de material (Paso 3.2: aceite, pastillas y filtro)
+    TAMPOCO aparecen: quedan a credito en la cuenta 410 (405,35 EUR
+    en total). Solo generan banco cuando se paguen al proveedor.
   - La fecha de la linea del DEPOSITO es la del dia en que ejecuten la
     prueba (el sistema la registra con la fecha del dia). Si ejecutan la
     prueba en una fecha distinta del 05/08/2026, editen esa fecha en el

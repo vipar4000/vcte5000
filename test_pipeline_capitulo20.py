@@ -179,8 +179,8 @@ def ejecutar(c, admin):
                                      precio_unitario=Decimal('8.50'))
     pastillas = Material.objects.create(nombre='Pastillas de freno', unidad='juegos',
                                         precio_unitario=Decimal('35.00'))
-    Material.objects.create(nombre='Filtro de aire', unidad='unidades',
-                            precio_unitario=Decimal('12.00'))
+    filtro = Material.objects.create(nombre='Filtro de aire', unidad='unidades',
+                                     precio_unitario=Decimal('12.00'))
     Material.objects.create(nombre='Refrigerante G12', unidad='litros',
                             precio_unitario=Decimal('6.50'))
     Material.objects.create(nombre='Neumaticos 205/55R16', unidad='unidades',
@@ -208,15 +208,33 @@ def ejecutar(c, admin):
     if compra2.asiento_contable.esta_cuadrado:
         compra2.asiento_contable.estado = 'POSTEADO'
         compra2.asiento_contable.save()
+    compra3 = CompraMaterial.objects.create(
+        material=filtro, cantidad=Decimal('5'), precio_unitario=Decimal('12.00'),
+        fecha_compra=date(2026, 7, 2), proveedor='Filtros Madrid S.L.',
+        cif_nif='E12345678', numero_factura='CM-003',
+        tipo_inventario='300', tipo_iva=Decimal('21.00'), created_by=admin,
+    )
+    compra3.crear_asiento_contable()
+    if compra3.asiento_contable.esta_cuadrado:
+        compra3.asiento_contable.estado = 'POSTEADO'
+        compra3.asiento_contable.save()
     a1 = compra1.asiento_contable
     a2 = compra2.asiento_contable
+    a3 = compra3.asiento_contable
     check('Compra #1 POSTEADA y cuadrada (300 170 + 472 35,70 / 410 205,70)',
           a1.estado == 'POSTEADO' and a1.esta_cuadrado)
     check('Compra #2 POSTEADA y cuadrada (300 105 + 472 22,05 / 410 127,05)',
           a2.estado == 'POSTEADO' and a2.esta_cuadrado)
-    check('Stock: aceite 20L / pastillas 3',
-          aceite.stock_actual == 20 and pastillas.stock_actual == 3,
-          f'{aceite.stock_actual} / {pastillas.stock_actual}')
+    check('Compra #3 POSTEADA y cuadrada (300 60 + 472 12,60 / 410 72,60)',
+          a3.estado == 'POSTEADO' and a3.esta_cuadrado)
+    # CompraMaterial.save() incrementa el stock sobre una instancia fresca
+    # (select_for_update); refrescar antes de verificar el stock en memoria.
+    aceite.refresh_from_db()
+    pastillas.refresh_from_db()
+    filtro.refresh_from_db()
+    check('Stock: aceite 20L / pastillas 3 / filtro 5',
+          aceite.stock_actual == 20 and pastillas.stock_actual == 3 and filtro.stock_actual == 5,
+          f'{aceite.stock_actual} / {pastillas.stock_actual} / {filtro.stock_actual}')
 
     print('\n--- PASO 3.1/3.3/3.4: OT diagnostico, usar material, completar ---')
     mecanico = User.objects.get(username='mecanico1')
@@ -331,8 +349,8 @@ def ejecutar(c, admin):
     print('\n--- §20.4: VERIFICACION POST-PRUEBA ---')
     print('\n[Asientos]')
     asientos = list(AsientoContable.objects.order_by('numero'))
-    check(f'Total asientos POSTEADOS = 8 (6 del manual + capitalizacion OT + gasto estructura)',
-          len(asientos) == 8 and all(a.estado == 'POSTEADO' for a in asientos),
+    check(f'Total asientos POSTEADOS = 9 (7 del manual + capitalizacion OT + gasto estructura)',
+          len(asientos) == 9 and all(a.estado == 'POSTEADO' for a in asientos),
           f'{len(asientos)}')
     check('Todos los asientos cuadrados (DEBE = HABER)',
           all(a.esta_cuadrado for a in asientos))
@@ -348,9 +366,10 @@ def ejecutar(c, admin):
 
     print('\n[Inventario]')
     valor_stock = aceite.stock_actual * aceite.precio_unitario + \
-        pastillas.stock_actual * pastillas.precio_unitario
-    check('Valor stock materiales = 197,50 (15L + 2 juegos)',
-          valor_stock == Decimal('197.50'), str(valor_stock))
+        pastillas.stock_actual * pastillas.precio_unitario + \
+        filtro.stock_actual * filtro.precio_unitario
+    check('Valor stock materiales = 257,50 (15L + 2 juegos + 5 filtros)',
+          valor_stock == Decimal('257.50'), str(valor_stock))
 
     print('\n[Informes]')
     pyg = reports.calcular_pyg(date(2026, 1, 1), date(2026, 12, 31))
@@ -373,8 +392,8 @@ def ejecutar(c, admin):
     iva = reports.calcular_libro_iva(date(2026, 1, 1), date(2026, 12, 31))
     check('IVA repercutido (471) = 619,15', iva['iva_repercutido']['total'] == Decimal('619.15'),
           str(iva['iva_repercutido']['total']))
-    check('IVA soportado (472) = 1.044,75 (624,75 + 420,00 alquiler)',
-          iva['iva_soportado']['total'] == Decimal('1044.75'),
+    check('IVA soportado (472) = 1.057,35 (637,35 + 420,00 alquiler)',
+          iva['iva_soportado']['total'] == Decimal('1057.35'),
           str(iva['iva_soportado']['total']))
 
     balance = reports.calcular_balance(date(2026, 12, 31))
@@ -383,12 +402,12 @@ def ejecutar(c, admin):
           f'{balance["activo"]["total"]} vs {balance["total_pasivo_patrimonio"]}')
     check('310 a 0 tras la venta (reparacion capitalizada)',
           saldo('310') == Decimal('0'), str(saldo('310')))
-    check('300 = 197,50 (materiales no consumidos)',
-          saldo('300') == Decimal('197.50'), str(saldo('300')))
+    check('300 = 257,50 (materiales no consumidos)',
+          saldo('300') == Decimal('257.50'), str(saldo('300')))
     check('621 = 2.000,00 (alquiler devengado)',
           saldo('621') == Decimal('2000.00'), str(saldo('621')))
-    check('410 = -2.372,75 (compras 332,75 + alquiler 2.040 pendientes)',
-          saldo('410') == Decimal('-2372.75'), str(saldo('410')))
+    check('410 = -2.445,35 (compras 405,35 + alquiler 2.040 pendientes)',
+          saldo('410') == Decimal('-2445.35'), str(saldo('410')))
     check('4751 = -380,00 (retencion IRPF pendiente de ingreso)',
           saldo('4751') == Decimal('-380.00'), str(saldo('4751')))
 
@@ -396,8 +415,8 @@ def ejecutar(c, admin):
     check('Existencias: diferencia = 0 (stock == contable)',
           existencias['diferencia'] == Decimal('0'),
           f"valor {existencias['total_valor']} / contable {existencias['saldo_contable']}")
-    check('Gasto de estructura NO toca inventario (300 sigue en 197,50)',
-          saldo('300') == Decimal('197.50'), str(saldo('300')))
+    check('Gasto de estructura NO toca inventario (300 sigue en 257,50)',
+          saldo('300') == Decimal('257.50'), str(saldo('300')))
     resp = c.get('/erp/contabilidad/informes/existencias/')
     check('Informe existencias renderiza sin aviso de descuadre',
           resp.status_code == 200 and 'supera el valor seg' not in resp.content.decode('utf-8', 'ignore'))
