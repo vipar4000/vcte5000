@@ -93,6 +93,10 @@ def cuenta_create(request):
                     importe=deposito,
                     notas=notas,
                 )
+                soporte = form.cleaned_data.get('soporte_deposito')
+                if soporte:
+                    movimiento.soporte = soporte
+                    movimiento.save()
                 _crear_asiento_deposito(cuenta, deposito, 'Deposito inicial', date.today(), request.user)
                 messages.success(request, f'Deposito inicial de {deposito} registrado.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
