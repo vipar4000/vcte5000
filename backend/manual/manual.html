@@ -2657,23 +2657,37 @@ Respuesta:
     <tr><td>Base de datos</td><td>PostgreSQL gestionado por Render (via <code>DATABASE_URL</code>)</td></tr>
     <tr><td>Archivos estaticos</td><td>WhiteNoise (<code>CompressedManifestStaticFilesStorage</code>)</td></tr>
     <tr><td>Media (imagenes/PDFs)</td><td>Cloudflare R2 (S3-compatible) - ver 10.6</td></tr>
-    <tr><td>Host</td><td><code>&lt;app&gt;.onrender.com</code></td></tr>
+    <tr><td>Hosts</td><td>Staging: <code>eurocar-staging-jdx2.onrender.com</code> · Produccion: <code>eurocar-jdx2.onrender.com</code> (ver 12.2)</td></tr>
 </table>
 
 <div class="warning-box">
     <strong>Filesystem efimero:</strong> Render borra el disco en cada redeploy. Sin R2 configurado, las imagenes de vehiculos y los PDFs subidos se pierden. La configuracion de media en R2 es obligatoria en produccion (ver 10.6).
 </div>
 
-<h2>12.2 URLs de Acceso en Produccion</h2>
+<h2>12.2 URLs de Acceso (Staging y Produccion)</h2>
+
+<div class="warning-box">
+    <strong>Usar SIEMPRE los dominios con sufijo <code>-jdx2</code>:</strong> los dominios antiguos <code>eurocar.onrender.com</code> y <code>eurocar-staging.onrender.com</code> pertenecen a servicios residuales (ghost) de Render que siguen desplegados con una <code>DATABASE_URL</code> antigua apuntando a una base de datos ya eliminada. En esos dominios el login muestra el formulario pero al enviar las credenciales devuelve <strong>Server Error (500)</strong>. No usarlos para trabajar ni para diagnosticar: el unico efecto util de que respondan es confundir.
+</div>
+
 <table>
-    <tr><th>Servicio</th><th>URL</th><th>Descripcion</th></tr>
-    <tr><td>Sitio Publico</td><td><code>https://&lt;app&gt;.onrender.com/</code></td><td>Vue SPA - Catalogo de vehiculos</td></tr>
-    <tr><td>ERP Principal</td><td><code>https://&lt;app&gt;.onrender.com/erp/</code></td><td>Panel principal del ERP</td></tr>
-    <tr><td>Login</td><td><code>https://&lt;app&gt;.onrender.com/erp/accounts/login/</code></td><td>Formulario de acceso</td></tr>
-    <tr><td>Django Admin</td><td><code>https://&lt;app&gt;.onrender.com/admin/</code></td><td>Administracion del sistema</td></tr>
-    <tr><td>API Ping</td><td><code>https://&lt;app&gt;.onrender.com/api/ping/</code></td><td>Health check ligero (monitoreo)</td></tr>
-    <tr><td>API Vehiculos</td><td><code>https://&lt;app&gt;.onrender.com/api/vehiculos/</code></td><td>Catalogo publico JSON</td></tr>
+    <tr><th>Entorno</th><th>URL principal</th><th>Acceso</th></tr>
+    <tr><td><strong>STAGING</strong> (pruebas)</td><td><code>https://eurocar-staging-jdx2.onrender.com/erp/</code></td><td>Usuario <code>tester</code> / <code>TestMadrid2024!</code></td></tr>
+    <tr><td><strong>PRODUCCION</strong></td><td><code>https://eurocar-jdx2.onrender.com/erp/</code></td><td>Usuarios creados con <code>create_users_prod.py</code> (ver 12.3)</td></tr>
 </table>
+
+<table>
+    <tr><th>Servicio</th><th>URL (relativa)</th><th>Descripcion</th></tr>
+    <tr><td>ERP Principal</td><td><code>/erp/</code></td><td>Panel principal del ERP (entrar SIEMPRE por aqui)</td></tr>
+    <tr><td>Login</td><td><code>/erp/accounts/login/</code></td><td>Formulario de acceso</td></tr>
+    <tr><td>Django Admin</td><td><code>/admin/</code></td><td>Administracion del sistema</td></tr>
+    <tr><td>API Ping</td><td><code>/api/ping/</code></td><td>Health check ligero (no toca la BD)</td></tr>
+    <tr><td>API Vehiculos</td><td><code>/api/vehiculos/</code></td><td>Catalogo publico (JSON o HTML segun <code>Accept</code>)</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>La raiz <code>/</code> devuelve 404 "Not Found" en Render y es NORMAL:</strong> la web publica (SPA Vue) no se construye en el servidor (<code>backend/static/web/</code> no se commitea), por lo que la raiz devuelve 404. El ERP vive bajo <code>/erp/</code>; usar siempre esa ruta. No confundir este 404 con un fallo del servicio.
+</div>
 
 <h2>12.3 Credenciales de Produccion</h2>
 
@@ -2685,6 +2699,7 @@ Respuesta:
     <tr><th>Usuario</th><th>Contrasena</th><th>Rol</th><th>Notas</th></tr>
     <tr><td><code>admin</code></td><td><code>admin123!</code></td><td>ADMIN (superuser)</td><td>Acceso total + Django Admin</td></tr>
     <tr><td><code>roger</code></td><td><code>roger123!</code></td><td>ADMIN</td><td><code>puede_eliminar=False</code> (no puede eliminar registros)</td></tr>
+    <tr><td><code>tester</code></td><td><code>TestMadrid2024!</code></td><td>ADMIN</td><td>Usuario de pruebas en STAGING (ver 12.2); se crea con <code>python create_tester_user.py</code></td></tr>
 </table>
 
 <h2>12.4 Configuracion del Web Service</h2>
@@ -2715,6 +2730,10 @@ Respuesta:
     <tr><td><code>ALLOWED_HOSTS</code></td><td>Hosts permitidos</td><td><code>.onrender.com,localhost</code></td></tr>
 </table>
 
+<div class="warning-box">
+    <strong>Base de datos compartida y caducidad (causa real del 500 de agosto 2026):</strong> ambos entornos usan la MISMA instancia PostgreSQL de Render (<code>eurocar-db-jdx2</code>, plan Basic-256mb): cualquier <code>migrate</code> desplegado en una rama afecta a las dos apps. Las instancias del plan gratuito caducan a los ~30 dias y se eliminan; si <code>DATABASE_URL</code> apunta a una instancia eliminada, TODO lo que toque la BD devuelve <strong>500</strong> mientras <code>/api/ping/</code> (que no usa BD) sigue respondiendo 200 — exactamente lo que se observo. Tras recrear una BD: actualizar <code>DATABASE_URL</code> en los dos Web Services y en el secreto de GitHub (backup diario) y hacer <em>Manual Deploy &rarr; Clear build cache &amp; deploy</em> (con solo guardar la variable, Render a veces NO redespliega: el panel dice "Live" pero sigue sirviendo la instancia vieja). Verificacion rapida: <code>/api/vehiculos/</code> debe responder 200.
+</div>
+
 <h2>12.6 Almacenamiento de Media (Cloudflare R2)</h2>
 <p>El disco de Render es efimero, por lo que la media se guarda en <strong>Cloudflare R2</strong> (S3-compatible, capa gratuita de 10 GB/mes con egress gratis). El backend ya soporta almacenamiento S3: <code>production.py</code> activa <code>storages.backends.s3.S3Storage</code> automaticamente cuando existe la variable <code>AWS_STORAGE_BUCKET_NAME</code> (no requiere cambios de codigo; <code>django-storages</code> + <code>boto3</code> ya estan en <code>requirements.txt</code>).</p>
 
@@ -2733,25 +2752,33 @@ Respuesta:
 
 <h2>12.7 Monitoreo y Backups</h2>
 <ul>
-    <li><strong>UptimeRobot:</strong> monitorea <code>https://&lt;app&gt;.onrender.com/api/ping/</code> cada 10 minutos para evitar el "cold start" del plan gratuito de Render.</li>
-    <li><strong>Backups de BD:</strong> el workflow de GitHub Actions <code>.github/workflows/backup.yml</code> hace un dump diario de la base de datos. Requiere el secreto <code>DATABASE_URL</code> configurado en el repositorio de GitHub.</li>
+    <li><strong>UptimeRobot:</strong> monitorea <code>https://eurocar-staging-jdx2.onrender.com/api/ping/</code> y <code>https://eurocar-jdx2.onrender.com/api/ping/</code> cada 10 minutos para evitar el "cold start" del plan gratuito de Render. <strong>No monitorizar los dominios sin <code>-jdx2</code></strong> (servicios ghost, ver 12.2).</li>
+    <li><strong>Backups de BD:</strong> el workflow de GitHub Actions <code>.github/workflows/backup.yml</code> hace un dump diario de la base de datos. Requiere el secreto <code>DATABASE_URL</code> configurado en el repositorio de GitHub con la URL ACTUAL de la BD (si la BD se recrea, actualizar el secreto o el backup queda apuntando a una instancia inexistente).</li>
 </ul>
 
 <h2>12.8 Actualizar el Sistema</h2>
-<p>Render redespliega automaticamente en cada push a la rama <code>master</code> (la rama principal de este repositorio) SIEMPRE QUE <strong>Auto-Deploy</strong> este activado en Render → Settings. El Build Command ejecuta <code>collectstatic</code> y <code>migrate</code> en cada deploy, por lo que no hay pasos manuales:</p>
-<pre><code>git add -A
-git commit -m "Descripcion del cambio"
+<p>El repositorio usa dos ramas con destinos distintos:</p>
+<table>
+    <tr><th>Rama</th><th>Entorno</th><th>Despliegue</th></tr>
+    <tr><td><code>staging</code></td><td><code>eurocar-staging-jdx2</code> (pruebas)</td><td><strong>Auto-Deploy</strong> en cada push</td></tr>
+    <tr><td><code>master</code></td><td><code>eurocar-jdx2</code> (produccion)</td><td><strong>Manual</strong> desde el panel de Render (no hay auto-deploy; el push solo NO despliega produccion)</td></tr>
+</table>
+<pre><code># Desplegar a STAGING (automatico al hacer push)
+git push origin staging
+
+# Desplegar a PRODUCCION
 git push origin master
-# Render detecta el push y redespliega automaticamente (si Auto-Deploy esta ON)</code></pre>
+# Render &rarr; eurocar-jdx2 &rarr; Manual Deploy &rarr; Clear build cache &amp; deploy</code></pre>
 
 <div class="warning-box">
-    <strong>Si el push no se refleja:</strong> si tras hacer push la pestana <em>Events</em> de Render sigue mostrando un commit anterior a <code>git rev-parse HEAD</code>, el deploy esta desactualizado. Pulse <strong>Manual Deploy &rarr; Clear build cache &amp; deploy</strong> para forzar la reconstruccion desde el ultimo commit de <code>master</code>.
+    <strong>Si el cambio no se refleja:</strong> si tras el deploy la pestana <em>Events</em> sigue mostrando un commit anterior a <code>git rev-parse HEAD</code>, o si tras cambiar una variable de entorno el panel dice "Live" pero el comportamiento no cambia, pulse <strong>Manual Deploy &rarr; Clear build cache &amp; deploy</strong>. Render a veces mantiene sirviendo la instancia anterior pese a mostrar "Live". El Build Command ejecuta <code>collectstatic</code> y <code>migrate</code> en cada deploy.
 </div>
 
 <div class="info-box">
-    <strong>Comandos manuales (Render Shell):</strong> si necesitas ejecutar management commands sobre produccion, usa la consola del Web Service en el panel de Render:<br>
-    <code>python manage.py createsuperuser</code><br>
-    <code>python create_users_prod.py</code><br>
+    <strong>Comandos manuales (Render Shell):</strong> si necesitas ejecutar management commands sobre un entorno, usa la consola de su Web Service:<br>
+    <code>python create_tester_user.py</code> (staging: crea/actualiza el usuario <code>tester</code>)<br>
+    <code>python create_users_prod.py</code> (produccion: 6 usuarios; el script inserta <code>backend/</code> en el path por si mismo — funciona desde la raiz del repo sin variables extra)<br>
+    <code>python manage.py migrate</code> (aplicar migraciones a mano)<br>
     <code>python manage.py backfill_asientos_banco</code> (una vez, despues de migrar a la nueva version)
 </div>
 
