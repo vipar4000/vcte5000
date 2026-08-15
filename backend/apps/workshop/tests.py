@@ -5,8 +5,9 @@ from django.urls import reverse
 from django.db import connections
 from apps.accounts.models import User
 from apps.vehicles.models import Vehiculo
-from apps.accounting.models import PlanContableDefault
-from apps.workshop.models import Material
+from apps.accounting.models import PlanContableDefault, CuentaContable
+from apps.bank.models import BancoCuenta, BancoMovimiento
+from apps.workshop.models import Material, CompraMaterial
 
 
 class OrdenTrabajoFormTests(TestCase):
@@ -306,3 +307,139 @@ class CompraMaterialTests(TestCase):
         self.assertEqual(self.aceite.stock_actual, 20)
         self.pastillas.refresh_from_db()
         self.assertEqual(self.pastillas.stock_actual, 0)
+
+    def _post_compra(self, forma_pago='', cantidad='20', precio='8.50',
+                     tipo_iva='21.00'):
+        """POST de una compra de una línea (aceite) con la forma de pago dada."""
+        self.client.force_login(self.admin)
+        data = {
+            'proveedor': 'Distribuciones Auto S.L.',
+            'cif_nif': 'B12345678',
+            'fecha_compra': '2026-07-01',
+            'numero_factura': 'FC-AUTO-2026-001',
+            'tipo_inventario': '300',
+            'tipo_iva': tipo_iva,
+            'forma_pago': forma_pago,
+            'lineas-TOTAL_FORMS': '1',
+            'lineas-INITIAL_FORMS': '0',
+            'lineas-MIN_NUM_FORMS': '0',
+            'lineas-MAX_NUM_FORMS': '1000',
+            'lineas-0-material': str(self.aceite.pk),
+            'lineas-0-cantidad': cantidad,
+            'lineas-0-precio_unitario': precio,
+            'lineas-0-DELETE': '',
+        }
+        return self.client.post(reverse('workshop:compra_material_create'), data)
+
+    def _cuentas_haber(self, compra):
+        return {
+            m.cuenta.codigo: m.haber
+            for m in compra.asiento_contable.movimientos.all()
+        }
+
+    def test_compra_credito_default_hace_410_sin_movimiento_banco(self):
+        """Sin forma de pago: HABER 410 (crédito), sin movimiento bancario."""
+        response = self._post_compra()
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertIsNone(compra.forma_pago)
+        self.assertIsNotNone(compra.asiento_contable)
+        self.assertEqual(compra.asiento_contable.estado, 'POSTEADO')
+        cuentas = self._cuentas_haber(compra)
+        self.assertEqual(cuentas.get('410'), Decimal('205.70'))
+        self.assertNotIn('572', cuentas)
+        self.assertNotIn('570', cuentas)
+        self.assertEqual(BancoMovimiento.objects.count(), 0)
+
+    def test_compra_contado_banco_genera_egreso(self):
+        """Forma de pago 572: HABER 572 + EGRESO bancario vinculado al asiento."""
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        banco = BancoCuenta.objects.create(
+            nombre='Santander Prueba',
+            iban='ES9121000418450200051332',
+            cuenta_contable=cuenta_572,
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco,
+            fecha='2026-06-30',
+            concepto='Deposito inicial',
+            tipo='INGRESO',
+            importe=Decimal('1000.00'),
+            conciliado=True,
+        )
+
+        response = self._post_compra(forma_pago='572')
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertEqual(compra.forma_pago.codigo, '572')
+        cuentas = self._cuentas_haber(compra)
+        self.assertEqual(cuentas.get('572'), Decimal('205.70'))
+        self.assertNotIn('410', cuentas)
+
+        egreso = BancoMovimiento.objects.get(tipo='EGRESO')
+        self.assertEqual(egreso.importe, Decimal('205.70'))
+        self.assertEqual(egreso.asiento_asociado, compra.asiento_contable)
+        self.assertEqual(egreso.banco_cuenta, banco)
+
+    def test_compra_contado_caja_sin_movimiento_banco(self):
+        """Forma de pago 570: HABER 570 (caja), sin movimiento bancario."""
+        response = self._post_compra(forma_pago='570')
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertEqual(compra.forma_pago.codigo, '570')
+        cuentas = self._cuentas_haber(compra)
+        self.assertEqual(cuentas.get('570'), Decimal('205.70'))
+        self.assertNotIn('410', cuentas)
+        self.assertNotIn('572', cuentas)
+        self.assertEqual(BancoMovimiento.objects.count(), 0)
+
+    def test_compra_contado_banco_sin_saldo_no_se_guarda(self):
+        """Saldo insuficiente: la factura entera se rechaza (sin stock ni asiento)."""
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        BancoCuenta.objects.create(
+            nombre='Santander Vacio',
+            iban='ES9121000418450200051444',
+            cuenta_contable=cuenta_572,
+        )
+
+        response = self._post_compra(forma_pago='572')
+        self.assertEqual(response.status_code, 200)
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 0)
+        self.assertEqual(CompraMaterial.objects.count(), 0)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 0)
+
+
+class MaterialCreateTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin',
+            email='admin@eurocar.local',
+            password='admin123!',
+            rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.url = reverse('workshop:material_create')
+        self.data = {
+            'nombre': 'Filtro de aceite',
+            'descripcion': 'Filtro estándar',
+            'unidad': 'unidades',
+            'stock_actual': '10',
+            'stock_minimo': '2',
+            'precio_unitario': '12.50',
+        }
+
+    def test_crear_material_y_anadir_otro(self):
+        """'Crear y añadir otro' vuelve al formulario vacío permitiendo crear varios."""
+        response = self.client.post(self.url, {**self.data, 'guardar_otro': '1'})
+        self.assertRedirects(response, self.url)
+        self.assertTrue(Material.objects.filter(nombre='Filtro de aceite').exists())
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'value="Filtro de aceite"')
+
+        response = self.client.post(self.url, {**self.data, 'nombre': 'Bujía'})
+        self.assertEqual(Material.objects.count(), 2)
+        bujia = Material.objects.get(nombre='Bujía')
+        self.assertRedirects(response, reverse('workshop:material_detail', args=[bujia.pk]))
