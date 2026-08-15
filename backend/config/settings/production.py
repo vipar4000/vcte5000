@@ -26,8 +26,10 @@ CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = 'DENY'
 
 # Static files whitenoise
+# Sin manifest: los assets de la SPA Vue (backend/static/web) se referencian
+# por nombre en index.html; el manifest renombraría los archivos y rompería la SPA.
 MIDDLEWARE.insert(0, 'whitenoise.middleware.WhiteNoiseMiddleware')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media storage (S3-compatible: R2, B2, Wasabi, AWS S3) - solo activo si hay bucket
 if os.environ.get('AWS_STORAGE_BUCKET_NAME'):

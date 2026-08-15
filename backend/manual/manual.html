@@ -2686,7 +2686,7 @@ Respuesta:
 </table>
 
 <div class="info-box">
-    <strong>La raiz <code>/</code> devuelve 404 "Not Found" en Render y es NORMAL:</strong> la web publica (SPA Vue) no se construye en el servidor (<code>backend/static/web/</code> no se commitea), por lo que la raiz devuelve 404. El ERP vive bajo <code>/erp/</code>; usar siempre esa ruta. No confundir este 404 con un fallo del servicio.
+    <strong>La raiz <code>/</code> sirve la web publica (catalogo Vue):</strong> los artefactos del build (<code>backend/static/web/</code>) estan commiteados en el repositorio y el build de Render los copia con <code>collectstatic</code>, por lo que la raiz muestra el catalogo de vehiculos. Las rutas internas de la SPA (<code>/catalogo</code>, <code>/vehiculo/&lt;id&gt;/</code>, <code>/tasacion</code>, <code>/contacto</code>) funcionan por el <code>spa_index</code> (catch-all). Para actualizar la web publica: <code>cd frontend &amp;&amp; npm run build</code> y commitear <code>backend/static/web/</code> (<code>git add -f</code>, carpeta ignorada por git) + push. Si la raiz devolviera 404 "Web publica no construida" es que los artefactos no estan en la rama desplegada.
 </div>
 
 <h2>12.3 Credenciales de Produccion</h2>

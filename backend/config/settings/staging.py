@@ -16,8 +16,10 @@ CELERY_BROKER_URL = None
 CELERY_RESULT_BACKEND = None
 
 # Servir estáticos con WhiteNoise (necesario cuando DEBUG=False)
+# Sin manifest: los assets de la SPA Vue (backend/static/web) se referencian
+# por nombre en index.html; el manifest renombraría los archivos y rompería la SPA.
 MIDDLEWARE.insert(0, 'whitenoise.middleware.WhiteNoiseMiddleware')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Render proxy SSL — necesario para que Django detecte HTTPS detrás del proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
