@@ -75,6 +75,12 @@
                class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
                 Cancelar
             </a>
+            {% if action == 'crear' %}
+            <button type="submit" name="guardar_otro"
+                    class="px-6 py-2 border border-eurocar-blue text-eurocar-blue rounded-lg hover:bg-blue-50 transition">
+                Crear y añadir otro
+            </button>
+            {% endif %}
             <button type="submit" 
                     class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
                 {% if action == 'crear' %}Crear Material{% else %}Guardar Cambios{% endif %}

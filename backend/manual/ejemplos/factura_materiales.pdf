@@ -10,34 +10,33 @@ endobj
    /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
 endobj
 4 0 obj
-<< /Length 671 >>
+<< /Length 702 >>
 stream
-BT /F1 12 Tf 50 700 Td (Factura de compra de materiales) Tj
-BT /F1 10 Tf 50 670 Td (Distribuciones Auto S.L.  |  CIF: B87654321) Tj
-BT /F1 10 Tf 50 648 Td (Factura: FAC-PRUEBA-001  |  Fecha: 30/07/2026) Tj
-BT /F1 10 Tf 50 626 Td () Tj
-BT /F1 10 Tf 50 604 Td (Aceite motor 5W30 (20L x 4,50) ....... 90,00 EUR) Tj
-BT /F1 10 Tf 50 582 Td (Pastillas de freno (3ud x 18,00) ..... 54,00 EUR) Tj
-BT /F1 10 Tf 50 560 Td (---------------------------------------) Tj
-BT /F1 10 Tf 50 538 Td (Base imponible ............... 144,00 EUR) Tj
-BT /F1 10 Tf 50 516 Td (IVA 21%  ....................... 30,24 EUR) Tj
-BT /F1 10 Tf 50 494 Td (TOTAL  ....................... 174,24 EUR) Tj
-ET
+BT /F1 12 Tf 50 700 Td (Factura de compra de materiales) Tj ET
+BT /F1 10 Tf 50 670 Td (Distribuciones Auto S.L.  |  CIF: B87654321) Tj ET
+BT /F1 10 Tf 50 648 Td (Factura: FAC-PRUEBA-001  |  Fecha: 30/07/2026) Tj ET
+BT /F1 10 Tf 50 626 Td () Tj ET
+BT /F1 10 Tf 50 604 Td (Aceite motor 5W30 \(20L x 4,50\) ....... 90,00 EUR) Tj ET
+BT /F1 10 Tf 50 582 Td (Pastillas de freno \(3ud x 18,00\) ..... 54,00 EUR) Tj ET
+BT /F1 10 Tf 50 560 Td (---------------------------------------) Tj ET
+BT /F1 10 Tf 50 538 Td (Base imponible ............... 144,00 EUR) Tj ET
+BT /F1 10 Tf 50 516 Td (IVA 21%  ....................... 30,24 EUR) Tj ET
+BT /F1 10 Tf 50 494 Td (TOTAL  ....................... 174,24 EUR) Tj ET
 endstream
 endobj
 5 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 xref
-6
+0 6
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
 0000000115 00000 n 
 0000000244 00000 n 
-0000000965 00000 n 
+0000000996 00000 n 
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-1035
+1066
 %%EOF

@@ -81,11 +81,17 @@
                     {{ header_form.tipo_iva }}
                 </div>
             </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Forma de pago</label>
+                {{ header_form.forma_pago }}
+            </div>
             <p class="text-sm text-gray-500 mt-2">
                 Cada línea genera su propio asiento contable y se
                 <strong>postea automáticamente</strong> (estado POSTEADO):
                 <strong>DEBE</strong> cuenta de inventario + IVA soportado (472) /
-                <strong>HABER</strong> Acreedores (410).
+                <strong>HABER</strong> la contrapartida según la forma de pago:
+                Acreedores (410) a <strong>crédito</strong>, Banco (572, con EGRESO
+                automático) o Caja (570) al <strong>contado</strong>.
             </p>
         </fieldset>
 

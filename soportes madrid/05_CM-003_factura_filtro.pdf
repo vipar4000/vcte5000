@@ -1,0 +1,80 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]
+   /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1913 >>
+stream
+BT /F2 16 Tf 50 748 Td (FACTURA) Tj ET
+BT /F1 10 Tf 50 728 Td (Filtros Madrid S.L. - Filtros para automocion) Tj ET
+BT /F1 10 Tf 380 748 Td (N. Factura: CM-003) Tj ET
+BT /F1 10 Tf 380 730 Td (Fecha emision: 02/07/2026) Tj ET
+BT /F1 10 Tf 380 712 Td (Vencimiento: 02/08/2026) Tj ET
+1 w 50 700 m 562 700 l S
+BT /F2 9 Tf 50 678 Td (PROVEEDOR) Tj ET
+BT /F1 11 Tf 50 660 Td (Filtros Madrid S.L.) Tj ET
+BT /F1 9 Tf 50 643 Td (CIF: E12345678) Tj ET
+BT /F1 9 Tf 50 626 Td (C/ del Filtro 12, Pol. Ind. Las Mercedes) Tj ET
+BT /F1 9 Tf 50 609 Td (28022 Madrid) Tj ET
+BT /F1 9 Tf 50 592 Td (Tel.: 911 234 567) Tj ET
+BT /F2 9 Tf 380 678 Td (CLIENTE) Tj ET
+BT /F1 11 Tf 380 660 Td (R Car Rogil S.L.) Tj ET
+BT /F1 9 Tf 380 643 Td (CIF: B86123456) Tj ET
+BT /F1 9 Tf 380 626 Td (Avda. de America 34) Tj ET
+BT /F1 9 Tf 380 609 Td (28028 Madrid) Tj ET
+1 w 50 460 512 100 re S
+0.85 g 50 537 512 23 re f
+0 g
+BT /F2 9 Tf 60 545 Td (Concepto) Tj ET
+BT /F2 9 Tf 335 545 Td (Cant.) Tj ET
+BT /F2 9 Tf 415 545 Td (P. Unit.) Tj ET
+BT /F2 9 Tf 495 545 Td (Importe) Tj ET
+1 w 330 460 m 330 560 l S
+1 w 405 460 m 405 560 l S
+1 w 485 460 m 485 560 l S
+BT /F1 10 Tf 60 515 Td (Filtro de aire) Tj ET
+BT /F1 9 Tf 60 498 Td (\(ref. FA-334, papel de celulosa\)) Tj ET
+BT /F1 10 Tf 335 515 Td (5 ud) Tj ET
+BT /F1 10 Tf 415 515 Td (12,00) Tj ET
+BT /F1 10 Tf 495 515 Td (60,00) Tj ET
+1 w 50 490 m 562 490 l S
+BT /F1 10 Tf 360 425 Td (Base imponible) Tj ET
+BT /F1 10 Tf 495 425 Td (60,00 EUR) Tj ET
+BT /F1 10 Tf 360 405 Td (IVA \(21%\)) Tj ET
+BT /F1 10 Tf 495 405 Td (12,60 EUR) Tj ET
+0.85 g 350 352 212 34 re f
+0 g
+BT /F2 12 Tf 365 364 Td (TOTAL) Tj ET
+BT /F2 12 Tf 495 364 Td (72,60 EUR) Tj ET
+1 w 50 330 m 562 330 l S
+BT /F1 9 Tf 50 312 Td (Forma de pago: Credito comercial \(proveedores, cuenta 410\) - vencimiento 02/08/2026) Tj ET
+BT /F1 9 Tf 50 295 Td (Documento de prueba: factura hipotetica sin validez fiscal \(capitulo 20 del manual\).) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000254 00000 n 
+0000002218 00000 n 
+0000002288 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2363
+%%EOF

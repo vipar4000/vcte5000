@@ -17,7 +17,7 @@
         <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
     </div>
     <div class="cover-footer">
-        <div class="cover-version">Manual de Usuario v3.0</div>
+        <div class="cover-version">Manual de Usuario v3.2</div>
         <div class="cover-date">Agosto 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
@@ -162,6 +162,7 @@
                 <li><a href="#capitulo-20-6"><span class="chapter-num">20.6</span> Limpieza (Reinicio para Produccion)</a></li>
             </ul>
         </li>
+        <li><a href="#comandos-usados"><span class="chapter-num">21.</span> Comandos Usados</a></li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -735,7 +736,7 @@ Material (stock: 100)
     <li>Si el material no existe, despliegue <strong>"¿El material no existe? Crear uno nuevo"</strong> e indique nombre y unidad; se dara de alta al guardar con stock 0.</li>
     <li>Indique <strong>Precio Unitario</strong>, <strong>Fecha de Compra</strong>, <strong>Proveedor</strong> y <strong>CIF/NIF</strong>.</li>
     <li>En "Datos de la Factura", adjunte el <strong>PDF de la factura</strong> del proveedor (opcional, maximo 20 MB).</li>
-    <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos) y el <strong>Tipo IVA</strong>%. <strong>Por defecto se usa 300 (Compras)</strong>, la cuenta recomendada para materiales de taller porque es la misma que se acredita cuando el material se consume en una OT (ver <a href="#capitulo-15-7">15.7</a>).</li>
+    <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos), el <strong>Tipo IVA</strong>% y la <strong>Forma de pago</strong>: <strong>Credito (acreedores 410)</strong> por defecto, <strong>Contado Banco (572)</strong> o <strong>Contado Caja (570)</strong>. <strong>Por defecto se usa 300 (Compras)</strong>, la cuenta recomendada para materiales de taller porque es la misma que se acredita cuando el material se consume en una OT (ver <a href="#capitulo-15-7">15.7</a>).</li>
     <li>Haga clic en <strong>"Registrar Compra"</strong>.</li>
 </ol>
 
@@ -745,7 +746,7 @@ Material (stock: 100)
     2. Se genera y <strong>postea automaticamente</strong> el <strong>asiento contable</strong> (cuadrado, estado POSTEADO) de entrada a inventario, por lo que aparece de inmediato en el libro diario, balance, PyG e informes de IVA:<br>
     &nbsp;&nbsp;&bull; <strong>DEBE</strong> cuenta de inventario (300 por defecto, o 310/320/330) = Base imponible<br>
     &nbsp;&nbsp;&bull; <strong>DEBE</strong> 472 (IVA soportado) = Cuota IVA<br>
-    &nbsp;&nbsp;&bull; <strong>HABER</strong> 410 (Acreedores) = Total (Base + IVA)<br>
+    &nbsp;&nbsp;&bull; <strong>HABER</strong> la contrapartida de la forma de pago: 410 (Acreedores) a credito, 572 (Banco, genera EGRESO bancario) o 570 (Caja) al contado = Total (Base + IVA)<br>
     3. El PDF de la factura se guarda en <code>media/facturas_gastos/</code> (o R2 en produccion).
 </div>
 
@@ -784,7 +785,104 @@ stock_actual += cantidad              (al completar la OT:)
     <strong>Consumo posterior:</strong> Cuando el material se usa en una OT (MaterialUsado), su importe (<code>cantidad x precio_unitario</code>) se resta del stock y suma al <strong>coste de la OT</strong>, que luego forma el coste de reparacion del vehiculo. En REBU, ese coste se contabiliza en la cuenta <strong>623 (Reparaciones, IVA no deducible)</strong>.
 </div>
 
-<!-- ==================== CAPITULO 5 ==================== -->
+<h3 id="compras-formas-pago">Formas de Pago en Compras: Contado vs Credito</h3>
+<p>El desplegable <strong>Forma de pago</strong> del formulario de compra decide <strong>dos cosas y solo dos</strong>: la <strong>cuenta de contrapartida</strong> del asiento (el HABER) y si se genera un <strong>movimiento bancario</strong>. Todo lo demas es identico en las tres opciones: el stock sube igual, el IVA soportado (472) se registra igual y los informes de existencias, PyG e IVA reflejan la compra de la misma manera.</p>
+<p>Las tres opciones son: <strong>Credito (acreedores 410)</strong> — por defecto —, <strong>Contado Banco (572)</strong> y <strong>Contado Caja (570)</strong>.</p>
+
+<p><strong>Ejemplo comun para las variantes:</strong> compra de <strong>20 litros</strong> de Aceite 5W30 a <strong>8,50 EUR/L</strong>, IVA 21%.<br>
+Base imponible = 20 x 8,50 = <strong>170,00 EUR</strong> &middot; Cuota IVA = 170,00 x 21% = <strong>35,70 EUR</strong> &middot; Total = <strong>205,70 EUR</strong>.</p>
+
+<h4>A) Compra a Credito (410) &mdash; la opcion por defecto</h4>
+<ol class="steps">
+    <li>En el formulario de compra, deje <strong>Forma de pago</strong> en <strong>"Credito (acreedores 410) — queda pendiente de pago"</strong>.</li>
+    <li>Al guardar, el sistema genera y postea el asiento de entrada a inventario contra acreedores.</li>
+</ol>
+
+<div class="success-box">
+    <strong>Asiento generado (POSTEADO):</strong><br>
+    <table>
+        <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+        <tr><td>300 Compras (inventario)</td><td>170,00</td><td></td></tr>
+        <tr><td>472 IVA soportado</td><td>35,70</td><td></td></tr>
+        <tr><td>410 Acreedores</td><td></td><td>205,70</td></tr>
+    </table>
+</div>
+
+<div class="info-box">
+    <strong>Incidencia en todo el sistema (compra a credito):</strong>
+    <table>
+        <tr><th>Modulo / Informe</th><th>Efecto</th></tr>
+        <tr><td>Inventario (stock)</td><td>Stock del aceite <strong>+20 litros</strong>.</td></tr>
+        <tr><td>Balance de Situacion</td><td>El Activo sube 205,70 (300 + 472) y el Pasivo sube 205,70 (410). <strong>Cuadra</strong>: la compra se financia con credito del proveedor y la tesoreria no se toca.</td></tr>
+        <tr><td>PyG (Cuenta de Resultados)</td><td><strong>Sin efecto inmediato</strong>: es inventario, no gasto. El coste entrara en el resultado cuando el material se consuma en una OT y el vehiculo se venda (REBU).</td></tr>
+        <tr><td>Libro de IVA (303/390)</td><td>IVA soportado <strong>+35,70</strong> (cuenta 472), deducible. Identico en las tres formas de pago.</td></tr>
+        <tr><td>Valoracion de Existencias</td><td>Valor del stock <strong>+170,00 EUR</strong> (ver <a href="#capitulo-15-7">15.7</a>).</td></tr>
+        <tr><td>Libro Diario / Mayor</td><td>El asiento aparece en el Diario; el Mayor de 410 (Acreedores) sube 205,70.</td></tr>
+        <tr><td>Modulo Banco</td><td><strong>Sin movimiento bancario</strong>: el saldo del banco no cambia y no hay ninguna linea EGRESO que conciliar contra el extracto <em>hasta que se pague</em>.</td></tr>
+    </table>
+</div>
+
+<div class="warning-box">
+    <strong>Pago posterior de una compra a credito:</strong> la deuda queda pendiente en la cuenta 410. Cuando se pague al proveedor, refleje el pago con un asiento desde <strong>Contabilidad &gt; Asientos</strong>: <strong>DEBE 410 / HABER 572</strong> (banco) o <strong>570</strong> (caja) por el total. La salida real aparecera en el extracto bancario y podra revisarla en <strong>Banco &gt; Conciliacion</strong> (<a href="#capitulo-9">capitulo 9</a>). Los <strong>gastos de estructura</strong> si tienen cierre automatico del ciclo con "marcar pagado" (ver <a href="#capitulo-18-7-1">18.7.1</a>); en compras de material el pago posterior se registra manualmente.
+</div>
+
+<h4>B) Compra al Contado con Banco (572)</h4>
+<ol class="steps">
+    <li>Elija <strong>Forma de pago: "Contado — Banco (572, genera EGRESO)"</strong>.</li>
+    <li>El sistema valida que el <strong>saldo disponible</strong> del banco cubra el total <strong>antes</strong> de guardar nada.</li>
+    <li>Al guardar: asiento contra 572 + movimiento EGRESO bancario automatico.</li>
+</ol>
+
+<div class="success-box">
+    <strong>Asiento generado (POSTEADO):</strong><br>
+    <table>
+        <tr><th>Cuenta</th><th>DEBE</th><th>HABER</th></tr>
+        <tr><td>300 Compras (inventario)</td><td>170,00</td><td></td></tr>
+        <tr><td>472 IVA soportado</td><td>35,70</td><td></td></tr>
+        <tr><td>572 Banco</td><td></td><td>205,70</td></tr>
+    </table>
+    + <strong>Movimiento bancario:</strong> EGRESO de 205,70 EUR vinculado al asiento, visible en <strong>Banco &gt; Movimientos</strong> y pendiente de conciliar.
+</div>
+
+<div class="warning-box">
+    <strong>Requisito: saldo suficiente.</strong> Si el saldo disponible del banco no cubre el total, la factura entera se rechaza con un mensaje de error: <strong>no se guarda ni el stock, ni el asiento, ni el movimiento bancario</strong>. Reduzca el importe, reponga saldo o use credito.
+</div>
+
+<div class="info-box">
+    <strong>Incidencia en todo el sistema (compra al contado por banco):</strong>
+    <table>
+        <tr><th>Modulo / Informe</th><th>Efecto</th></tr>
+        <tr><td>Inventario (stock)</td><td>Stock del aceite <strong>+20 litros</strong> (igual que a credito).</td></tr>
+        <tr><td>Balance de Situacion</td><td>Reordenacion interna del Activo: 300 +170, 472 +35,70 y 572 -205,70. <strong>Variacion neta 0</strong>: se cambia tesoreria por inventario. El Pasivo no cambia.</td></tr>
+        <tr><td>PyG</td><td>Sin efecto inmediato (inventario, no gasto).</td></tr>
+        <tr><td>Libro de IVA</td><td>IVA soportado +35,70 (igual que a credito).</td></tr>
+        <tr><td>Valoracion de Existencias</td><td>Valor del stock +170,00 EUR (igual que a credito).</td></tr>
+        <tr><td>Libro Diario / Mayor</td><td>Asiento visible en el Diario; el Mayor de 572 (Banco) baja 205,70.</td></tr>
+        <tr><td>Modulo Banco</td><td>Saldo disponible <strong>-205,70 EUR</strong>. El EGRESO queda <strong>pendiente de conciliar</strong>: al subir el extracto en <strong>Banco &gt; Conciliacion</strong> empareja automaticamente por importe y fecha (±2 dias) y se marca conciliado.</td></tr>
+    </table>
+</div>
+
+<h4>C) Compra al Contado con Caja (570)</h4>
+<p>Igual que la variante B, pero la contrapartida es la cuenta <strong>570 (Caja)</strong>: HABER 570 por 205,70. <strong>No genera movimiento bancario</strong> (la caja no se registra en el modulo Banco). Use esta opcion cuando el pago se haga en efectivo.</p>
+
+<h4>Tabla comparativa</h4>
+<table>
+    <tr><th>Criterio</th><th>Credito (410)</th><th>Contado Banco (572)</th><th>Contado Caja (570)</th></tr>
+    <tr><td>HABER del asiento</td><td>410 Acreedores</td><td>572 Banco</td><td>570 Caja</td></tr>
+    <tr><td>Movimiento bancario</td><td>No</td><td>EGRESO automatico</td><td>No</td></tr>
+    <tr><td>Balance</td><td>Activo y Pasivo suben (financiacion del proveedor)</td><td>Reordenacion de activo (neto 0)</td><td>Reordenacion de activo (neto 0)</td></tr>
+    <tr><td>PyG</td><td>Sin efecto</td><td>Sin efecto</td><td>Sin efecto</td></tr>
+    <tr><td>Libro de IVA</td><td>472 +35,70</td><td>472 +35,70</td><td>472 +35,70</td></tr>
+    <tr><td>Existencias</td><td>+170,00</td><td>+170,00</td><td>+170,00</td></tr>
+    <tr><td>Saldo del banco</td><td>Sin cambios</td><td>-205,70</td><td>Sin cambios</td></tr>
+    <tr><td>Conciliacion bancaria</td><td>Nada que conciliar hasta el pago posterior</td><td>EGRESO pendiente que empareja con el extracto</td><td>Nada que conciliar</td></tr>
+    <tr><td>Usar cuando...</td><td>El proveedor da credito comercial (vencimiento posterior)</td><td>Se paga por transferencia o tarjeta en el momento</td><td>Se paga en efectivo</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Criterio practico:</strong> elija la forma de pago que <strong>refleje la realidad del pago</strong>. A credito se conserva la tesoreria pero se crea pasivo con el proveedor; al contado se refleja la salida inmediata de dinero y la conciliacion bancaria queda lista desde el primer dia. En la Prueba del Sistema (<a href="#capitulo-20-3">capitulo 20, Paso 3.2</a>) las tres compras se registran <strong>a credito</strong> a proposito, porque las facturas de los soportes indican credito comercial (cuenta 410). El flujo automatico completo esta documentado en <a href="#capitulo-18-5">18.5</a>.
+</div>
+
 <h1 id="capitulo-5">5. Ventas y Documentacion</h1>
 
 <h2>5.1 Registrar una Venta</h2>
@@ -1805,7 +1903,7 @@ Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
     <tr><td>Venta de contado</td><td>INGRESO</td><td>Se crea al registrar la venta en <code>apps/sales/</code></td></tr>
     <tr><td>Cobro de plazo (fraccionado)</td><td>INGRESO</td><td>Se crea al marcar plazo como recibido</td></tr>
     <tr><td>Reserva / senal</td><td>INGRESO</td><td>Se crea al guardar la reserva en <code>apps/bank/views.py</code></td></tr>
-    <tr><td>Compra de material (inventario)</td><td>EGRESO</td><td>Se crea al registrar la compra en <code>apps/workshop/</code></td></tr>
+    <tr><td>Compra de material (contado banco)</td><td>EGRESO</td><td>Se crea al registrar la compra con forma de pago Banco (572) en <code>apps/workshop/</code>. A credito o caja (570) no genera movimiento.</td></tr>
     <tr><td>Gasto de estructura</td><td>&mdash;</td><td>No genera movimiento: queda pendiente en la cuenta 410 (<code>apps/expenses/</code>)</td></tr>
     <tr><td>Devolucion de reserva</td><td>EGRESO</td><td>Se crea al cancelar reserva con accion "Devolver"</td></tr>
     <tr><td>Deposito inicial / subsiguiente</td><td>INGRESO</td><td>Se crea al crear cuenta (campo deposito inicial) o via boton "Agregar Deposito"</td></tr>
@@ -2285,7 +2383,8 @@ PyG: 611 refleja la variacion de existencias
     <tr><td>Cobro plazo</td><td>572</td><td>430</td><td>INGRESO</td></tr>
     <tr><td>Cobro ext. (comision)</td><td>572 + 626</td><td>430</td><td>INGRESO</td></tr>
     <tr><td>Reserva</td><td>572</td><td>438 + 477</td><td>INGRESO</td></tr>
-    <tr><td>Compra inventario</td><td>300 + 472</td><td>410</td><td>EGRESO</td></tr>
+    <tr><td>Compra inventario (credito)</td><td>300 + 472</td><td>410</td><td>&mdash;</td></tr>
+    <tr><td>Compra inventario (contado)</td><td>300 + 472</td><td>572 o 570</td><td>EGRESO (solo 572)</td></tr>
     <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410 (+ 4751.115)</td><td>&mdash;</td></tr>
     <tr><td>Devolucion reserva</td><td>438 + 477</td><td>572</td><td>EGRESO</td></tr>
 </table>
@@ -3031,7 +3130,7 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 <div class="info-box">
     <strong>Asientos adicionales auto-generados:</strong> Ademas de los 2 asientos manuales, el script genera asientos automaticos via:
     <ul>
-        <li><strong>Compras de material</strong>: 3 asientos (DEBE 300/310/330 + 472, HABER 410)</li>
+        <li><strong>Compras de material</strong>: 3 asientos (DEBE 300/310/330 + 472, HABER 410 — credito por defecto)</li>
         <li><strong>Venta Toyota</strong>: 1 asiento REBU de 4 movimientos (ver seccion 13.4)</li>
     </ul>
     Estos aparecen en el libro diario y se verifican en los informes financieros.
@@ -4293,6 +4392,10 @@ DEBE: 5.203,00 = HABER: 5.203,00 -> CUADRADO</code></pre>
     </tr>
 </table>
 
+<div class="info-box">
+    <strong>Referencia completa:</strong> Vea el <a href="#comandos-usados">capitulo 21 - Comandos Usados</a> para el catalogo completo de comandos del sistema (Docker, Django, usuarios, pruebas, frontend y utilidades).
+</div>
+
 <h3>Comando backfill_asientos_banco</h3>
 <p>Este comando corrige movimientos bancarios que fueron creados antes de que se implementara el asiento contable automatico. Busca todos los <code>BancoMovimiento</code> tipo INGRESO que no tienen <code>asiento_asociado</code> y les crea el asiento correspondiente (DEBE 572 / HABER 110).</p>
 
@@ -4437,7 +4540,8 @@ USUARIO REGISTRA OPERACION
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>
     <tr><td><strong>Stock</strong></td><td>El <code>stock_actual</code> del material se incrementa en la cantidad comprada.</td></tr>
-    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de inventario (300 por defecto, o 310/320/330) + DEBE 472 (IVA) / HABER 410 (Acreedores). Se crea y <strong>postea automaticamente</strong> (estado POSTEADO).</td></tr>
+    <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de inventario (300 por defecto, o 310/320/330) + DEBE 472 (IVA) / HABER la contrapartida segun la <strong>forma de pago</strong>: <strong>Credito</strong> (por defecto) &rarr; HABER 410 (Acreedores); <strong>Contado Banco</strong> &rarr; HABER 572; <strong>Contado Caja</strong> &rarr; HABER 570. Se crea y <strong>postea automaticamente</strong> (estado POSTEADO).</td></tr>
+    <tr><td><strong>Movimiento bancario</strong></td><td>Solo con forma de pago <strong>Contado Banco (572)</strong>: EGRESO por el total de la compra (base + IVA). Credito y caja (570) no generan movimiento; quedan pendientes en 410 o se pagan por caja.</td></tr>
     <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (o R2).</td></tr>
 </table>
 
@@ -4603,7 +4707,7 @@ Desmarcar Pagado (opcional):
     <li><strong>Definir los materiales que existen</strong> &mdash; nombre, unidad de medida y precio unitario. Sin catalogo, el sistema no sabe que materiales existen.</li>
     <li><strong>Servir como lista desplegable en OTs</strong> &mdash; al registrar "Material Usado" en una Orden de Trabajo, el sistema muestra un desplegable con los materiales del catalogo que tengan stock &gt; 0. Solo aparecen los que tienen stock disponible.</li>
     <li><strong>Controlar stock</strong> &mdash; cada material tiene <code>stock_actual</code> y <code>stock_minimo</code>. Cuando <code>stock_actual &le; stock_minimo</code> salta una alerta visual roja en el Dashboard y en Inventario.</li>
-    <li><strong>Alimentar la contabilidad</strong> &mdash; al comprar material (🛒 Compras), el sistema genera automaticamente un asiento contable (DEBE 300/310/320/330 + 472, HABER 410) y aumenta el <code>stock_actual</code>. Al usar material en una OT, decrementa el stock y suma el coste a la OT.</li>
+    <li><strong>Alimentar la contabilidad</strong> &mdash; al comprar material (🛒 Compras), el sistema genera automaticamente un asiento contable (DEBE 300/310/320/330 + 472, HABER 410 a credito o 572/570 al contado) y aumenta el <code>stock_actual</code>. Al usar material en una OT, decrementa el stock y suma el coste a la OT.</li>
 </ol>
 
 <p><strong>Flujo completo:</strong></p>
@@ -4735,6 +4839,38 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </div>
 
 <h3>Paso 1.1 &mdash; Crear Cuenta Bancaria con Deposito Inicial</h3>
+<p><strong>Ruta de navegacion para llegar a Nueva Cuenta:</strong></p>
+<div class="diagram">
+<pre><code>+--------------------------------------+
+| SIDEBAR (menu principal)             |
+|   🏦 Banco  --&gt; /erp/banco/cuentas/  |
++------------------+-------------------+
+                   |
+                   v
++--------------------------------------+
+| CUENTAS BANCARIAS (lista)            |
+|   Boton: [ + Nueva Cuenta ]          |
+|   --&gt; /erp/banco/cuentas/nueva/      |
++------------------+-------------------+
+                   |
+                   v
++--------------------------------------+
+| FORMULARIO: Nueva Cuenta Bancaria    |
+|   • Nombre                           |
+|   • IBAN                             |
+|   • Cuenta contable (572 Banco)      |
+|   • Deposito inicial (opcional)      |
++------------------+-------------------+
+                   |
+                   v
++--------------------------------------+
+| [ Guardar ]                          |
+|   -&gt; Movimiento INGRESO "Deposito    |
+|      inicial" (Conciliado: No)       |
+|   -&gt; Asiento DEBE 572 / HABER 110    |
+|      (POSTEADO automatico)           |
++--------------------------------------+</code></pre>
+</div>
 <table>
     <tr><th>Campo</th><th>Valor</th></tr>
     <tr><td>Nombre</td><td>Banco Santander</td></tr>
@@ -5053,7 +5189,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </table>
 
 <h3>Paso 3.2 &mdash; Comprar Material (Entrada a Inventario)</h3>
-<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🛒 Compras</strong> &rarr; boton <strong>Nueva Compra</strong> (<code>/erp/taller/compras/nueva/</code>). Registre dos compras con factura, una para cada material.</p>
+<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🛒 Compras</strong> &rarr; boton <strong>Nueva Compra</strong> (<code>/erp/taller/compras/nueva/</code>). Registre tres compras con factura, una para cada material.</p>
 <table>
     <tr><th>Compra</th><th>Material</th><th>Cant.</th><th>P. Unit.</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Proveedor</th></tr>
     <tr>
@@ -5076,7 +5212,20 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
         <td>127,05 EUR</td>
         <td>Recambios Martinez S.L.</td>
     </tr>
+    <tr>
+        <td>#3</td>
+        <td>Filtro de aire</td>
+        <td>5 unidades</td>
+        <td>12,00 EUR</td>
+        <td>60,00 EUR</td>
+        <td>12,60 EUR</td>
+        <td>72,60 EUR</td>
+        <td>Filtros Madrid S.L.</td>
+    </tr>
 </table>
+<div class="info-box">
+    <strong>Forma de pago (nueva):</strong> El formulario de compra incluye un desplegable <strong>Forma de pago</strong> con tres opciones: <strong>Credito (acreedores 410)</strong> — por defecto, la compra queda pendiente de pago; <strong>Contado Banco (572)</strong> — genera el EGRESO bancario en el momento; y <strong>Contado Caja (570)</strong>. Para este ejercicio deje la opcion por defecto (Credito), tal como indican las facturas de los soportes.
+</div>
 <div class="success-box">
     <strong>Asiento contable (Compra #1 - Aceite):</strong><br>
     DEBE 300 (Compras) &mdash; 170,00 EUR<br>
@@ -5091,8 +5240,15 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     HABER 410 (Acreedores) &mdash; 127,05 EUR<br>
     <strong>Estado: POSTEADO</strong>
 </div>
+<div class="success-box">
+    <strong>Asiento contable (Compra #3 - Filtro de aire):</strong><br>
+    DEBE 300 (Compras) &mdash; 60,00 EUR<br>
+    DEBE 472 (IVA soportado) &mdash; 12,60 EUR<br>
+    HABER 410 (Acreedores) &mdash; 72,60 EUR<br>
+    <strong>Estado: POSTEADO</strong>
+</div>
 <div class="info-box">
-    <strong>Stock resultante:</strong> Aceite = 20 litros | Pastillas = 3 juegos<br>
+    <strong>Stock resultante:</strong> Aceite = 20 litros | Pastillas = 3 juegos | Filtro de aire = 5 unidades<br>
     <strong>Nota:</strong> En REBU, el IVA de las compras NO es deducible (IVA no deducible en cuenta 623 al consumirse en OT). Ver <a href="#capitulo-8-3">§8.3 REBU</a>.
 </div>
 
@@ -5102,7 +5258,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>1</td>
         <td><strong>🛒 Compras (listado)</strong></td>
-        <td>Dos compras registradas: #1 Aceite (20L, 205,70 &euro;) y #2 Pastillas (3 juegos, 127,05 &euro;). Ambas con factura asociada y proveedor.</td>
+        <td>Tres compras registradas: #1 Aceite (20L, 205,70 &euro;), #2 Pastillas (3 juegos, 127,05 &euro;) y #3 Filtro de aire (5 uds, 72,60 &euro;). Todas con factura asociada y proveedor.</td>
     </tr>
     <tr>
         <td>2</td>
@@ -5116,13 +5272,18 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     </tr>
     <tr>
         <td>4</td>
-        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Dos nuevos asientos POSTEADOS: #000004 (Aceite: DEBE 300 + 472 / HABER 410 = 205,70) y #000005 (Pastillas: DEBE 300 + 472 / HABER 410 = 127,05). Ambos con acreedor 410 (no tocan banco).</td>
+        <td><strong>📋 Catalogo &gt; detalle Filtro de aire</strong></td>
+        <td>Stock actualizado: <strong>5 unidades</strong>. El historial muestra la entrada por compra.</td>
     </tr>
     <tr>
         <td>5</td>
+        <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
+        <td>Tres nuevos asientos POSTEADOS: #000004 (Aceite: DEBE 300 + 472 / HABER 410 = 205,70), #000005 (Pastillas: DEBE 300 + 472 / HABER 410 = 127,05) y #000006 (Filtro de aire: DEBE 300 + 472 / HABER 410 = 72,60). Todos con acreedor 410 (no tocan banco).</td>
+    </tr>
+    <tr>
+        <td>6</td>
         <td><strong>🏦 Banco &gt; Cuentas</strong></td>
-        <td>Saldo <strong>sin cambios</strong> (39.233,00 &euro;). Las compras de material no generan movimiento bancario: quedan pendientes de pago en la cuenta 410 (Acreedores).</td>
+        <td>Saldo <strong>sin cambios</strong> (39.233,00 &euro;). Las compras de material a <strong>credito</strong> (por defecto) no generan movimiento bancario: quedan pendientes de pago en la cuenta 410 (Acreedores). Con forma de pago Contado Banco (572) habria generado el EGRESO correspondiente.</td>
     </tr>
 </table>
 
@@ -5192,7 +5353,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>2</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Nuevo asiento #000006: DEBE 310 (117,85) / HABER 300 (77,50) + 611 (40,35). <strong>POSTEADO</strong> y cuadrado. Este asiento <strong>capitaliza</strong> el coste de reparacion en la cuenta de mercancias (310), incrementando el valor del vehiculo.</td>
+        <td>Nuevo asiento #000007: DEBE 310 (117,85) / HABER 300 (77,50) + 611 (40,35). <strong>POSTEADO</strong> y cuadrado. Este asiento <strong>capitaliza</strong> el coste de reparacion en la cuenta de mercancias (310), incrementando el valor del vehiculo.</td>
     </tr>
     <tr>
         <td>3</td>
@@ -5342,7 +5503,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>3</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Nuevo asiento #000007 (venta REBU): DEBE 572 (11.900,00) / HABER 700 (3.001,78) + 471 (630,37) + 310 (8.267,85). <strong>POSTEADO</strong> y cuadrado (11.900,00 = 11.900,00).</td>
+        <td>Nuevo asiento #000008 (venta REBU): DEBE 572 (11.900,00) / HABER 700 (3.001,78) + 471 (630,37) + 310 (8.267,85). <strong>POSTEADO</strong> y cuadrado (11.900,00 = 11.900,00).</td>
     </tr>
     <tr>
         <td>4</td>
@@ -5411,7 +5572,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>2</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Asiento auto-generado #000008: DEBE 621 + 472 / HABER 4751.115 + 410. <strong>Estado: POSTEADO</strong> y cuadrado.</td>
+        <td>Asiento auto-generado #000009: DEBE 621 + 472 / HABER 4751.115 + 410. <strong>Estado: POSTEADO</strong> y cuadrado.</td>
     </tr>
     <tr>
         <td>3</td>
@@ -5421,12 +5582,12 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>4</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Libro IVA</strong></td>
-        <td>IVA soportado total: 624,75 + 420,00 = <strong>1.044,75 EUR</strong>.</td>
+        <td>IVA soportado total: 637,35 + 420,00 = <strong>1.057,35 EUR</strong>.</td>
     </tr>
     <tr>
         <td>5</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
-        <td>Pasivo: 410 = 2.372,75 (332,75 compras + 2.040 alquiler) y 4751.115 = 380,00. <strong>Sigue cuadrando</strong>.</td>
+        <td>Pasivo: 410 = 2.445,35 (405,35 compras + 2.040 alquiler) y 4751.115 = 380,00. <strong>Sigue cuadrando</strong>.</td>
     </tr>
     <tr>
         <td>6</td>
@@ -5457,11 +5618,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <p>Ya no es necesario crear el asiento de pago manualmente: el sistema lo genera al guardar con <code>pagado=True</code>. El asiento <strong>cierra la cuenta 410</strong> (reduce el pasivo con el proveedor) contra la <strong>cuenta 572</strong> (reduce el activo en banco).</p>
 
 <div class="success-box">
-    <strong>Asiento contable de pago (#000009, POSTEADO, generado automaticamente):</strong><br>
+    <strong>Asiento contable de pago (#000010, POSTEADO, generado automaticamente):</strong><br>
     DEBE 410 (Acreedores varios) &mdash; 2.040,00 EUR<br>
     HABER 572 (Banco Santander) &mdash; 2.040,00 EUR<br>
     <strong>Estado: POSTEADO</strong> &mdash; asiento cuadrado (DEBE = HABER = 2.040,00 EUR)<br>
-    <span class="text-sm">Este asiento cierra la deuda con el proveedor (410 vuelve a 332,75 &euro;, solo compras de material pendientes) y reduce el activo en banco.</span>
+    <span class="text-sm">Este asiento cierra la deuda con el proveedor (410 vuelve a 405,35 &euro;, solo compras de material pendientes) y reduce el activo en banco.</span>
 </div>
 
 <div class="info-box">
@@ -5483,12 +5644,12 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>2</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Nuevo asiento #000009 tipo <code>PagoGastoEstructura</code>: DEBE 410 (2.040,00) / HABER 572 (2.040,00). <strong>POSTEADO</strong> y cuadrado, generado automaticamente. Ademas, el asiento #000008 del gasto fue anulado y recreado con el mismo contenido (el sistema preserva la trazabilidad).</td>
+        <td>Nuevo asiento #000010 tipo <code>PagoGastoEstructura</code>: DEBE 410 (2.040,00) / HABER 572 (2.040,00). <strong>POSTEADO</strong> y cuadrado, generado automaticamente. Ademas, el asiento #000008 del gasto fue anulado y recreado con el mismo contenido (el sistema preserva la trazabilidad).</td>
     </tr>
     <tr>
         <td>3</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
-        <td>Activo: 572 (51.133,00 - 2.040,00 = <strong>49.093,00 EUR</strong> contables). Pasivo: 410 = 332,75 (solo compras de material, el alquiler ya fue pagado). <strong>Cuadra: Activo = Pasivo + PNN</strong>.</td>
+        <td>Activo: 572 (51.133,00 - 2.040,00 = <strong>49.093,00 EUR</strong> contables). Pasivo: 410 = 405,35 (solo compras de material, el alquiler ya fue pagado). <strong>Cuadra: Activo = Pasivo + PNN</strong>.</td>
     </tr>
     <tr>
         <td>4</td>
@@ -5504,7 +5665,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 
 <div class="info-box">
     <strong>Efectos sistemicos del pago del alquiler:</strong><br>
-    &bull; <strong>Cuenta 410 (Acreedores):</strong> se reduce de 2.372,75 a <strong>332,75 EUR</strong> (solo quedan pendientes las compras de material #4 y #5).<br>
+    &bull; <strong>Cuenta 410 (Acreedores):</strong> se reduce de 2.445,35 a <strong>405,35 EUR</strong> (solo quedan pendientes las compras de material #4, #5 y #6).<br>
     &bull; <strong>Cuenta 572 (Banco):</strong> el activo baja de 51.133,00 a <strong>49.093,00 EUR</strong> tanto en el Balance como en el modulo Banco (EGRESO automatico pendiente de conciliacion).<br>
     &bull; <strong>PyG:</strong> NO se modifica. El pago de un pasivo no es un gasto del ejercicio. El gasto ya fue devengado en el Paso 8.6 (DEBE 621 por 2.000,00).<br>
     &bull; <strong>Libro IVA:</strong> NO se modifica. El IVA soportado (420,00 &euro;) ya fue registrado en el Paso 8.6. El pago no genera nuevo IVA.<br>
@@ -5532,7 +5693,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     Total factura = 350,00 + 73,50 - 0 = <strong>423,50 EUR</strong>
 </div>
 <div class="success-box">
-    <strong>Asiento contable generado automaticamente (POSTEADO, #000010):</strong><br>
+    <strong>Asiento contable generado automaticamente (POSTEADO, #000011):</strong><br>
     DEBE 628 (Suministros) &mdash; 350,00 EUR<br>
     DEBE 472 (IVA soportado) &mdash; 73,50 EUR<br>
     HABER 410 (Acreedores varios) &mdash; 423,50 EUR<br>
@@ -5540,7 +5701,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <span class="text-sm">Compare con el asiento del alquiler (Paso 8.6): aquel tenia 4 movimientos porque incluia la retencion IRPF en 4751.115.</span>
 </div>
 <div class="warning-box">
-    <strong>Este gasto NO genera movimiento bancario:</strong> queda <strong>pendiente de pago</strong> en la cuenta 410. La cuenta 410 ahora acumula: 332,75 (compras material) + 423,50 (suministros) = <strong>756,25 EUR</strong>.
+    <strong>Este gasto NO genera movimiento bancario:</strong> queda <strong>pendiente de pago</strong> en la cuenta 410. La cuenta 410 ahora acumula: 405,35 (compras material) + 423,50 (suministros) = <strong>828,85 EUR</strong>.
 </div>
 
 <h4>Verificacion posterior</h4>
@@ -5554,7 +5715,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>2</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Asiento #000010: DEBE 628 + 472 / HABER 410. <strong>3 movimientos</strong> (sin 4751.115). POSTEADO y cuadrado.</td>
+        <td>Asiento #000011: DEBE 628 + 472 / HABER 410. <strong>3 movimientos</strong> (sin 4751.115). POSTEADO y cuadrado.</td>
     </tr>
     <tr>
         <td>3</td>
@@ -5564,12 +5725,12 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>4</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Libro IVA</strong></td>
-        <td>IVA soportado (472) aumenta: 1.044,75 + 73,50 = <strong>1.118,25 EUR</strong>. Nueva factura recibida de Iberdrola S.A. por 423,50 &euro; (base 350,00 + IVA 73,50).</td>
+        <td>IVA soportado (472) aumenta: 1.057,35 + 73,50 = <strong>1.130,85 EUR</strong>. Nueva factura recibida de Iberdrola S.A. por 423,50 &euro; (base 350,00 + IVA 73,50).</td>
     </tr>
     <tr>
         <td>5</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
-        <td>Pasivo actualizado: 410 = <strong>756,25 EUR</strong> (332,75 compras + 423,50 suministros). El activo (banco) sigue en 49.093,00 &euro; (no hay EGRESO).</td>
+        <td>Pasivo actualizado: 410 = <strong>828,85 EUR</strong> (405,35 compras + 423,50 suministros). El activo (banco) sigue en 49.093,00 &euro; (no hay EGRESO).</td>
     </tr>
 </table>
 
@@ -5601,14 +5762,14 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     Total factura = 180,00 + 37,80 = <strong>217,80 EUR</strong>
 </div>
 <div class="success-box">
-    <strong>Asiento contable generado automaticamente (POSTEADO, #000011):</strong><br>
+    <strong>Asiento contable generado automaticamente (POSTEADO, #000012):</strong><br>
     DEBE 631 (Otros tributos) &mdash; 180,00 EUR<br>
     DEBE 472 (IVA soportado) &mdash; 37,80 EUR<br>
     HABER 410 (Acreedores varios) &mdash; 217,80 EUR<br>
     <strong>Estado: POSTEADO</strong> &mdash; 3 movimientos, cuadrado (DEBE = HABER = 217,80 EUR)
 </div>
 <div class="warning-box">
-    <strong>Este gasto NO genera movimiento bancario:</strong> queda <strong>pendiente de pago</strong> en 410. La cuenta 410 ahora acumula: 756,25 + 217,80 = <strong>974,05 EUR</strong> (332,75 compras + 423,50 suministros + 217,80 impuestos).
+    <strong>Este gasto NO genera movimiento bancario:</strong> queda <strong>pendiente de pago</strong> en 410. La cuenta 410 ahora acumula: 828,85 + 217,80 = <strong>1.046,65 EUR</strong> (405,35 compras + 423,50 suministros + 217,80 impuestos).
 </div>
 
 <h4>Verificacion posterior</h4>
@@ -5622,7 +5783,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>2</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Asiento #000011: DEBE 631 + 472 / HABER 410. 3 movimientos, POSTEADO y cuadrado.</td>
+        <td>Asiento #000012: DEBE 631 + 472 / HABER 410. 3 movimientos, POSTEADO y cuadrado.</td>
     </tr>
     <tr>
         <td>3</td>
@@ -5632,17 +5793,17 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>4</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Libro IVA</strong></td>
-        <td>IVA soportado (472) aumenta: 1.118,25 + 37,80 = <strong>1.156,05 EUR</strong>. El IVA soportado total se compone ahora de 6 facturas: inversion taller (430,50), compra vehiculo (136,50), compra aceite (35,70), compra pastillas (22,05), alquiler (420,00), suministros (73,50) e impuestos (37,80).</td>
+        <td>IVA soportado (472) aumenta: 1.130,85 + 37,80 = <strong>1.168,65 EUR</strong>. El IVA soportado total se compone ahora de 8 facturas: inversion taller (430,50), compra vehiculo (136,50), compra aceite (35,70), compra pastillas (22,05), compra filtro (12,60), alquiler (420,00), suministros (73,50) e impuestos (37,80).</td>
     </tr>
     <tr>
         <td>5</td>
         <td><strong>📈 Contabilidad &gt; Informes &gt; Balance</strong></td>
-        <td>Pasivo actualizado: 410 = <strong>974,05 EUR</strong> y 4751.115 = <strong>380,00 EUR</strong> (solo del alquiler). El Balance sigue cuadrando: Activo (49.093,00 banco + inmovilizado + inventario) = Pasivo (410 + 4751.115) + PNN.</td>
+        <td>Pasivo actualizado: 410 = <strong>1.046,65 EUR</strong> y 4751.115 = <strong>380,00 EUR</strong> (solo del alquiler). El Balance sigue cuadrando: Activo (49.093,00 banco + inmovilizado + inventario) = Pasivo (410 + 4751.115) + PNN.</td>
     </tr>
     <tr>
         <td>6</td>
         <td><strong>📊 Contabilidad &gt; Informes &gt; Existencias</strong></td>
-        <td><strong>Sin descuadre.</strong> Los gastos de estructura (6xx) no afectan la cuenta 300 (Compras/Existencias). El informe de valoracion de existencias sigue mostrando 197,50 &euro; sin diferencias con el saldo contable.</td>
+        <td><strong>Sin descuadre.</strong> Los gastos de estructura (6xx) no afectan la cuenta 300 (Compras/Existencias). El informe de valoracion de existencias sigue mostrando 257,50 &euro; sin diferencias con el saldo contable.</td>
     </tr>
 </table>
 
@@ -5650,8 +5811,8 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <strong>Efectos sistemicos de los 3 gastos de estructura combinados:</strong><br>
     &bull; <strong>PyG &mdash; Gastos operativos:</strong> Arrendamientos 2.000,00 + Suministros 350,00 + Otros tributos 180,00 = <strong>2.530,00 EUR</strong> en gastos de estructura.<br>
     &bull; <strong>PyG &mdash; Resultado neto:</strong> 3.042,13 (beneficio bruto tras venta REBU) - 2.530,00 = <strong>512,13 EUR</strong> de beneficio neto.<br>
-    &bull; <strong>Balance &mdash; Pasivo corriente:</strong> 410 = 974,05 (pendientes de pago) + 4751.115 = 380,00 (retencion a compensar en el modelo 111). Total pasivo por gastos = 1.354,05 EUR.<br>
-    &bull; <strong>Libro IVA &mdash; IVA soportado:</strong> 1.156,05 EUR acumulado en 472. Compensa contra 630,37 EUR de IVA repercutido (471). Resultado de la liquidacion: <strong>a devolver 525,68 EUR</strong> (1.156,05 - 630,37).<br>
+    &bull; <strong>Balance &mdash; Pasivo corriente:</strong> 410 = 1.046,65 (pendientes de pago) + 4751.115 = 380,00 (retencion a compensar en el modelo 111). Total pasivo por gastos = 1.426,65 EUR.<br>
+    &bull; <strong>Libro IVA &mdash; IVA soportado:</strong> 1.168,65 EUR acumulado en 472. Compensa contra 630,37 EUR de IVA repercutido (471). Resultado de la liquidacion: <strong>a devolver 538,28 EUR</strong> (1.168,65 - 630,37).<br>
     &bull; <strong>Cuenta de resultados:</strong> Las cuentas de gasto (621, 628, 631) se cierran contra la cuenta 129 (Resultado del ejercicio) en el cierre anual. Hasta entonces, sus saldos se muestran en la PyG.<br>
     &bull; <strong>Registro de facturas recibidas:</strong> Las 3 facturas de gastos de estructura se integran en el libro de IVA soportado para el modelo 303 (IVA) y, si aplica, en el modelo 347 (operaciones con terceros &gt; 3.005,06 &euro; anuales).
 </div>
@@ -5662,11 +5823,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <h4>Asientos contables relacionados con gastos (4 asientos)</h4>
 <table>
     <tr><th>#</th><th>Asiento</th><th>Cuentas DEBE</th><th>Cuentas HABER</th><th>Total</th></tr>
-    <tr><td>8</td><td>Alquiler galpon (creacion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td><td>2.420,00</td></tr>
-    <tr><td>8'</td><td>Alquiler galpon (anulacion + regeneracion tras marcar pagado)</td><td>Identico al #8</td><td>Identico al #8</td><td>2.420,00</td></tr>
-    <tr><td>9</td><td>Pago alquiler (cierre 410)</td><td>410 (2.040,00)</td><td>572 (2.040,00)</td><td>2.040,00</td></tr>
-    <tr><td>10</td><td>Suministros Iberdrola</td><td>628 (350,00) + 472 (73,50)</td><td>410 (423,50)</td><td>423,50</td></tr>
-    <tr><td>11</td><td>Impuestos Ayuntamiento</td><td>631 (180,00) + 472 (37,80)</td><td>410 (217,80)</td><td>217,80</td></tr>
+    <tr><td>9</td><td>Alquiler galpon (creacion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td><td>2.420,00</td></tr>
+    <tr><td>9'</td><td>Alquiler galpon (anulacion + regeneracion tras marcar pagado)</td><td>Identico al #9</td><td>Identico al #9</td><td>2.420,00</td></tr>
+    <tr><td>10</td><td>Pago alquiler (cierre 410)</td><td>410 (2.040,00)</td><td>572 (2.040,00)</td><td>2.040,00</td></tr>
+    <tr><td>11</td><td>Suministros Iberdrola</td><td>628 (350,00) + 472 (73,50)</td><td>410 (423,50)</td><td>423,50</td></tr>
+    <tr><td>12</td><td>Impuestos Ayuntamiento</td><td>631 (180,00) + 472 (37,80)</td><td>410 (217,80)</td><td>217,80</td></tr>
 </table>
 
 <h4>PyG &mdash; Estado de resultados consolidado</h4>
@@ -5683,10 +5844,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <h4>Balance de Situacion &mdash; Resumen</h4>
 <table>
     <tr><th>Masa patrimonial</th><th>Cuentas</th><th>Importe</th></tr>
-    <tr><td><strong>ACTIVO</strong></td><td>572 (49.093,00) + 214 (2.050,00) + inventario (197,50)</td><td><strong>51.340,50 EUR</strong></td></tr>
-    <tr><td><strong>PASIVO</strong></td><td>410 (974,05) + 4751.115 (380,00)</td><td><strong>1.354,05 EUR</strong></td></tr>
-    <tr><td><strong>PATRIMONIO NETO</strong></td><td>110 (50.000,00) - 512,13 (resultado pendiente de aplicacion)</td><td><strong>49.487,87 EUR</strong></td></tr>
-    <tr><td colspan="2"><strong>CUADRE: Activo (51.340,50) = Pasivo (1.354,05) + PNN (49.986,45)</strong></td><td></td></tr>
+    <tr><td><strong>ACTIVO</strong></td><td>572 (49.093,00) + 214 (2.050,00) + 472 (1.168,65) + inventario (257,50)</td><td><strong>52.569,15 EUR</strong></td></tr>
+    <tr><td><strong>PASIVO</strong></td><td>410 (1.046,65) + 4751.115 (380,00) + 471 (630,37)</td><td><strong>2.057,02 EUR</strong></td></tr>
+    <tr><td><strong>PATRIMONIO NETO</strong></td><td>110 (50.000,00) + 129 resultado del ejercicio (512,13)</td><td><strong>50.512,13 EUR</strong></td></tr>
+    <tr><td colspan="2"><strong>CUADRE: Activo (52.569,15) = Pasivo (2.057,02) + PNN (50.512,13)</strong></td><td></td></tr>
 </table>
 
 <p><em>Nota: El cuadre exacto depende de como el sistema asigne las cuentas de gasto (grupo 6) en el cierre. Los importes de PyG se trasladan al Patrimonio Neto via la cuenta 129 (Resultado del ejercicio). Las diferencias de redondeo pueden ser de ±0,01 EUR.</em></p>
@@ -5695,10 +5856,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <table>
     <tr><th>Concepto</th><th>Cuenta</th><th>Importe</th></tr>
     <tr><td>IVA repercutido (venta REBU)</td><td>471</td><td><strong>630,37 EUR</strong></td></tr>
-    <tr><td>IVA soportado (inversion + compra vehiculo + 2 compras material + 3 gastos estructura)</td><td>472</td><td><strong>1.156,05 EUR</strong></td></tr>
-    <tr><td colspan="2"><strong>Liquidacion: a devolver</strong></td><td><strong>525,68 EUR</strong></td></tr>
+    <tr><td>IVA soportado (inversion + compra vehiculo + 3 compras material + 3 gastos estructura)</td><td>472</td><td><strong>1.168,65 EUR</strong></td></tr>
+    <tr><td colspan="2"><strong>Liquidacion: a devolver</strong></td><td><strong>538,28 EUR</strong></td></tr>
 </table>
-<p><em>IVA soportado detalle: 430,50 (inversion taller) + 136,50 (compra vehiculo) + 35,70 (aceite) + 22,05 (pastillas) + 420,00 (alquiler) + 73,50 (suministros) + 37,80 (impuestos) = 1.156,05 EUR.</em></p>
+<p><em>IVA soportado detalle: 430,50 (inversion taller) + 136,50 (compra vehiculo) + 35,70 (aceite) + 22,05 (pastillas) + 12,60 (filtro) + 420,00 (alquiler) + 73,50 (suministros) + 37,80 (impuestos) = 1.168,65 EUR.</em></p>
 
 <p>Al completar el flujo, el sistema debe haber generado <strong>exactamente</strong> los siguientes registros. Si alguna cifra no coincide, revise el paso correspondiente antes de continuar.</p>
 
@@ -5726,7 +5887,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <strong>Beneficio tras todos los gastos de estructura: 512,13 EUR</strong> (3.042,13 - 2.000,00 alquiler - 350,00 suministros - 180,00 impuestos, ver Pasos 8.6 a 8.6c)
 </div>
 
-<h3>Asientos contables generados (11)</h3>
+<h3>Asientos contables generados (12)</h3>
 <p>Todos los asientos estan <strong>POSTEADOS</strong> y cuadran (DEBE = HABER):</p>
 <table>
     <tr><th>#</th><th>Asiento</th><th>DEBE</th><th>HABER</th></tr>
@@ -5735,12 +5896,13 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>3</td><td>Compra vehiculo</td><td>310 (8.150,00) + 472 (136,50)</td><td>572 (8.286,50)</td></tr>
     <tr><td>4</td><td>Compra material #1 (aceite)</td><td>300 (170,00) + 472 (35,70)</td><td>410 (205,70)</td></tr>
     <tr><td>5</td><td>Compra material #2 (pastillas)</td><td>300 (105,00) + 472 (22,05)</td><td>410 (127,05)</td></tr>
-    <tr><td>6</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 611 (40,35)</td></tr>
-    <tr><td>7</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
-    <tr><td>8</td><td>Gasto estructura (alquiler con retencion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td></tr>
-    <tr><td>9</td><td>Pago alquiler (cierre 410 contra 572)</td><td>410 (2.040,00)</td><td>572 (2.040,00)</td></tr>
-    <tr><td>10</td><td>Suministros (luz, agua, conectividad)</td><td>628 (350,00) + 472 (73,50)</td><td>410 (423,50)</td></tr>
-    <tr><td>11</td><td>Impuestos (IBI, tasas municipales)</td><td>631 (180,00) + 472 (37,80)</td><td>410 (217,80)</td></tr>
+    <tr><td>6</td><td>Compra material #3 (filtro de aire)</td><td>300 (60,00) + 472 (12,60)</td><td>410 (72,60)</td></tr>
+    <tr><td>7</td><td>Capitalizacion OT (reparacion)</td><td>310 (117,85)</td><td>300 (77,50) + 611 (40,35)</td></tr>
+    <tr><td>8</td><td>Venta REBU</td><td>572 (11.900,00)</td><td>700 (3.001,78) + 471 (630,37) + 310 (8.267,85)</td></tr>
+    <tr><td>9</td><td>Gasto estructura (alquiler con retencion)</td><td>621 (2.000,00) + 472 (420,00)</td><td>4751.115 (380,00) + 410 (2.040,00)</td></tr>
+    <tr><td>10</td><td>Pago alquiler (cierre 410 contra 572)</td><td>410 (2.040,00)</td><td>572 (2.040,00)</td></tr>
+    <tr><td>11</td><td>Suministros (luz, agua, conectividad)</td><td>628 (350,00) + 472 (73,50)</td><td>410 (423,50)</td></tr>
+    <tr><td>12</td><td>Impuestos (IBI, tasas municipales)</td><td>631 (180,00) + 472 (37,80)</td><td>410 (217,80)</td></tr>
 </table>
 
 <h3>Movimientos bancarios (4 visibles, 1 contable)</h3>
@@ -5756,11 +5918,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <strong>Saldo en modulo Banco = 51.133,00 EUR</strong> (50.000,00 - 2.480,50 - 8.286,50 + 11.900,00)<br>
     <strong>Saldo contable (Balance) = 49.093,00 EUR</strong> (51.133,00 - 2.040,00 del pago del alquiler, ver Paso 8.6a)<br><br>
     <strong>Explicacion de la diferencia (2.040,00 EUR):</strong><br>
-    &bull; El pago del alquiler (Paso 8.6a) genero el asiento #000009 (DEBE 410 / HABER 572) que reduce el saldo contable del banco en 2.040,00 EUR.<br>
+    &bull; El pago del alquiler (Paso 8.6a) genero el asiento #000010 (DEBE 410 / HABER 572) que reduce el saldo contable del banco en 2.040,00 EUR.<br>
     &bull; Sin embargo, el modulo Banco calcula su saldo a partir de los registros <code>BancoMovimiento</code>. Como el sistema de gastos de estructura no crea automaticamente movimientos bancarios de EGRESO, este pago no tiene un <code>BancoMovimiento</code> asociado.<br>
     &bull; <strong>Esta diferencia es normal y temporal.</strong> Se resolvera cuando se realice la <strong>conciliacion bancaria</strong> (Banco &gt; Conciliacion) importando el extracto bancario real. El sistema emparejara el EGRESO del extracto con el asiento #000009 y creara el <code>BancoMovimiento</code> correspondiente.<br>
     &bull; Los informes contables (Balance, PyG, IVA) usan los saldos de las cuentas contables (no los <code>BancoMovimiento</code>), por lo que reflejan correctamente el saldo de 49.093,00 EUR.<br><br>
-    <strong>Nota (Pasos 8.6b y 8.6c):</strong> los gastos de suministros e impuestos NO generan movimiento bancario: quedan pendientes de pago en la cuenta 410 (Acreedores) por 423,50 + 217,80 = <strong>641,30 EUR</strong> adicionales. La cuenta 410 totaliza <strong>974,05 EUR</strong> (332,75 compras material + 641,30 gastos pendientes).
+    <strong>Nota (Pasos 8.6b y 8.6c):</strong> los gastos de suministros e impuestos NO generan movimiento bancario: quedan pendientes de pago en la cuenta 410 (Acreedores) por 423,50 + 217,80 = <strong>641,30 EUR</strong> adicionales. La cuenta 410 totaliza <strong>1.046,65 EUR</strong> (405,35 compras material + 641,30 gastos pendientes).
 </div>
 
 <h2 id="capitulo-20-5">20.5 Verificacion Post-Prueba</h2>
@@ -5769,19 +5931,19 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 
 <ul>
     <li>&#9744; El vehiculo VW Golf 1234ABC esta en estado <strong>VENDIDO</strong></li>
-    <li>&#9744; Existen <strong>11 asientos</strong> contables (o mas, considerando anulaciones), todos <strong>POSTEADOS</strong> y cuadrados</li>
+    <li>&#9744; Existen <strong>12 asientos</strong> contables (o mas, considerando anulaciones), todos <strong>POSTEADOS</strong> y cuadrados</li>
     <li>&#9744; Existen <strong>4 movimientos</strong> bancarios visibles en el modulo Banco</li>
     <li>&#9744; El saldo en <strong>Banco &gt; Cuentas</strong> es <strong>51.133,00 EUR</strong> (saldo del modulo). El saldo <strong>contable</strong> (Balance) es <strong>49.093,00 EUR</strong>. La diferencia de 2.040,00 EUR corresponde al pago del alquiler pendiente de conciliacion bancaria.</li>
     <li>&#9744; El gasto de alquiler (ARRENDAMIENTO) esta marcado como <strong>Pagado = Si</strong> con fecha 21/07/2026</li>
     <li>&#9744; El asiento de pago del alquiler (DEBE 410 / HABER 572) esta <strong>POSTEADO</strong> y cuadrado</li>
     <li>&#9744; Existen <strong>3 gastos de estructura</strong> en total: ARRENDAMIENTO (2.000,00 &euro;), SUMINISTROS (350,00 &euro;), IMPUESTOS_ESTR (180,00 &euro;)</li>
-    <li>&#9744; El IVA soportado (472) totaliza <strong>1.156,05 EUR</strong> (7 facturas: inversion, vehiculo, 2 materiales, 3 gastos)</li>
-    <li>&#9744; La cuenta 410 (Acreedores) totaliza <strong>974,05 EUR</strong> (332,75 compras material + 641,30 gastos pendientes de pago: suministros + impuestos)</li>
+    <li>&#9744; El IVA soportado (472) totaliza <strong>1.168,65 EUR</strong> (8 facturas: inversion, vehiculo, 3 materiales, 3 gastos)</li>
+    <li>&#9744; La cuenta 410 (Acreedores) totaliza <strong>1.046,65 EUR</strong> (405,35 compras material + 641,30 gastos pendientes de pago: suministros + impuestos)</li>
     <li>&#9744; La cuenta 4751.115 (HP Retenciones IRPF) muestra <strong>380,00 EUR</strong> (solo del alquiler)</li>
     <li>&#9744; El Balance de situacion cuadra (Activo = Pasivo + Patrimonio)</li>
     <li>&#9744; El informe de Existencias no muestra aviso de descuadre (diferencia = 0,00) &mdash; los gastos de estructura no tocan la cuenta 300</li>
     <li>&#9744; La PyG muestra Arrendamientos (621) = <strong>2.000,00 EUR</strong>, Suministros (628) = <strong>350,00 EUR</strong>, Otros tributos (631) = <strong>180,00 EUR</strong>, Variacion de existencias (611) = <strong>40,35 EUR</strong> y resultado neto = <strong>512,13 EUR</strong></li>
-    <li>&#9744; El Libro IVA muestra IVA repercutido (471) = 630,37 EUR | IVA soportado (472) = 1.156,05 EUR | Liquidacion: <strong>a devolver 525,68 EUR</strong></li>
+    <li>&#9744; El Libro IVA muestra IVA repercutido (471) = 630,37 EUR | IVA soportado (472) = 1.168,65 EUR | Liquidacion: <strong>a devolver 538,28 EUR</strong></li>
     <li>&#9744; La garantia de 12 meses existe y esta <strong>VIGENTE</strong></li>
 </ul>
 
@@ -5793,7 +5955,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>Vendidos</td><td>1 (VW Golf)</td></tr>
     <tr><td>OTs Pendientes</td><td>0</td></tr>
     <tr><td>OTs Completadas</td><td>1</td></tr>
-    <tr><td>Valor Inventario</td><td>170 + 105 - 77,50 consumido = <strong>197,50 EUR</strong></td></tr>
+    <tr><td>Valor Inventario</td><td>170 + 105 + 60 - 77,50 consumido = <strong>257,50 EUR</strong></td></tr>
 </table>
 
 <h3>Banco</h3>
@@ -5810,10 +5972,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <h3>Contabilidad</h3>
 <table>
     <tr><th>Informe</th><th>Que verificar</th></tr>
-    <tr><td>Balance situacion</td><td>Activo = 51.340,50 EUR (572: 49.093 contables + 214: 2.050 + inventario: 197,50). Pasivo = 1.354,05 EUR (410: 974,05 + 4751.115: 380,00). PNN = 49.986,45 EUR. <strong>Activo = Pasivo + PNN</strong>.</td></tr>
+    <tr><td>Balance situacion</td><td>Activo = 52.569,15 EUR (572: 49.093 contables + 214: 2.050 + 472: 1.168,65 + inventario: 257,50). Pasivo = 2.057,02 EUR (410: 1.046,65 + 4751.115: 380,00 + 471: 630,37). PNN = 50.512,13 EUR (110: 50.000 + resultado: 512,13). <strong>Activo = Pasivo + PNN</strong>.</td></tr>
     <tr><td>PyG</td><td>Ingresos (700): 3.001,78 EUR | Variacion existencias (611): +40,35 EUR | Arrendamientos (621): -2.000,00 EUR | Suministros (628): -350,00 EUR | Otros tributos (631): -180,00 EUR | Resultado neto: <strong>512,13 EUR</strong>.</td></tr>
-    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 1.156,05 EUR (430,50 + 136,50 + 35,70 + 22,05 + 420,00 + 73,50 + 37,80). Liquidacion: <strong>a devolver 525,68 EUR</strong>.</td></tr>
-    <tr><td>Asientos</td><td>11 asientos: deposito inicial, inversion taller, compra vehiculo, 2 compras material, capitalizacion OT, venta REBU, alquiler, pago alquiler, suministros, impuestos. Todos POSTEADOS. El asiento del alquiler puede tener una version anulada por la regeneracion al marcar como pagado.</td></tr>
+    <tr><td>Libro IVA</td><td>IVA Repercutido (471): 630,37 EUR | IVA Soportado (472): 1.168,65 EUR (430,50 + 136,50 + 35,70 + 22,05 + 12,60 + 420,00 + 73,50 + 37,80). Liquidacion: <strong>a devolver 538,28 EUR</strong>.</td></tr>
+    <tr><td>Asientos</td><td>12 asientos: deposito inicial, inversion taller, compra vehiculo, 3 compras material, capitalizacion OT, venta REBU, alquiler, pago alquiler, suministros, impuestos. Todos POSTEADOS. El asiento del alquiler puede tener una version anulada por la regeneracion al marcar como pagado.</td></tr>
 </table>
 
 <h3>Garantia</h3>
@@ -5852,7 +6014,217 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
 </div>
 
 <div class="info-box">
-    <strong>Nota final:</strong> Tras la prueba, el operador debe cambiar la contrasena del usuario <code>admin</code> a una segura (<code>python manage.py changepassword admin</code>) y ajustar <code>puede_eliminar</code> segun la politica de la empresa antes de dar de alta datos reales.
+<strong>Nota final:</strong> Tras la prueba, el operador debe cambiar la contrasena del usuario <code>admin</code> a una
+</div>
+
+<!-- ==================== CAPITULO 21 ==================== -->
+<h1 id="comandos-usados">21. Comandos Usados (Referencia Completa)</h1>
+
+<p>Este capitulo recopila todos los comandos disponibles en el repositorio del ERP, con su explicacion y caso de uso. Los comandos <strong>Dev</strong> se ejecutan desde la raiz del repositorio (<code>vcte5000/</code>); los de <strong>Django</strong> desde <code>backend/</code> con <code>python manage.py &lt;cmd&gt;</code>, o desde la raiz con <code>docker-compose exec backend python manage.py &lt;cmd&gt;</code>.</p>
+
+<h2 id="comandos-usados-1">21.1 Entorno Docker</h2>
+<table>
+    <tr><th>Comando</th><th>Entorno</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>docker-compose up -d</code></td>
+        <td>Dev (raiz)</td>
+        <td>Arranca los 5 servicios: <code>db</code> (Postgres 15), <code>redis</code>, <code>backend</code>, <code>celery_worker</code>, <code>nginx</code></td>
+        <td>Desarrollo con Docker (Postgres + Redis + Celery)</td>
+    </tr>
+    <tr>
+        <td><code>docker-compose down</code></td>
+        <td>Dev (raiz)</td>
+        <td>Detiene y elimina los contenedores</td>
+        <td>Al terminar la sesion de desarrollo</td>
+    </tr>
+    <tr>
+        <td><code>docker-compose exec backend python manage.py &lt;cmd&gt;</code></td>
+        <td>Dev (raiz)</td>
+        <td>Ejecuta cualquier comando Django dentro del contenedor <code>backend</code></td>
+        <td>Cuando se trabaja con Docker en lugar de entorno local</td>
+    </tr>
+    <tr>
+        <td><code>docker-compose exec backend python manage.py seed_users</code></td>
+        <td>Dev (raiz)</td>
+        <td>Crea los 5 usuarios de demostracion (mismos que <code>create_test_users.py</code>, sin <code>roger</code>)</td>
+        <td>Primera vez en Docker; para produccion use <code>create_users_prod.py</code></td>
+    </tr>
+</table>
+
+<h2 id="comandos-usados-2">21.2 Comandos Django (manage.py)</h2>
+<table>
+    <tr><th>Comando</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>migrate</code></td>
+        <td>Aplica las migraciones pendientes a la base de datos</td>
+        <td>Siempre primero, tras cada cambio de esquema o despliegue</td>
+    </tr>
+    <tr>
+        <td><code>runserver</code></td>
+        <td>Arranca el servidor de desarrollo en :8000 (el backend Docker ya lo ejecuta)</td>
+        <td>Desarrollo local sin Docker</td>
+    </tr>
+    <tr>
+        <td><code>createsuperuser</code></td>
+        <td>Crea un superusuario de Django</td>
+        <td>Primer acceso al admin <code>/admin/</code></td>
+    </tr>
+    <tr>
+        <td><code>test</code></td>
+        <td>Ejecuta los 63 tests unitarios en una BD de prueba aislada (~70 segundos, 1 omitido)</td>
+        <td>Verificacion de cambios en backend</td>
+    </tr>
+    <tr>
+        <td><code>seed_users</code></td>
+        <td>Crea los 5 usuarios de demostracion (admin, mecanico1, mecanico2, vendedor1, gestoria1) con sus PINs</td>
+        <td>Poblar un entorno con usuarios conocidos</td>
+    </tr>
+    <tr>
+        <td><code>regularizar_existencias --ano 2025</code></td>
+        <td>Crea el asiento PGC <strong>DEBE 300 / HABER 611</strong> para regularizar el stock de vehiculos no vendidos a 31 de diciembre. Idempotente: omite el stock ya vendido y no repite asientos</td>
+        <td>Cierre anual de existencias</td>
+    </tr>
+    <tr>
+        <td><code>backfill_asientos_banco</code></td>
+        <td>Crea asientos contables retroactivos para movimientos bancarios INGRESO sin asiento asociado</td>
+        <td>Una sola vez tras migrar a versiones nuevas (seguro repetirlo)</td>
+    </tr>
+    <tr>
+        <td><code>subir_imagen_vehiculo</code></td>
+        <td>Sube imagenes masivamente a vehiculos en estado EN_VENTA</td>
+        <td>Automatizar las fotos de los vehiculos</td>
+    </tr>
+    <tr>
+        <td><code>subir_factura_gasto</code></td>
+        <td>Adjunta el PDF de una factura a un gasto existente</td>
+        <td>Digitalizar facturas de gasto</td>
+    </tr>
+    <tr>
+        <td><code>collectstatic</code></td>
+        <td>Compila los archivos estaticos en <code>staticfiles/</code></td>
+        <td>Despliegues (Render lo ejecuta en el build automaticamente)</td>
+    </tr>
+</table>
+
+<div class="warning-box">
+    <strong>Importante:</strong> No ejecute <code>makemigrations</code> con una version de Django mas reciente que la fijada en el proyecto (4.2.8). La migracion <code>accounts/0003_alter_user_rol</code> fue generada con Django 6.0.7 y regenerarla con otra version puede romper el esquema.
+</div>
+
+<h2 id="comandos-usados-3">21.3 Usuarios y Datos de Prueba</h2>
+<p>Scripts ejecutables desde la raiz del repositorio. Configuran por si mismos <code>DJANGO_SETTINGS_MODULE=config.settings.development</code>.</p>
+<table>
+    <tr><th>Comando</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>python create_test_users.py</code></td>
+        <td>Crea o actualiza los 5 usuarios de prueba: <code>admin</code> (admin123!), <code>mecanico1</code> (PIN 1234), <code>mecanico2</code> (PIN 5678), <code>vendedor1</code>, <code>gestoria1</code></td>
+        <td>Obligatorio antes de los tests; repara cuentas obsoletas (usa <code>update_or_create</code>)</td>
+    </tr>
+    <tr>
+        <td><code>python create_full_test.py</code></td>
+        <td>Crea el conjunto completo de datos de ejemplo (6 vehiculos, 8 materiales, OTs, ventas, gastos, contabilidad)</td>
+        <td>Despues de <code>create_test_users.py</code>, para explorar el ERP con datos realistas</td>
+    </tr>
+    <tr>
+        <td><code>python create_test_purchase.py</code></td>
+        <td>Siembra los materiales del catalogo y crea una <code>CompraMaterial</code> multi-material</td>
+        <td>Probar el modulo de compras de material</td>
+    </tr>
+    <tr>
+        <td><code>python create_tester_user.py</code></td>
+        <td>Crea el usuario <code>tester</code> / <code>TestMadrid2024!</code> (ADMIN) para staging o produccion. Flags: <code>--reset-password</code>, <code>--delete</code></td>
+        <td>Pruebas puntuales en entornos desplegados; eliminar despues de usarlo</td>
+    </tr>
+    <tr>
+        <td><code>DJANGO_SETTINGS_MODULE=config.settings.production python create_users_prod.py</code></td>
+        <td>Crea los 6 usuarios de produccion (incluye <code>roger</code>)</td>
+        <td>Primera vez en produccion</td>
+    </tr>
+</table>
+
+<h2 id="comandos-usados-4">21.4 Pruebas y Verificacion</h2>
+<table>
+    <tr><th>Comando</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>cd backend && python manage.py test</code></td>
+        <td>63 tests unitarios en BD aislada (~70 segundos, 1 omitido)</td>
+        <td>Tras cambios en modelos, vistas o informes</td>
+    </tr>
+    <tr>
+        <td><code>python test_modules.py</code></td>
+        <td>54 checks de integracion (smoke test) contra la BD de desarrollo</td>
+        <td>Verificar que el ERP responde; requiere <code>create_test_users.py</code> + <code>migrate</code> previos</td>
+    </tr>
+    <tr>
+        <td><code>python check_report_data.py</code></td>
+        <td>Ejecuta los generadores de informes con datos reales y comprueba que el Balance cuadra (Activo = Pasivo + Patrimonio) y que todos los asientos posteados estan cuadrados</td>
+        <td>Validar la contabilidad con los datos reales de desarrollo</td>
+    </tr>
+    <tr>
+        <td><code>python -m unittest test_io.py</code></td>
+        <td>Tests de entrada/salida de archivos (sin Django)</td>
+        <td>Verificar el manejo de ficheros</td>
+    </tr>
+    <tr>
+        <td><code>python test_pipeline_capitulo20.py</code></td>
+        <td>Ejecuta el pipeline completo del capitulo 20 dentro de una transaccion que se revierte al final</td>
+        <td>Verificacion segura del flujo sin contaminar la base de datos</td>
+    </tr>
+</table>
+
+<div class="warning-box">
+    <strong>ADVERTENCIA - <code>python simulacion_capitulo20.py</code>:</strong> Es <strong>DESTRUCTIVO</strong>. Borra <code>backend/db.sqlite3</code>, ejecuta <code>migrate --run-syncdb</code> desde cero y recrea todos los datos del pipeline (correcciones #1-#26, nominas, IVA 303, Ley Antifraude). Usar solo cuando se necesite una verificacion de pizarra en blanco.
+</div>
+
+<h2 id="comandos-usados-5">21.5 Frontend (Web Publica Vue)</h2>
+<table>
+    <tr><th>Comando</th><th>Entorno</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>cd frontend && npm install</code></td>
+        <td>Dev (frontend/)</td>
+        <td>Instala las dependencias de Node</td>
+        <td>Primera vez, antes de <code>dev</code> o <code>build</code></td>
+    </tr>
+    <tr>
+        <td><code>cd frontend && npm run dev</code></td>
+        <td>Dev (frontend/)</td>
+        <td>Servidor de desarrollo Vite en :3000 con proxy de <code>/api</code> y <code>/media</code> hacia :8000</td>
+        <td>Desarrollar la web publica con recarga en caliente</td>
+    </tr>
+    <tr>
+        <td><code>cd frontend && npm run build</code></td>
+        <td>Dev (frontend/)</td>
+        <td>Compila el SPA a <code>backend/static/web/</code>. Sin este paso la web publica devuelve 404 "Web publica no construida"</td>
+        <td>Tras cualquier cambio de JS/CSS; los cambios de Tailwind requieren rebuild completo</td>
+    </tr>
+</table>
+
+<h2 id="comandos-usados-6">21.6 Documentacion y Utilidades One-Off</h2>
+<table>
+    <tr><th>Comando</th><th>Que hace</th><th>Cuando usarlo</th></tr>
+    <tr>
+        <td><code>python backend/generate_manual.py</code></td>
+        <td>Regenera el PDF del manual (<code>media/manual_eurocar_erp.pdf</code>) con WeasyPrint</td>
+        <td>Tras editar <code>backend/manual/manual.html</code></td>
+    </tr>
+    <tr>
+        <td><code>python backend/generate_manual_xhtml2pdf.py</code></td>
+        <td>Variante de generacion del PDF con xhtml2pdf</td>
+        <td>Alternativa si WeasyPrint no esta instalado</td>
+    </tr>
+    <tr>
+        <td><code>python fix_inversion_banco.py</code></td>
+        <td>Reparacion puntual de los movimientos bancarios de <code>InversionInicial</code> (ver la cabecera del script para la variante de staging)</td>
+        <td>Solo si se detecta la inconsistencia que corrige</td>
+    </tr>
+    <tr>
+        <td><code>python backend/create_missing_warranties.py</code></td>
+        <td>Backfill: crea la <code>GarantiaVehiculo</code> que falta para ventas existentes</td>
+        <td>Una sola vez, tras migrar ventas antiguas</td>
+    </tr>
+</table>
+
+<div class="info-box">
+    <strong>Fuente:</strong> La referencia de comandos se mantiene tambien en el archivo <code>AGENTS.md</code> del repositorio, junto con las notas de arquitectura y los avisos para desarrollo.
 </div>
 
 </body>

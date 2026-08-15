@@ -27,6 +27,12 @@
                         €{{ cuenta.saldo_pendiente|floatformat:2 }}
                     </span>
                 </p>
+                {% if cuenta.soporte_deposito %}
+                <p class="text-sm text-gray-600">
+                    Soporte del deposito inicial:
+                    <a href="{{ cuenta.soporte_deposito.url }}" target="_blank" class="text-eurocar-blue hover:underline">📄 Ver</a>
+                </p>
+                {% endif %}
             </div>
         </div>
         <div class="flex gap-3">

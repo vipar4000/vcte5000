@@ -207,6 +207,17 @@ class CompraFacturaForm(forms.Form):
             'step': '0.01', 'min': '0', 'max': '100',
         }),
     )
+    forma_pago = forms.ChoiceField(
+        required=False, label='Forma de pago',
+        choices=[
+            ('', 'Crédito (acreedores 410) — queda pendiente de pago'),
+            ('572', 'Contado — Banco (572, genera EGRESO)'),
+            ('570', 'Contado — Caja (570)'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+        }),
+    )
     documento_pdf = forms.FileField(
         required=False, label='Factura PDF',
         widget=forms.FileInput(attrs={

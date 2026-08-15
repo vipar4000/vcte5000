@@ -2,7 +2,7 @@
 """Genera los soportes contables de la Prueba del Sistema (Capitulo 20).
 
 Crea en <repo>/soportes madrid/:
-  - 5 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
+  - 6 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
     fechas e importes del capitulo 20 del manual (incluido el Paso 8.6).
   - 1 extracto bancario CSV para la conciliacion (Banco > Conciliacion).
 
@@ -15,6 +15,36 @@ import os
 BASE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'soportes madrid'
 )
+
+
+def _escribir_pdf(path, objects):
+    """Serializa los objetos PDF con su tabla xref y lo guarda en path."""
+    with open(path, 'wb') as f:
+        f.write(b'%PDF-1.4\n')
+        xref_offsets = []
+        for obj in objects:
+            xref_offsets.append(f.tell())
+            f.write(obj)
+        xref_offset = f.tell()
+        num_objects = len(objects) + 1
+        f.write(b'xref\n')
+        f.write(b'0 ' + str(num_objects).encode() + b'\n')
+        f.write(b'0000000000 65535 f \n')
+        for offset in xref_offsets:
+            f.write(f'{offset:010d} 00000 n \n'.encode())
+        f.write(b'trailer\n')
+        f.write(b'<< /Size ' + str(num_objects).encode() + b' /Root 1 0 R >>\n')
+        f.write(b'startxref\n')
+        f.write(str(xref_offset).encode() + b'\n')
+        f.write(b'%%EOF\n')
+
+    print(f'PDF creado: {os.path.basename(path)} ({os.path.getsize(path)} bytes)')
+
+
+def _pdf_str(s):
+    """Codifica y escapa un string para un literal de texto PDF (latin-1)."""
+    enc = s.encode('latin-1', 'replace')
+    return enc.replace(b'\\', b'\\\\').replace(b'(', b'\\(').replace(b')', b'\\)')
 
 
 def generar_pdf(path, titulo, lineas):
@@ -30,39 +60,115 @@ def generar_pdf(path, titulo, lineas):
     objects.append(b'3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\n   /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n')
 
     y = 730
-    stream = b'BT /F1 14 Tf 50 ' + str(y).encode() + b' Td (' + titulo.encode('latin-1', 'replace') + b') Tj\n'
+    stream = b'BT /F1 14 Tf 50 ' + str(y).encode() + b' Td (' + _pdf_str(titulo) + b') Tj ET\n'
     y -= 30
     for linea in lineas:
         if linea.startswith('**'):  # línea destacada (total)
-            stream += b'BT /F1 12 Tf 50 ' + str(y).encode() + b' Td (' + linea[2:].encode('latin-1', 'replace') + b') Tj\n'
+            stream += b'BT /F1 12 Tf 50 ' + str(y).encode() + b' Td (' + _pdf_str(linea[2:]) + b') Tj ET\n'
         else:
-            stream += b'BT /F1 10 Tf 50 ' + str(y).encode() + b' Td (' + linea.encode('latin-1', 'replace') + b') Tj\n'
+            stream += b'BT /F1 10 Tf 50 ' + str(y).encode() + b' Td (' + _pdf_str(linea) + b') Tj ET\n'
         y -= 20
 
-    stream += b'ET\n'
     objects.append(b'4 0 obj\n<< /Length ' + str(len(stream)).encode() + b' >>\nstream\n' + stream + b'endstream\nendobj\n')
     objects.append(b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n')
 
-    with open(path, 'wb') as f:
-        f.write(b'%PDF-1.4\n')
-        xref_offsets = []
-        for obj in objects:
-            xref_offsets.append(f.tell())
-            f.write(obj)
-        xref_offset = f.tell()
-        num_objects = len(objects) + 1
-        f.write(b'xref\n')
-        f.write(str(num_objects).encode() + b'\n')
-        f.write(b'0000000000 65535 f \n')
-        for offset in xref_offsets:
-            f.write(f'{offset:010d} 00000 n \n'.encode())
-        f.write(b'trailer\n')
-        f.write(b'<< /Size ' + str(num_objects).encode() + b' /Root 1 0 R >>\n')
-        f.write(b'startxref\n')
-        f.write(str(xref_offset).encode() + b'\n')
-        f.write(b'%%EOF\n')
+    _escribir_pdf(path, objects)
 
-    print(f'PDF creado: {os.path.basename(path)} ({os.path.getsize(path)} bytes)')
+
+def generar_factura_filtro(path):
+    """Factura hipotetica realista de la compra del filtro (Paso 3.2, CM-003).
+
+    Importes exactos del capitulo 20: 5 ud x 12,00 = 60,00 base; IVA 21% = 12,60;
+    TOTAL = 72,60 EUR. Pago a credito comercial (cuenta 410).
+    """
+    enc = _pdf_str
+
+    def txt(font, size, x, y, s):
+        return (b'BT /' + font.encode('ascii') + b' ' + str(size).encode() + b' Tf '
+                + str(x).encode() + b' ' + str(y).encode() + b' Td ('
+                + enc(s) + b') Tj ET\n')
+
+    def linea(x1, y1, x2, y2):
+        return (b'1 w ' + str(x1).encode() + b' ' + str(y1).encode() + b' m '
+                + str(x2).encode() + b' ' + str(y2).encode() + b' l S\n')
+
+    def recuadro(x, y, w, h):
+        return (b'1 w ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re S\n')
+
+    def recuadro_gris(x, y, w, h):
+        return (b'0.85 g ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re f\n0 g\n')
+
+    stream = b''
+    # Cabecera
+    stream += txt('F2', 16, 50, 748, 'FACTURA')
+    stream += txt('F1', 10, 50, 728, 'Filtros Madrid S.L. - Filtros para automocion')
+    stream += txt('F1', 10, 380, 748, 'N. Factura: CM-003')
+    stream += txt('F1', 10, 380, 730, 'Fecha emision: 02/07/2026')
+    stream += txt('F1', 10, 380, 712, 'Vencimiento: 02/08/2026')
+    stream += linea(50, 700, 562, 700)
+
+    # Bloque proveedor
+    stream += txt('F2', 9, 50, 678, 'PROVEEDOR')
+    stream += txt('F1', 11, 50, 660, 'Filtros Madrid S.L.')
+    stream += txt('F1', 9, 50, 643, 'CIF: E12345678')
+    stream += txt('F1', 9, 50, 626, 'C/ del Filtro 12, Pol. Ind. Las Mercedes')
+    stream += txt('F1', 9, 50, 609, '28022 Madrid')
+    stream += txt('F1', 9, 50, 592, 'Tel.: 911 234 567')
+
+    # Bloque cliente
+    stream += txt('F2', 9, 380, 678, 'CLIENTE')
+    stream += txt('F1', 11, 380, 660, 'R Car Rogil S.L.')
+    stream += txt('F1', 9, 380, 643, 'CIF: B86123456')
+    stream += txt('F1', 9, 380, 626, 'Avda. de America 34')
+    stream += txt('F1', 9, 380, 609, '28028 Madrid')
+
+    # Tabla de lineas
+    stream += recuadro(50, 460, 512, 100)
+    stream += recuadro_gris(50, 537, 512, 23)
+    stream += txt('F2', 9, 60, 545, 'Concepto')
+    stream += txt('F2', 9, 335, 545, 'Cant.')
+    stream += txt('F2', 9, 415, 545, 'P. Unit.')
+    stream += txt('F2', 9, 495, 545, 'Importe')
+    stream += linea(330, 460, 330, 560)
+    stream += linea(405, 460, 405, 560)
+    stream += linea(485, 460, 485, 560)
+    stream += txt('F1', 10, 60, 515, 'Filtro de aire')
+    stream += txt('F1', 9, 60, 498, '(ref. FA-334, papel de celulosa)')
+    stream += txt('F1', 10, 335, 515, '5 ud')
+    stream += txt('F1', 10, 415, 515, '12,00')
+    stream += txt('F1', 10, 495, 515, '60,00')
+    stream += linea(50, 490, 562, 490)
+
+    # Totales
+    stream += txt('F1', 10, 360, 425, 'Base imponible')
+    stream += txt('F1', 10, 495, 425, '60,00 EUR')
+    stream += txt('F1', 10, 360, 405, 'IVA (21%)')
+    stream += txt('F1', 10, 495, 405, '12,60 EUR')
+    stream += recuadro_gris(350, 352, 212, 34)
+    stream += txt('F2', 12, 365, 364, 'TOTAL')
+    stream += txt('F2', 12, 495, 364, '72,60 EUR')
+
+    # Pie
+    stream += linea(50, 330, 562, 330)
+    stream += txt('F1', 9, 50, 312,
+                  'Forma de pago: Credito comercial (proveedores, cuenta 410) - vencimiento 02/08/2026')
+    stream += txt('F1', 9, 50, 295,
+                  'Documento de prueba: factura hipotetica sin validez fiscal (capitulo 20 del manual).')
+
+    objects = [
+        b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+        b'2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+        b'3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\n'
+        b'   /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+        b'4 0 obj\n<< /Length ' + str(len(stream)).encode()
+        + b' >>\nstream\n' + stream + b'endstream\nendobj\n',
+        b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+        b'6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n',
+    ]
+
+    _escribir_pdf(path, objects)
 
 
 def main():
@@ -152,9 +258,12 @@ def main():
         ],
     )
 
+    # --- Paso 3.2 (compra #3): Factura hipotetica filtro de aire ---
+    generar_factura_filtro(os.path.join(BASE, '05_CM-003_factura_filtro.pdf'))
+
     # --- Paso 8.6: Factura alquiler del galpon (con retencion IRPF) ---
     generar_pdf(
-        os.path.join(BASE, '05_ALQ-2026-07_factura_alquiler_galpon.pdf'),
+        os.path.join(BASE, '06_ALQ-2026-07_factura_alquiler_galpon.pdf'),
         'FACTURA - ALQ-2026-07',
         [
             'Propietario Galpon S.L.  |  CIF: B87654321',
@@ -178,7 +287,7 @@ def main():
     # El alquiler (Paso 8.6) NO aparece: queda pendiente en la cuenta 410.
     # La fecha del deposito es la del dia de la prueba (05/08/2026);
     # el matcher admite +/-2 dias si se ejecuta en otra fecha.
-    csv_path = os.path.join(BASE, '06_extracto_bancario_santander.csv')
+    csv_path = os.path.join(BASE, '07_extracto_bancario_santander.csv')
     with open(csv_path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
         writer.writerow(['fecha', 'concepto', 'tipo', 'importe'])

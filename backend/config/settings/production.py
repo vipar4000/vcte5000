@@ -49,6 +49,18 @@ if os.environ.get('AWS_STORAGE_BUCKET_NAME'):
     else:
         MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
+# Redis opcional: si REDIS_URL no existe, degradar a locmem + Celery eager (como staging)
+if not os.environ.get('REDIS_URL'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'production-cache',
+        }
+    }
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_BROKER_URL = None
+    CELERY_RESULT_BACKEND = None
+
 # Email via SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')

@@ -4,8 +4,13 @@ from django.contrib import messages
 from django.db.models import Q, Sum, Count, F, ExpressionWrapper, DecimalField
 from django.db import transaction
 from django.core.files import File
+from decimal import Decimal
 from .models import Material, MaterialUsado, OrdenTrabajo, CompraMaterial
 from .forms import MaterialForm, CompraFacturaForm, CompraMaterialLineaFormSet
+from apps.accounting.models import CuentaContable
+from apps.bank.models import BancoCuenta
+from apps.bank.services import obtener_cuenta_banco_default
+from apps.core.formatting import format_euros
 
 
 @login_required
@@ -97,6 +102,9 @@ def material_create(request):
                 request, 
                 f'Material "{material.nombre}" creado correctamente.'
             )
+            if 'guardar_otro' in request.POST:
+                messages.info(request, 'Puede crear el siguiente material.')
+                return redirect('workshop:material_create')
             return redirect('workshop:material_detail', pk=material.pk)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
@@ -123,6 +131,62 @@ def compra_material_create(request):
 
         if header_form.is_valid() and linea_formset.is_valid():
             pdf_file = header_form.cleaned_data.get('documento_pdf')
+            forma_pago_code = header_form.cleaned_data.get('forma_pago') or ''
+
+            # Resolver la cuenta de contrapartida (vacío = crédito 410)
+            forma_pago_cuenta = None
+            if forma_pago_code:
+                try:
+                    forma_pago_cuenta = CuentaContable.objects.get(
+                        codigo=forma_pago_code
+                    )
+                except CuentaContable.DoesNotExist:
+                    messages.error(
+                        request,
+                        f'Falta la cuenta contable {forma_pago_code} en el plan '
+                        f'contable. Inicialice el plan en Contabilidad > Cuentas > '
+                        f'Inicializar.'
+                    )
+                    return render(request, 'workshop/material_compra_form.html', {
+                        'header_form': header_form,
+                        'linea_formset': linea_formset,
+                        'materiales': Material.objects.all().order_by('nombre'),
+                    })
+
+            # Validar saldo disponible ANTES de crear nada (evita errores a
+            # mitad de la transacción si el banco no cubre el total contado).
+            if forma_pago_code == '572':
+                total_contado = Decimal('0')
+                for linea_form in linea_formset:
+                    if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
+                        continue
+                    material = linea_form.cleaned_data.get('material')
+                    cantidad = linea_form.cleaned_data.get('cantidad')
+                    precio = linea_form.cleaned_data.get('precio_unitario')
+                    if not material or cantidad is None or precio is None:
+                        continue
+                    tipo_iva = header_form.cleaned_data['tipo_iva']
+                    total_contado += cantidad * precio * (
+                        Decimal('1') + tipo_iva / Decimal('100')
+                    )
+                banco_cuenta = BancoCuenta.objects.filter(
+                    cuenta_contable__codigo='572'
+                ).first()
+                if not banco_cuenta:
+                    banco_cuenta = obtener_cuenta_banco_default()
+                if banco_cuenta and total_contado > banco_cuenta.saldo_pendiente:
+                    messages.error(
+                        request,
+                        f'Saldo insuficiente en {banco_cuenta.nombre} para el pago '
+                        f'contado de {format_euros(total_contado)}. '
+                        f'Disponible: {format_euros(banco_cuenta.saldo_pendiente)}.'
+                    )
+                    return render(request, 'workshop/material_compra_form.html', {
+                        'header_form': header_form,
+                        'linea_formset': linea_formset,
+                        'materiales': Material.objects.all().order_by('nombre'),
+                    })
+
             lineas_creadas = 0
             asientos_ok = 0
 
@@ -146,6 +210,7 @@ def compra_material_create(request):
                         numero_factura=header_form.cleaned_data.get('numero_factura', ''),
                         tipo_inventario=header_form.cleaned_data['tipo_inventario'],
                         tipo_iva=header_form.cleaned_data['tipo_iva'],
+                        forma_pago=forma_pago_cuenta,
                         created_by=request.user,
                     )
                     if i == 0 and pdf_file:
@@ -160,16 +225,31 @@ def compra_material_create(request):
                             asiento.save()
                             asientos_ok += 1
                     except Exception as e:
-                        messages.warning(
+                        # La factura se procesa en una única transacción atómica:
+                        # cualquier error revierte todas las líneas (stock, asientos
+                        # y movimientos bancarios) y se informa al usuario.
+                        transaction.set_rollback(True)
+                        messages.error(
                             request,
-                            f'Línea {lineas_creadas} ({compra.material.nombre}): '
-                            f'compra guardada pero error al crear asiento: {e}'
+                            f'Error al contabilizar la línea {lineas_creadas} '
+                            f'({compra.material.nombre}): {e}. '
+                            f'No se guardó ninguna línea de la factura.'
                         )
+                        return render(request, 'workshop/material_compra_form.html', {
+                            'header_form': header_form,
+                            'linea_formset': linea_formset,
+                            'materiales': Material.objects.all().order_by('nombre'),
+                        })
 
+            descripcion_pago = {
+                '': 'Crédito (pendiente en 410)',
+                '572': 'Contado banco (EGRESO registrado)',
+                '570': 'Contado caja',
+            }.get(forma_pago_code, 'Crédito (pendiente en 410)')
             messages.success(
                 request,
                 f'Factura registrada: {lineas_creadas} material(es) comprado(s), '
-                f'{asientos_ok} asiento(s) posteado(s).'
+                f'{asientos_ok} asiento(s) posteado(s). {descripcion_pago}.'
             )
             return redirect('workshop:material_list')
         else:

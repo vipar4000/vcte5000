@@ -304,6 +304,16 @@ class CompraMaterial(models.Model):
         upload_to='facturas_gastos/', null=True, blank=True,
         verbose_name='factura PDF',
     )
+    forma_pago = models.ForeignKey(
+        'accounting.CuentaContable',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='compras_material_forma_pago',
+        verbose_name='forma de pago',
+        limit_choices_to={'codigo__in': ['410', '570', '572']},
+        help_text='Vacío o 410 = crédito (acreedores). 572 = contado banco '
+                  '(genera EGRESO). 570 = contado caja.',
+    )
     asiento_contable = models.OneToOneField(
         'accounting.AsientoContable',
         on_delete=models.SET_NULL,
@@ -353,15 +363,29 @@ class CompraMaterial(models.Model):
             super().save(*args, **kwargs)
 
     def crear_asiento_contable(self):
-        """Genera el asiento de entrada a inventario (Grupo 3) + IVA + Proveedor."""
+        """Genera el asiento de entrada a inventario (Grupo 3) + IVA + contrapartida.
+
+        Crédito (por defecto, forma_pago vacía o 410): HABER 410 (acreedores).
+        Contado banco (572): HABER 572 + movimiento EGRESO en el módulo Banco.
+        Contado caja (570): HABER 570, sin movimiento bancario.
+        """
         from django.db import transaction
         from apps.accounting.models import (
             AsientoContable, MovimientoContable, CuentaContable,
         )
         from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoCuenta
+        from apps.bank.services import (
+            crear_movimiento_banco, obtener_cuenta_banco_default,
+        )
 
         with transaction.atomic():
-            codigos_requeridos = [self.tipo_inventario, '472', '410']
+            codigo_contrapartida = (
+                self.forma_pago.codigo
+                if self.forma_pago and self.forma_pago.codigo in ('570', '572')
+                else '410'
+            )
+            codigos_requeridos = [self.tipo_inventario, '472', codigo_contrapartida]
             for codigo in codigos_requeridos:
                 if not CuentaContable.objects.filter(codigo=codigo).exists():
                     raise ValueError(
@@ -371,7 +395,7 @@ class CompraMaterial(models.Model):
 
             cuenta_inventario = CuentaContable.objects.get(codigo=self.tipo_inventario)
             cuenta_iva = CuentaContable.objects.get(codigo='472')
-            cuenta_proveedor = CuentaContable.objects.get(codigo='410')
+            cuenta_contrapartida = CuentaContable.objects.get(codigo=codigo_contrapartida)
 
             numero = generar_numero_asiento()
 
@@ -395,10 +419,15 @@ class CompraMaterial(models.Model):
                 debe=self.cuota_iva, haber=Decimal('0'),
                 descripcion=f"IVA soportado {self.tipo_iva}%",
             )
+            total = self.base_imponible + self.cuota_iva
             MovimientoContable.objects.create(
-                asiento=asiento, cuenta=cuenta_proveedor,
-                debe=Decimal('0'), haber=self.base_imponible + self.cuota_iva,
-                descripcion=f"Proveedor: {self.proveedor}",
+                asiento=asiento, cuenta=cuenta_contrapartida,
+                debe=Decimal('0'), haber=total,
+                descripcion=(
+                    f"Proveedor: {self.proveedor}"
+                    if codigo_contrapartida == '410'
+                    else f"Pago contado: {self.proveedor}"
+                ),
             )
 
             self.asiento_contable = asiento
@@ -407,5 +436,23 @@ class CompraMaterial(models.Model):
             if asiento.esta_cuadrado:
                 asiento.estado = 'POSTEADO'
                 asiento.save(update_fields=['estado'])
+
+            # Contado por banco: EGRESO vinculado al asiento (la caja 570 no
+            # genera movimientos en el módulo Banco).
+            if codigo_contrapartida == '572':
+                banco_cuenta = BancoCuenta.objects.filter(
+                    cuenta_contable=cuenta_contrapartida
+                ).first()
+                if not banco_cuenta:
+                    banco_cuenta = obtener_cuenta_banco_default()
+                if banco_cuenta:
+                    crear_movimiento_banco(
+                        banco_cuenta=banco_cuenta,
+                        fecha=asiento.fecha,
+                        concepto=asiento.concepto,
+                        tipo='EGRESO',
+                        importe=total,
+                        asiento=asiento,
+                    )
 
             return asiento

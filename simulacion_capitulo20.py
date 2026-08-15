@@ -278,16 +278,34 @@ print(OK, "ETAPA 2 completada — compra Golf con coste_total_adquisicion")
 # ============================================================================
 print("\n[ETAPA 3] Taller — OT + stock select_for_update()...")
 
-from apps.workshop.models import OrdenTrabajo, Material, MaterialUsado
+from apps.workshop.models import OrdenTrabajo, Material, MaterialUsado, CompraMaterial
 
-# Crear materiales
+# Crear materiales (stock inicial 0; el filtro entra por compra real con factura)
 aceite, _ = Material.objects.get_or_create(
     nombre='Aceite 5W30', defaults={'stock_actual': 20, 'stock_minimo': 5, 'precio_unitario': Decimal('45.00')}
 )
 filtro, _ = Material.objects.get_or_create(
-    nombre='Filtro de aceite', defaults={'stock_actual': 10, 'stock_minimo': 3, 'precio_unitario': Decimal('12.50')}
+    nombre='Filtro de aceite', defaults={'stock_actual': 0, 'stock_minimo': 3, 'precio_unitario': Decimal('12.50')}
 )
 print(INFO, f"Materiales: {aceite.nombre} (stock:{aceite.stock_actual}), {filtro.nombre} (stock:{filtro.stock_actual})")
+
+# Compra del filtro (entrada a inventario con factura y asiento, como en el cap. 20 del manual)
+compra_filtro = CompraMaterial(
+    material=filtro, cantidad=Decimal('10'), precio_unitario=Decimal('12.50'),
+    fecha_compra=date(2026, 7, 2), proveedor='Filtros Madrid S.L.',
+    cif_nif='E12345678', numero_factura='CM-003',
+    tipo_inventario='300', tipo_iva=Decimal('21.00'), created_by=admin,
+)
+compra_filtro.save()
+asiento_compra_filtro = compra_filtro.crear_asiento_contable()
+if asiento_compra_filtro.esta_cuadrado:
+    asiento_compra_filtro.estado = 'POSTEADO'
+    asiento_compra_filtro.save(update_fields=['estado'])
+filtro.refresh_from_db()
+assert filtro.stock_actual == 10, f"Stock filtro tras compra mal: {filtro.stock_actual}"
+assert asiento_compra_filtro.esta_cuadrado and asiento_compra_filtro.estado == 'POSTEADO', \
+    "Asiento compra filtro no cuadrado/posteado"
+print(OK, f"Compra filtro CM-003: 10 uds x 12,50 — asiento #{asiento_compra_filtro.numero} POSTEADO — stock: {filtro.stock_actual}")
 
 # Cambiar estado a TALLER (BUG #18: ahora ocurre DESPUÉS de guardar la OT)
 golf.estado = 'TALLER'
