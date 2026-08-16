@@ -29,6 +29,7 @@ def orden_trabajo_list(request):
     if busqueda:
         ots = ots.filter(
             Q(titulo__icontains=busqueda) |
+            Q(descripcion__icontains=busqueda) |
             Q(vehiculo__matricula__icontains=busqueda) |
             Q(vehiculo__marca__icontains=busqueda)
         )

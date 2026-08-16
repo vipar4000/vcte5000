@@ -5364,7 +5364,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </table>
 
 <h3>Paso 3.3 &mdash; Usar Material en OT</h3>
-<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🔧 Taller</strong> &rarr; <strong>Ordenes de Trabajo</strong> &rarr; click en <strong>Diagnostico general y reparacion</strong> &rarr; boton <strong>Editar</strong> &rarr; seccion <strong>Materiales Usados</strong> (<code>/erp/taller/ot/&lt;id&gt;/editar/</code>). Agregue los materiales consumidos con el boton <strong>+ Anadir Material</strong>.</p>
+<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🔧 Taller</strong> &rarr; <strong>Ordenes de Trabajo</strong> &rarr; use el filtro <strong>🔍 Buscar</strong> y escriba <strong>Diagnostico</strong> (o parte de la descripcion del trabajo, p. ej. <strong>Revision general</strong>) para localizar la OT en la columna <strong>Titulo</strong> del listado &rarr; click en <strong>Diagnostico general y reparacion</strong> &rarr; boton <strong>Editar</strong> &rarr; seccion <strong>Materiales Usados</strong> (<code>/erp/taller/ot/&lt;id&gt;/editar/</code>). Agregue los materiales consumidos con el boton <strong>+ Anadir Material</strong>.</p>
+<table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>Horas reales (seccion Tiempo)</td><td>3</td></tr>
+</table>
 <table>
     <tr><th>Material</th><th>Cantidad</th><th>Coste</th></tr>
     <tr><td>Aceite motor 5W30</td><td>5 litros</td><td>42,50 EUR</td></tr>
@@ -5373,7 +5377,9 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <div class="info-box">
     <strong>Efecto:</strong> El stock se decrementa automaticamente: Aceite = 20-5 = <strong>15 litros</strong> | Pastillas = 3-1 = <strong>2 juegos</strong><br>
     <strong>Coste materiales acumulado en OT:</strong> 42,50 + 35,00 = <strong>77,50 EUR</strong><br>
-    No genera asiento contable. El coste se reflejara al completar la OT y posteriormente en la venta REBU.
+    <strong>Mano de obra (horas reales):</strong> 3h &times; 13,45 EUR/h = <strong>40,35 EUR</strong><br>
+    <strong>Coste total de la OT (Resumen de Costes):</strong> 77,50 + 40,35 = <strong>117,85 EUR</strong><br>
+    No genera asiento contable. El coste se reflejara al completar la OT (Paso 3.4) y posteriormente en la venta REBU.
 </div>
 
 <h4>Verificacion posterior</h4>
@@ -5397,10 +5403,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 </table>
 
 <h3>Paso 3.4 &mdash; Completar OT</h3>
-<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🔧 Taller</strong> &rarr; <strong>Ordenes de Trabajo</strong> &rarr; click en <strong>Diagnostico general y reparacion</strong> &rarr; boton <strong>Editar</strong> (<code>/erp/taller/ot/&lt;id&gt;/editar/</code>). En el formulario de edicion, cambie el estado y las horas reales.</p>
+<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🔧 Taller</strong> &rarr; <strong>Ordenes de Trabajo</strong> &rarr; click en <strong>Diagnostico general y reparacion</strong> &rarr; boton <strong>Editar</strong> (<code>/erp/taller/ot/&lt;id&gt;/editar/</code>). En el formulario de edicion, cambie el estado a <strong>COMPLETADA</strong> (las horas reales ya se fijaron en el Paso 3.3).</p>
 <table>
     <tr><th>Campo</th><th>Valor</th></tr>
-    <tr><td>Horas reales</td><td>3</td></tr>
+    <tr><td>Horas reales</td><td>3 (fijadas en el Paso 3.3)</td></tr>
     <tr><td>Estado</td><td>COMPLETADA</td></tr>
 </table>
 <div class="info-box">

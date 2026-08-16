@@ -118,6 +118,70 @@ class OrdenTrabajoFormTests(TestCase):
         self.assertTrue(asiento.esta_cuadrado)
 
 
+class OrdenTrabajoListaFiltroTests(TestCase):
+    """El filtro de búsqueda del listado de OTs incluye título y descripción."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin',
+            email='admin@eurocar.local',
+            password='admin123!',
+            rol='ADMIN',
+        )
+        self.operario = User.objects.create_user(
+            username='mecanico1',
+            email='mecanico1@eurocar.local',
+            password='mecanico123!',
+            rol='OPERARIO',
+            pin_kiosco='1234',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC',
+            bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen',
+            modelo='Golf',
+            anio=2019,
+            combustible='DIESEL',
+            kilometraje=85000,
+            tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='ECO',
+            estado='TALLER',
+            fecha_adquisicion='2026-07-01',
+            precio_subasta=7500,
+            tasas_sala=400,
+            logistica_grua=250,
+            created_by=self.admin,
+        )
+        from apps.workshop.models import OrdenTrabajo
+        self.ot = OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo,
+            operario=self.operario,
+            titulo='Diagnostico general y reparacion',
+            descripcion='Revision general: cambio aceite, filtros, frenos',
+            horas_estimadas=4,
+            estado='PENDIENTE',
+            created_by=self.admin,
+        )
+
+    def test_busqueda_por_descripcion(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('workshop:list'), {'busqueda': 'cambio aceite'}
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Diagnostico general y reparacion', html)
+
+    def test_busqueda_sin_resultados_excluye_ot(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('workshop:list'), {'busqueda': 'texto inexistente'}
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertNotIn('Diagnostico general y reparacion', html)
+
+
 class OrdenTrabajoCosteTests(TestCase):
     def setUp(self):
         PlanContableDefault.crear_plan_base()
