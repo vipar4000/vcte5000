@@ -2,8 +2,9 @@
 """Genera los soportes contables de la Prueba del Sistema (Capitulo 20).
 
 Crea en <repo>/soportes madrid/:
-  - 6 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
-    fechas e importes del capitulo 20 del manual (incluido el Paso 8.6).
+  - 8 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
+    fechas e importes del capitulo 20 del manual (incluido el Paso 8.6 y las
+    dos compras al contado del Paso 3.2: CM-004 banco y CM-005 caja).
   - 1 extracto bancario CSV para la conciliacion (Banco > Conciliacion).
 
 Uso:  python gen_soportes_madrid.py
@@ -261,6 +262,44 @@ def main():
     # --- Paso 3.2 (compra #3): Factura hipotetica filtro de aire ---
     generar_factura_filtro(os.path.join(BASE, '05_CM-003_factura_filtro.pdf'))
 
+    # --- Paso 3.2 (compra #4): Factura refrigerante - CONTADO BANCO (572) ---
+    generar_pdf(
+        os.path.join(BASE, '08_CM-004_factura_refrigerante.pdf'),
+        'FACTURA - CM-004',
+        [
+            'Auto Parts Europa S.L.  |  CIF: F12345678',
+            'Fecha de emision: 02/07/2026',
+            'Cliente: R Car Rogil S.L. - Madrid',
+            '',
+            'Refrigerante G12   10 litros x 6,50 ......... 65,00 EUR',
+            '--------------------------------------------------',
+            'Base imponible ............................... 65,00 EUR',
+            'IVA 21% ....................................... 13,65 EUR',
+            '**TOTAL FACTURA .............................. 78,65 EUR',
+            '',
+            'Forma de pago: Contado - Banco Santander (cuenta 572)',
+        ],
+    )
+
+    # --- Paso 3.2 (compra #5): Factura neumaticos - CONTADO CAJA (570) ---
+    generar_pdf(
+        os.path.join(BASE, '09_CM-005_factura_neumaticos.pdf'),
+        'FACTURA - CM-005',
+        [
+            'Neumaticos Express S.L.  |  CIF: G12345678',
+            'Fecha de emision: 02/07/2026',
+            'Cliente: R Car Rogil S.L. - Madrid',
+            '',
+            'Neumaticos 205/55R16   2 unidades x 75,00 ... 150,00 EUR',
+            '--------------------------------------------------',
+            'Base imponible ............................... 150,00 EUR',
+            'IVA 21% .......................................  31,50 EUR',
+            '**TOTAL FACTURA .............................. 181,50 EUR',
+            '',
+            'Forma de pago: Contado - Efectivo en caja (cuenta 570)',
+        ],
+    )
+
     # --- Paso 8.6: Factura alquiler del galpon (con retencion IRPF) ---
     generar_pdf(
         os.path.join(BASE, '06_ALQ-2026-07_factura_alquiler_galpon.pdf'),
@@ -282,9 +321,12 @@ def main():
         ],
     )
 
-    # --- Paso 1.3 / 9.5.5: Extracto bancario para la conciliacion ---
-    # 4 lineas = los 4 movimientos que genera el ERP durante el capitulo 20.
-    # El alquiler (Paso 8.6) NO aparece: queda pendiente en la cuenta 410.
+    # --- Paso 1.3 / 9.5.5 / 8.6e: Extracto bancario para la conciliacion ---
+    # 8 lineas = los 5 movimientos que genera el ERP durante el capitulo 20
+    # + 3 pagos de compras a credito del Paso 8.6e (EGRESOS que se crean en
+    # el modulo Banco al conciliarlos con el checkbox "Manual").
+    # La compra por caja (CM-005) no toca el banco; el pago del alquiler
+    # (Paso 8.6a) no esta en este extracto de muestra (queda sin conciliar).
     # La fecha del deposito es la del dia de la prueba (05/08/2026);
     # el matcher admite +/-2 dias si se ejecuta en otra fecha.
     csv_path = os.path.join(BASE, '07_extracto_bancario_santander.csv')
@@ -294,7 +336,11 @@ def main():
         writer.writerow(['05/08/2026', 'Deposito inicial', 'INGRESO', '50.000,00'])
         writer.writerow(['01/07/2026', 'Inversión inicial INV-2026-001: Taller Equipamiento S.L.', 'EGRESO', '2.480,50'])
         writer.writerow(['01/07/2026', 'Compra vehículo Volkswagen Golf 1.6 TDI (1234ABC)', 'EGRESO', '8.286,50'])
+        writer.writerow(['02/07/2026', 'Compra inventario: Refrigerante G12 - Auto Parts Europa S.L.', 'EGRESO', '78,65'])
         writer.writerow(['15/07/2026', 'Cobro venta Volkswagen Golf 1.6 TDI (1234ABC) - Antonio Perez Martin', 'INGRESO', '11.900,00'])
+        writer.writerow(['31/07/2026', 'Pago proveedor Distribuciones Auto S.L.', 'EGRESO', '205,70'])
+        writer.writerow(['31/07/2026', 'Pago proveedor Recambios Martinez S.L.', 'EGRESO', '127,05'])
+        writer.writerow(['31/07/2026', 'Pago proveedor Filtros Madrid S.L.', 'EGRESO', '72,60'])
     print(f'CSV creado: {os.path.basename(csv_path)} ({os.path.getsize(csv_path)} bytes)')
 
     print(f'\nCarpeta destino: {os.path.abspath(BASE)}')
