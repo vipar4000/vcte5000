@@ -314,6 +314,18 @@ class CompraMaterial(models.Model):
         help_text='Vacío o 410 = crédito (acreedores). 572 = contado banco '
                   '(genera EGRESO). 570 = contado caja.',
     )
+    pagado = models.BooleanField(default=False, verbose_name='pagado')
+    fecha_pago = models.DateField(null=True, blank=True, verbose_name='fecha de pago')
+    cuenta_pago = models.ForeignKey(
+        'accounting.CuentaContable',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='compras_material_cuenta_pago',
+        verbose_name='cuenta de pago (banco/caja)',
+        limit_choices_to={'codigo__in': ['570', '572']},
+        help_text='Solo aplica a compras a crédito (410): cuenta desde la que '
+                  'se pagará. Vacío = 572.',
+    )
     asiento_contable = models.OneToOneField(
         'accounting.AsientoContable',
         on_delete=models.SET_NULL,
@@ -456,3 +468,136 @@ class CompraMaterial(models.Model):
                     )
 
             return asiento
+
+    @property
+    def es_credito(self):
+        """True si la compra quedó pendiente de pago en 410 (no contado)."""
+        return not self.forma_pago or self.forma_pago.codigo == '410'
+
+    def crear_asiento_pago(self):
+        """Genera el asiento de pago (DEBE 410 / HABER 570/572) y el EGRESO bancario.
+
+        Cierra el ciclo de pago de una compra a crédito: reduce el pasivo con el
+        proveedor (410) contra la tesorería. Idempotente: si ya existe un asiento
+        de pago activo para esta compra, no crea otro. No aplica a compras al
+        contado (ya pagadas al registrar la compra).
+        """
+        from django.db import transaction
+        from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoCuenta
+        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+        from datetime import date
+
+        if not self.es_credito:
+            raise ValueError(
+                'La compra se registró al contado: el pago ya quedó reflejado '
+                'en su asiento de compra. Solo las compras a crédito (410) '
+                'admiten un asiento de pago.'
+            )
+
+        with transaction.atomic():
+            existente = AsientoContable.objects.filter(
+                tipo_documento='PagoCompraMaterial',
+                documento_id=self.pk,
+            ).exclude(estado='ANULADO').first()
+            if existente:
+                return existente
+
+            cuenta_410 = CuentaContable.objects.get(codigo='410')
+            cuenta_pago = self.cuenta_pago or CuentaContable.objects.get(codigo='572')
+            total = self.base_imponible + self.cuota_iva
+
+            asiento = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=self.fecha_pago or date.today(),
+                concepto=f"Pago compra material: {self.material.nombre} - {self.proveedor}",
+                estado='BORRADOR',
+                tipo_documento='PagoCompraMaterial',
+                documento_id=self.pk,
+                created_by=self.created_by,
+            )
+
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_410,
+                debe=total,
+                haber=Decimal('0'),
+                descripcion=f"Pago proveedor: {self.proveedor}",
+            )
+            MovimientoContable.objects.create(
+                asiento=asiento,
+                cuenta=cuenta_pago,
+                debe=Decimal('0'),
+                haber=total,
+                descripcion=f"Pago (tesorería): {self.proveedor}",
+            )
+
+            asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
+            asiento.save()
+
+            # Movimiento bancario EGRESO vinculado al asiento (solo pagos por
+            # banco 572; la caja 570 no genera movimientos en el módulo Banco).
+            if cuenta_pago.codigo == '572':
+                banco_cuenta = BancoCuenta.objects.filter(
+                    cuenta_contable=cuenta_pago
+                ).first()
+                if not banco_cuenta:
+                    banco_cuenta = obtener_cuenta_banco_default()
+                if banco_cuenta:
+                    crear_movimiento_banco(
+                        banco_cuenta=banco_cuenta,
+                        fecha=asiento.fecha,
+                        concepto=asiento.concepto,
+                        tipo='EGRESO',
+                        importe=total,
+                        asiento=asiento,
+                    )
+
+            return asiento
+
+
+def _anular_asiento_pago_compra(compra, user):
+    """
+    Anula el asiento de pago (PagoCompraMaterial) de la compra y elimina el
+    movimiento bancario EGRESO vinculado, restaurando el saldo del banco.
+
+    Cumplimiento: Ley Antifraude — el asiento se anula mediante contrapartida;
+    el movimiento bancario se elimina (mismo patrón que GastoEstructura).
+    """
+    from apps.accounting.models import AsientoContable, MovimientoContable
+    from apps.accounting.views import generar_numero_asiento
+    from apps.bank.models import BancoMovimiento
+    from datetime import date
+
+    old_asiento = AsientoContable.objects.filter(
+        tipo_documento='PagoCompraMaterial',
+        documento_id=compra.pk,
+    ).exclude(estado='ANULADO').first()
+
+    if not old_asiento:
+        return
+
+    BancoMovimiento.objects.filter(asiento_asociado=old_asiento).delete()
+
+    rev = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=date.today(),
+        concepto=f'ANULACIÓN: {old_asiento.concepto}',
+        estado='BORRADOR',
+        tipo_documento='AnulacionPagoCompra',
+        documento_id=compra.pk,
+        created_by=user,
+    )
+
+    for mov in old_asiento.movimientos.all():
+        MovimientoContable.objects.create(
+            asiento=rev,
+            cuenta=mov.cuenta,
+            debe=mov.haber,
+            haber=mov.debe,
+            descripcion=f'Reversión: {mov.descripcion}',
+        )
+
+    old_asiento.estado = 'ANULADO'
+    old_asiento.save(update_fields=['estado'])

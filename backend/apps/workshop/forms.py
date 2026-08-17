@@ -218,6 +218,34 @@ class CompraFacturaForm(forms.Form):
             'class': 'w-full px-3 py-2 border rounded-lg',
         }),
     )
+    pagado = forms.BooleanField(
+        required=False, label='Pagar ahora (solo crédito)',
+        help_text='Solo aplica si la forma de pago es Crédito (410). Al marcar, '
+                  'cada línea genera automáticamente su asiento de pago '
+                  '(DEBE 410 / HABER tesorería) y, si es banco, el EGRESO en el '
+                  'módulo Banco.',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'rounded',
+        }),
+    )
+    fecha_pago = forms.DateField(
+        required=False, label='Fecha de pago',
+        widget=forms.DateInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'type': 'date',
+        }),
+    )
+    cuenta_pago = forms.ChoiceField(
+        required=False, label='Cuenta de pago (banco/caja)',
+        choices=[
+            ('', 'Banco (572, por defecto)'),
+            ('572', 'Banco (572)'),
+            ('570', 'Caja (570)'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+        }),
+    )
     documento_pdf = forms.FileField(
         required=False, label='Factura PDF',
         widget=forms.FileInput(attrs={
