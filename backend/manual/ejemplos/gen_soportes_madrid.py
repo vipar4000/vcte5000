@@ -2,9 +2,10 @@
 """Genera los soportes contables de la Prueba del Sistema (Capitulo 20).
 
 Crea en <repo>/soportes madrid/:
-  - 8 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
-    fechas e importes del capitulo 20 del manual (incluido el Paso 8.6 y las
-    dos compras al contado del Paso 3.2: CM-004 banco y CM-005 caja).
+  - 10 facturas PDF que reproducen EXACTAMENTE proveedores, CIFs, numeros,
+    fechas e importes del capitulo 20 del manual (incluido el Paso 8.6:
+    alquiler, suministros e impuestos; y las dos compras al contado del
+    Paso 3.2: CM-004 banco y CM-005 caja).
   - 1 extracto bancario CSV para la conciliacion (Banco > Conciliacion).
 
 Uso:  python gen_soportes_madrid.py
@@ -172,6 +173,213 @@ def generar_factura_filtro(path):
     _escribir_pdf(path, objects)
 
 
+def generar_factura_endesa(path):
+    """Factura hipotetica realista del suministro electrico (Paso 8.6, EN-2026-456).
+
+    Importes exactos del capitulo 20 (tabla 13.1.9): 350,00 base; IVA 21% = 73,50;
+    TOTAL = 423,50 EUR. Proveedor: Endesa Energia S.A.U., CIF A12345678, 10/07/2026.
+    """
+    enc = _pdf_str
+
+    def txt(font, size, x, y, s):
+        return (b'BT /' + font.encode('ascii') + b' ' + str(size).encode() + b' Tf '
+                + str(x).encode() + b' ' + str(y).encode() + b' Td ('
+                + enc(s) + b') Tj ET\n')
+
+    def linea(x1, y1, x2, y2):
+        return (b'1 w ' + str(x1).encode() + b' ' + str(y1).encode() + b' m '
+                + str(x2).encode() + b' ' + str(y2).encode() + b' l S\n')
+
+    def recuadro(x, y, w, h):
+        return (b'1 w ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re S\n')
+
+    def recuadro_gris(x, y, w, h):
+        return (b'0.85 g ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re f\n0 g\n')
+
+    stream = b''
+    # Cabecera
+    stream += txt('F2', 16, 50, 748, 'FACTURA DE ENERGIA ELECTRICA')
+    stream += txt('F1', 10, 50, 728, 'Endesa Energia S.A.U. - Comercializadora de electricidad')
+    stream += txt('F1', 10, 380, 748, 'N. Factura: EN-2026-456')
+    stream += txt('F1', 10, 380, 730, 'Fecha emision: 10/07/2026')
+    stream += txt('F1', 10, 380, 712, 'Periodo: 12/06/2026 - 11/07/2026')
+    stream += linea(50, 700, 562, 700)
+
+    # Bloque proveedor
+    stream += txt('F2', 9, 50, 678, 'PROVEEDOR')
+    stream += txt('F1', 11, 50, 660, 'Endesa Energia S.A.U.')
+    stream += txt('F1', 9, 50, 643, 'CIF: A12345678')
+    stream += txt('F1', 9, 50, 626, 'C/ Ribera del Loira 60')
+    stream += txt('F1', 9, 50, 609, '28042 Madrid')
+    stream += txt('F1', 9, 50, 592, 'Atencion cliente: 900 850 850')
+
+    # Bloque cliente
+    stream += txt('F2', 9, 380, 678, 'CLIENTE')
+    stream += txt('F1', 11, 380, 660, 'R Car Rogil S.L.')
+    stream += txt('F1', 9, 380, 643, 'CIF: B86123456')
+    stream += txt('F1', 9, 380, 626, 'Avda. de America 34')
+    stream += txt('F1', 9, 380, 609, '28028 Madrid')
+    stream += txt('F1', 9, 380, 592, 'CUPS: ES0021000001234567FQ')
+
+    # Tabla de lineas
+    stream += recuadro(50, 460, 512, 100)
+    stream += recuadro_gris(50, 537, 512, 23)
+    stream += txt('F2', 9, 60, 545, 'Concepto')
+    stream += txt('F2', 9, 335, 545, 'Cant.')
+    stream += txt('F2', 9, 415, 545, 'P. Unit.')
+    stream += txt('F2', 9, 495, 545, 'Importe')
+    stream += linea(330, 460, 330, 560)
+    stream += linea(405, 460, 405, 560)
+    stream += linea(485, 460, 485, 560)
+    stream += txt('F1', 10, 60, 515, 'Energia consumida (periodo facturado)')
+    stream += txt('F1', 10, 335, 515, '1.250 kWh')
+    stream += txt('F1', 10, 415, 515, '0,2320')
+    stream += txt('F1', 10, 495, 515, '290,00')
+    stream += txt('F1', 10, 60, 483, 'Peaje de acceso y otros cargos')
+    stream += txt('F1', 10, 335, 483, '1')
+    stream += txt('F1', 10, 415, 483, '60,00')
+    stream += txt('F1', 10, 495, 483, '60,00')
+    stream += linea(50, 470, 562, 470)
+
+    # Totales
+    stream += txt('F1', 10, 360, 425, 'Base imponible')
+    stream += txt('F1', 10, 495, 425, '350,00 EUR')
+    stream += txt('F1', 10, 360, 405, 'IVA (21%)')
+    stream += txt('F1', 10, 495, 405, '73,50 EUR')
+    stream += recuadro_gris(350, 352, 212, 34)
+    stream += txt('F2', 12, 365, 364, 'TOTAL')
+    stream += txt('F2', 12, 495, 364, '423,50 EUR')
+
+    # Pie
+    stream += linea(50, 330, 562, 330)
+    stream += txt('F1', 9, 50, 312,
+                  'Forma de pago: Domiciliacion bancaria - Banco Santander (cuenta 572)')
+    stream += txt('F1', 9, 50, 295,
+                  'Categoria del gasto: SUMINISTROS (cuenta PGC 628)')
+    stream += txt('F1', 9, 50, 278,
+                  'Documento de prueba: factura hipotetica sin validez fiscal (capitulo 20 del manual).')
+
+    objects = [
+        b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+        b'2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+        b'3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\n'
+        b'   /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+        b'4 0 obj\n<< /Length ' + str(len(stream)).encode()
+        + b' >>\nstream\n' + stream + b'endstream\nendobj\n',
+        b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+        b'6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n',
+    ]
+
+    _escribir_pdf(path, objects)
+
+
+def generar_recibo_ibi(path):
+    """Recibo hipotetico de IBI y tasas municipales (Paso 8.6, IBI-2026-01).
+
+    Importes exactos del capitulo 20 (tabla 13.1.9): base 320,00; IVA 0%
+    (tributos publicos exentos); TOTAL = 320,00 EUR. Ayuntamiento de
+    Alcala de Henares, CIF P00000000, 15/07/2026.
+    """
+    enc = _pdf_str
+
+    def txt(font, size, x, y, s):
+        return (b'BT /' + font.encode('ascii') + b' ' + str(size).encode() + b' Tf '
+                + str(x).encode() + b' ' + str(y).encode() + b' Td ('
+                + enc(s) + b') Tj ET\n')
+
+    def linea(x1, y1, x2, y2):
+        return (b'1 w ' + str(x1).encode() + b' ' + str(y1).encode() + b' m '
+                + str(x2).encode() + b' ' + str(y2).encode() + b' l S\n')
+
+    def recuadro(x, y, w, h):
+        return (b'1 w ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re S\n')
+
+    def recuadro_gris(x, y, w, h):
+        return (b'0.85 g ' + str(x).encode() + b' ' + str(y).encode() + b' '
+                + str(w).encode() + b' ' + str(h).encode() + b' re f\n0 g\n')
+
+    stream = b''
+    # Cabecera
+    stream += txt('F2', 16, 50, 748, 'RECIBO DE TRIBUTOS MUNICIPALES')
+    stream += txt('F1', 10, 50, 728, 'Ayuntamiento de Alcala de Henares - Recaudacion Municipal')
+    stream += txt('F1', 10, 380, 748, 'N. Recibo: IBI-2026-01')
+    stream += txt('F1', 10, 380, 730, 'Fecha emision: 15/07/2026')
+    stream += txt('F1', 10, 380, 712, 'Ejercicio: 2026')
+    stream += linea(50, 700, 562, 700)
+
+    # Bloque emisor
+    stream += txt('F2', 9, 50, 678, 'EMISOR')
+    stream += txt('F1', 11, 50, 660, 'Ayuntamiento de Alcala de Henares')
+    stream += txt('F1', 9, 50, 643, 'CIF: P00000000')
+    stream += txt('F1', 9, 50, 626, 'Plaza de Cervantes 12')
+    stream += txt('F1', 9, 50, 609, '28801 Alcala de Henares (Madrid)')
+
+    # Bloque sujeto pasivo
+    stream += txt('F2', 9, 380, 678, 'SUJETO PASIVO')
+    stream += txt('F1', 11, 380, 660, 'R Car Rogil S.L.')
+    stream += txt('F1', 9, 380, 643, 'CIF: B86123456')
+    stream += txt('F1', 9, 380, 626, 'Avda. de America 34')
+    stream += txt('F1', 9, 380, 609, '28028 Madrid')
+    stream += txt('F1', 9, 380, 592, 'Ref. catastral: 28001A012000340000PL')
+
+    # Tabla de lineas
+    stream += recuadro(50, 460, 512, 100)
+    stream += recuadro_gris(50, 537, 512, 23)
+    stream += txt('F2', 9, 60, 545, 'Concepto')
+    stream += txt('F2', 9, 335, 545, 'Cant.')
+    stream += txt('F2', 9, 415, 545, 'P. Unit.')
+    stream += txt('F2', 9, 495, 545, 'Importe')
+    stream += linea(330, 460, 330, 560)
+    stream += linea(405, 460, 405, 560)
+    stream += linea(485, 460, 485, 560)
+    stream += txt('F1', 10, 60, 515, 'IBI urbana - local comercial')
+    stream += txt('F1', 9, 60, 498, '(Avda. de America 34)')
+    stream += txt('F1', 10, 335, 515, '-')
+    stream += txt('F1', 10, 415, 515, '-')
+    stream += txt('F1', 10, 495, 515, '265,00')
+    stream += txt('F1', 10, 60, 480, 'Tasa ocupacion via publica (vado permanente)')
+    stream += txt('F1', 10, 335, 480, '-')
+    stream += txt('F1', 10, 415, 480, '-')
+    stream += txt('F1', 10, 495, 480, '55,00')
+    stream += linea(50, 468, 562, 468)
+
+    # Totales
+    stream += txt('F1', 10, 360, 425, 'Base imponible')
+    stream += txt('F1', 10, 495, 425, '320,00 EUR')
+    stream += txt('F1', 10, 360, 405, 'IVA (0% - tributos publicos exentos)')
+    stream += txt('F1', 10, 495, 405, '0,00 EUR')
+    stream += txt('F1', 10, 360, 385, 'Retencion IRPF (0%)')
+    stream += txt('F1', 10, 495, 385, '0,00 EUR')
+    stream += recuadro_gris(350, 348, 212, 34)
+    stream += txt('F2', 12, 365, 360, 'TOTAL')
+    stream += txt('F2', 12, 495, 360, '320,00 EUR')
+
+    # Pie
+    stream += linea(50, 326, 562, 326)
+    stream += txt('F1', 9, 50, 308,
+                  'Tributos publicos exentos de IVA (art. 20 LIVA). Sin retencion IRPF.')
+    stream += txt('F1', 9, 50, 291,
+                  'Categoria del gasto: IMPUESTOS_ESTR (cuenta PGC 631)')
+    stream += txt('F1', 9, 50, 274,
+                  'Documento de prueba: recibo hipotetico sin validez fiscal (capitulo 20 del manual).')
+
+    objects = [
+        b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+        b'2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+        b'3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]\n'
+        b'   /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+        b'4 0 obj\n<< /Length ' + str(len(stream)).encode()
+        + b' >>\nstream\n' + stream + b'endstream\nendobj\n',
+        b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+        b'6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n',
+    ]
+
+    _escribir_pdf(path, objects)
+
+
 def main():
     os.makedirs(BASE, exist_ok=True)
 
@@ -319,6 +527,16 @@ def main():
             'Categoria del gasto: ARRENDAMIENTO (cuenta PGC 621)',
             'Pendiente de pago (proveedores, cuenta 410)',
         ],
+    )
+
+    # --- Paso 8.6: Factura suministro electrico (Endesa) ---
+    generar_factura_endesa(
+        os.path.join(BASE, '10_EN-2026-456_factura_suministros_endesa.pdf')
+    )
+
+    # --- Paso 8.6: Recibo IBI y tasas municipales ---
+    generar_recibo_ibi(
+        os.path.join(BASE, '11_IBI-2026-01_recibo_impuestos_municipales.pdf')
     )
 
     # --- Paso 1.3 / 9.5.5 / 8.6e: Extracto bancario para la conciliacion ---
