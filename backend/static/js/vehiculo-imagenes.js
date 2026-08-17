@@ -81,7 +81,25 @@
         updateCounter();
     }
 
+    function toggleImagenesSection() {
+        var estadoSelect = document.getElementById('id_estado');
+        var section = document.getElementById('imagenes-section');
+        var aviso = document.getElementById('imagenes-aviso');
+        if (!estadoSelect || !section) return;
+        var enVenta = estadoSelect.value === 'EN_VENTA';
+        section.hidden = !enVenta;
+        if (aviso) {
+            aviso.hidden = enVenta;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        toggleImagenesSection();
+        var estadoSelect = document.getElementById('id_estado');
+        if (estadoSelect) {
+            estadoSelect.addEventListener('change', toggleImagenesSection);
+        }
+
         totalFormsInput = document.getElementById('id_imagenes-TOTAL_FORMS');
         formsetContainer = document.getElementById('imagenes-formset-rows');
         emptyTemplate = document.getElementById('empty-form-template');

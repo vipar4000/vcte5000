@@ -77,21 +77,22 @@ def vehiculo_create(request):
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
 
-        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+        if procesar_imagenes:
             imagenes_formset = ImagenVehiculoFormSet(
                 request.POST, request.FILES, prefix='imagenes'
             )
-        elif mostrar_imagenes:
-            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
         else:
-            imagenes_formset = None
+            # Unbound: solo para renderizar la sección de imágenes (no se valida
+            # ni se guarda salvo que el estado POST sea EN_VENTA).
+            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
 
-        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
-            if imagenes_formset:
+            if procesar_imagenes:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif any(request.FILES.getlist('imagenes-' + k) for k in ('imagen',)) or request.FILES.get('imagen_principal'):
@@ -119,7 +120,7 @@ def vehiculo_create(request):
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
-        imagenes_formset = None
+        imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
         mostrar_imagenes = False
     
     context = {
@@ -143,26 +144,27 @@ def vehiculo_update(request, pk):
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
 
-        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+        if procesar_imagenes:
             imagenes_formset = ImagenVehiculoFormSet(
                 request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
             )
-        elif mostrar_imagenes:
+        else:
+            # Unbound: solo para renderizar la sección de imágenes (no se valida
+            # ni se guarda salvo que el estado POST sea EN_VENTA).
             imagenes_formset = ImagenVehiculoFormSet(
                 instance=vehiculo, prefix='imagenes'
             )
-        else:
-            imagenes_formset = None
 
-        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             nuevo_estado = form.cleaned_data.get('estado')
             if nuevo_estado != 'EN_VENTA':
                 if vehiculo.imagen_principal:
                     vehiculo.imagen_principal.delete(save=False)
                 vehiculo.imagenes.all().delete()
             vehiculo = form.save()
-            if imagenes_formset:
+            if procesar_imagenes:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif request.FILES.get('imagen_principal') or any(
@@ -197,7 +199,7 @@ def vehiculo_update(request, pk):
     else:
         form = VehiculoForm(instance=vehiculo)
         mostrar_imagenes = vehiculo.estado == 'EN_VENTA'
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes') if mostrar_imagenes else None
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
 
     context = {
         'form': form,

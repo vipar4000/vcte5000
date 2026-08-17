@@ -471,14 +471,13 @@ forma_pago=Caja Chica</code></pre>
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
 <div class="warning-box">
-    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. En cualquier otro estado (ADQUIRIDO, TALLER, ACONDICIONADO, VENDIDO) los campos de imagen no aparecen en el formulario. Si un vehiculo deja de estar EN_VENTA, sus imagenes se eliminan automaticamente.
+    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. En cualquier otro estado (ADQUIRIDO, TALLER, ACONDICIONADO, VENDIDO) los campos de imagen permanecen ocultos en el formulario y aparecen al seleccionar <strong>EN_VENTA</strong> en el campo Estado. Si un vehiculo deja de estar EN_VENTA, sus imagenes se eliminan automaticamente.
 </div>
 
 <h4>Subir Imagenes (procedimiento)</h4>
 <ol class="steps">
     <li>Registre el vehiculo (estado inicial ADQUIRIDO u otro).</li>
-    <li>Cambie el estado a <strong>EN_VENTA</strong> desde la ficha del vehiculo (seccion "Cambiar Estado").</li>
-    <li>Vuelva a <strong>Editar</strong> el vehiculo: ahora apareceran los campos <strong>"Imagen Principal"</strong> y <strong>"Imagenes Adicionales"</strong>.</li>
+    <li>En el formulario de <strong>Editar</strong> del vehiculo, seleccione el estado <strong>EN_VENTA</strong> y fije el <strong>precio de venta</strong>: los campos <strong>"Imagen Principal"</strong> y <strong>"Imagenes Adicionales"</strong> aparecen inmediatamente en el mismo formulario.</li>
     <li>En "Imagen Principal", haga clic en <strong>"Seleccionar archivo"</strong> y elija la imagen (JPG/PNG).</li>
     <li>En "Imagenes Adicionales" puede anadir mas fotos, marcar la principal y ordenarlas.</li>
     <li>Haga clic en <strong>"Guardar Cambios"</strong>.</li>
@@ -5486,7 +5485,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>Precio venta</td><td>11.900,00 EUR</td></tr>
 </table>
 <div class="info-box">
-    <strong>Ahora puede subir imagenes</strong> (maximo 8). Al estar en EN_VENTA, se habilita la seccion de <strong>Imagen Principal</strong> e <strong>Imagenes Adicionales</strong> en el formulario de edicion del vehiculo. Use el boton <strong>+ Anadir imagen</strong> para agregar fotos del vehiculo (maximo 8 en total, incluyendo la principal). Las imagenes se muestran en la web publica (SPA Vue) tras ejecutar <code>npm run build</code> en el frontend.
+    <strong>Ahora puede subir imagenes</strong> (maximo 8). Al seleccionar <strong>EN_VENTA</strong> en el formulario de edicion del vehiculo, aparecen inmediatamente las secciones de <strong>Imagen Principal</strong> e <strong>Imagenes Adicionales</strong>. Use el boton <strong>+ Anadir imagen</strong> para agregar fotos del vehiculo (maximo 8 en total, incluyendo la principal). Las imagenes se muestran en la web publica (SPA Vue) tras ejecutar <code>npm run build</code> en el frontend.
 </div>
 
 <h4>Verificacion posterior</h4>

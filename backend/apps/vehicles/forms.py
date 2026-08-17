@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 from django import forms
 from django.forms import inlineformset_factory
+from django.forms.models import BaseInlineFormSet
 from .models import Vehiculo, ImagenVehiculo
 
 
@@ -194,8 +195,35 @@ class VehiculoBusquedaForm(forms.Form):
     )
 
 
+class ImagenVehiculoForm(forms.ModelForm):
+    """Formulario de imagen adicional (el archivo es opcional por fila)."""
+
+    class Meta:
+        model = ImagenVehiculo
+        fields = ['imagen', 'es_principal', 'orden']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Las filas vacías (sin archivo) no bloquean el envío del formulario
+        self.fields['imagen'].required = False
+
+
+class ImagenVehiculoBaseFormSet(BaseInlineFormSet):
+    """Formset que descarta las filas sin archivo (imagen='')."""
+
+    def save(self, commit=True):
+        objs = super().save(commit=commit)
+        if commit:
+            ImagenVehiculo.objects.filter(
+                vehiculo=self.instance, imagen=''
+            ).delete()
+        return [o for o in objs if getattr(o, 'imagen', None)]
+
+
 ImagenVehiculoFormSet = inlineformset_factory(
     Vehiculo, ImagenVehiculo,
+    form=ImagenVehiculoForm,
+    formset=ImagenVehiculoBaseFormSet,
     fields=['imagen', 'es_principal', 'orden'],
     extra=1,
     max_num=8,
