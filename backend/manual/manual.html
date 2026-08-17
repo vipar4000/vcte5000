@@ -821,8 +821,8 @@ Base imponible = 20 x 8,50 = <strong>170,00 EUR</strong> &middot; Cuota IVA = 17
     </table>
 </div>
 
-<div class="warning-box">
-    <strong>Pago posterior de una compra a credito:</strong> la deuda queda pendiente en la cuenta 410. Cuando se pague al proveedor, refleje el pago con un asiento desde <strong>Contabilidad &gt; Asientos</strong>: <strong>DEBE 410 / HABER 572</strong> (banco) o <strong>570</strong> (caja) por el total. La salida real aparecera en el extracto bancario y podra revisarla en <strong>Banco &gt; Conciliacion</strong> (<a href="#capitulo-9">capitulo 9</a>). Los <strong>gastos de estructura</strong> si tienen cierre automatico del ciclo con "marcar pagado" (ver <a href="#capitulo-18-7-1">18.7.1</a>); en compras de material el pago posterior se registra manualmente.
+<div class="info-box">
+    <strong>Pago posterior de una compra a credito (automatico):</strong> la deuda queda pendiente en la cuenta 410. Cuando se pague al proveedor, use el boton <strong>"Marcar pagado"</strong> de la compra (Taller &gt; Inventario &gt; detalle del material &gt; seccion "Compras Registradas") indicando la fecha de pago y la cuenta (572 banco o 570 caja; vacio = 572): el sistema genera automaticamente el asiento de pago (<strong>DEBE 410 / HABER tesoreria</strong>) y, si se paga desde banco, el movimiento bancario <strong>EGRESO</strong> vinculado. Tambien puede marcar <strong>"Pagar ahora"</strong> directamente en el formulario de la compra a credito. Con <strong>"Deshacer pago"</strong> el asiento se anula mediante contrapartida (Ley Antifraude) y el EGRESO se elimina, restaurando el saldo del banco. Los <strong>gastos de estructura</strong> mantienen el mismo cierre automatico del ciclo con "marcar pagado" (ver <a href="#capitulo-18-7-1">18.7.1</a>).
 </div>
 
 <h4>B) Compra al Contado con Banco (572)</h4>
@@ -5275,7 +5275,8 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     </tr>
 </table>
 <div class="info-box">
-    <strong>Forma de pago (desplegable):</strong> El formulario de compra incluye un desplegable <strong>Forma de pago</strong> con tres opciones: <strong>Credito (acreedores 410)</strong> — por defecto, la compra queda pendiente de pago; <strong>Contado Banco (572)</strong> — genera el EGRESO bancario en el momento (el sistema valida antes que haya saldo disponible y rechaza la compra si no lo hay); y <strong>Contado Caja (570)</strong> — se paga en efectivo y <strong>no</strong> genera ningun movimiento bancario. En este ejercicio se usan las tres para comparar sus repercusiones.
+    <strong>Forma de pago (desplegable):</strong> El formulario de compra incluye un desplegable <strong>Forma de pago</strong> con tres opciones: <strong>Credito (acreedores 410)</strong> — por defecto, la compra queda pendiente de pago; <strong>Contado Banco (572)</strong> — genera el EGRESO bancario en el momento (el sistema valida antes que haya saldo disponible y rechaza la compra si no lo hay); y <strong>Contado Caja (570)</strong> — se paga en efectivo y <strong>no</strong> genera ningun movimiento bancario. En este ejercicio se usan las tres para comparar sus repercusiones.<br>
+    <strong>Pagar ahora (checkbox):</strong> el formulario incluye ademas el checkbox <strong>"Pagar ahora"</strong> con <strong>Fecha de pago</strong> y <strong>Cuenta de pago</strong> (solo aplica a credito): cada linea genera su asiento de pago (DEBE 410 / HABER tesoreria) y, si es banco, el EGRESO. En este ejercicio las tres compras a credito se dejan <strong>pendientes</strong> para pagarlas despues con "Marcar pagado" en el Paso 8.6e.
 </div>
 <div class="success-box">
     <strong>Asiento contable (Compra #1 - Aceite, a credito):</strong><br>
@@ -5943,10 +5944,10 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <p><em>IVA soportado detalle: 430,50 (inversion taller) + 136,50 (compra vehiculo) + 35,70 (aceite) + 22,05 (pastillas) + 12,60 (filtro) + 13,65 (refrigerante contado) + 31,50 (neumaticos contado) + 420,00 (alquiler) + 73,50 (suministros) + 37,80 (impuestos) = 1.213,80 EUR.</em></p>
 
 <h3>Paso 8.6e &mdash; Pagar las Compras de Material a Credito (Cierre del Ciclo 410)</h3>
-<p>Las tres compras de material a credito (Paso 3.2, compras #1-#3) quedaron pendientes de pago en la cuenta 410 por <strong>405,35 EUR</strong> (205,70 aceite + 127,05 pastillas + 72,60 filtro). A diferencia de los gastos de estructura, las compras de material <strong>no tienen</strong> checkbox "marcar pagado": el pago se registra con un <strong>asiento contable manual</strong> (Contabilidad &gt; Asientos). Los asientos manuales <strong>no generan movimiento bancario</strong>, por lo que la salida real de banco se incorpora al modulo Banco despues, mediante la <strong>conciliacion bancaria</strong> (Parte 2).</p>
+<p>Las tres compras de material a credito (Paso 3.2, compras #1-#3) quedaron pendientes de pago en la cuenta 410 por <strong>405,35 EUR</strong> (205,70 aceite + 127,05 pastillas + 72,60 filtro). Igual que los gastos de estructura, las compras de material tienen ahora <strong>cierre automatico del ciclo de pago</strong>: el boton <strong>"Marcar pagado"</strong> (o el checkbox <strong>"Pagar ahora"</strong> al registrarlas) genera automaticamente el asiento de pago (tipo <code>PagoCompraMaterial</code>) y el movimiento bancario <strong>EGRESO</strong> vinculado, <strong>sin asientos manuales</strong>.</p>
 
-<h4>Parte 1 &mdash; Registrar los 3 asientos de pago (manual)</h4>
-<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>📊 Contabilidad</strong> &rarr; <strong>Asientos</strong> &rarr; boton <strong>Nuevo Asiento</strong> (<code>/erp/contabilidad/nuevo/</code>). Cree un asiento por proveedor con fecha de pago <strong>31/07/2026</strong> (el vencimiento comercial es 02/08/2026), guardelo y pulse <strong>Postear</strong>:</p>
+<h4>Parte 1 &mdash; Marcar cada compra como pagada (automatico)</h4>
+<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>🛠 Taller</strong> &rarr; <strong>Inventario</strong> &rarr; abra el detalle de cada material (Aceite, Pastillas, Filtro de aire) &rarr; seccion <strong>"Compras Registradas"</strong> &rarr; boton <strong>"Marcar pagado"</strong> con fecha de pago <strong>31/07/2026</strong> (el vencimiento comercial es 02/08/2026) y cuenta <strong>Banco (572)</strong>:</p>
 <table>
     <tr><th>Asiento</th><th>Concepto</th><th>DEBE</th><th>HABER</th></tr>
     <tr><td>#000015</td><td>Pago CM-001 Distribuciones Auto S.L.</td><td>410 (205,70)</td><td>572 (205,70)</td></tr>
@@ -5954,30 +5955,31 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>#000017</td><td>Pago CM-003 Filtros Madrid S.L.</td><td>410 (72,60)</td><td>572 (72,60)</td></tr>
 </table>
 <div class="success-box">
-    <strong>Asiento de pago (ejemplo #000015, POSTEADO):</strong><br>
+    <strong>Asiento de pago (ejemplo #000015, generado automaticamente, tipo PagoCompraMaterial):</strong><br>
     DEBE 410 (Acreedores) &mdash; 205,70 EUR<br>
     HABER 572 (Banco Santander) &mdash; 205,70 EUR<br>
     <strong>Estado: POSTEADO</strong> &mdash; cuadrado (DEBE = HABER). Los tres asientos suman <strong>405,35 EUR</strong>.
 </div>
-<div class="warning-box">
-    <strong>Los asientos manuales NO generan movimiento bancario:</strong><br>
+<div class="info-box">
+    <strong>El pago automatico SI genera movimiento bancario:</strong><br>
     &bull; La cuenta 410 baja de 1.046,65 a <strong>641,30 EUR</strong> (solo quedan pendientes los gastos de suministros 423,50 y tributos 217,80).<br>
     &bull; El saldo <strong>contable</strong> de 572 baja de 49.014,35 a <strong>48.609,00 EUR</strong>.<br>
-    &bull; El <strong>modulo Banco</strong> sigue mostrando 49.014,35 EUR: no hay EGRESO asociado a los asientos manuales. La diferencia de 405,35 EUR es temporal y se resuelve en la Parte 2.<br>
-    &bull; La <strong>PyG</strong> y el <strong>Libro IVA</strong> no cambian: el pago de una deuda no es gasto del ejercicio ni toca el IVA (ya devengado en el Paso 3.2).
+    &bull; El <strong>modulo Banco</strong> baja tambien a <strong>48.609,00 EUR</strong> de inmediato: cada pago genera su propio <strong>EGRESO</strong> vinculado al asiento (sin diferencia temporal ni asientos manuales).<br>
+    &bull; La <strong>PyG</strong> y el <strong>Libro IVA</strong> no cambian: el pago de una deuda no es gasto del ejercicio ni toca el IVA (ya devengado en el Paso 3.2).<br>
+    &bull; Con <strong>"Deshacer pago"</strong> el asiento se anula mediante contrapartida (Ley Antifraude) y el EGRESO vinculado se elimina, restaurando el saldo del banco.
 </div>
 
 <h4>Parte 2 &mdash; Conciliar las salidas con el extracto bancario</h4>
 <p>El extracto de muestra (<code>07_extracto_bancario_santander.csv</code>) ya incluye las tres salidas del 31/07/2026. Subalo en <strong>Banco &gt; Conciliacion Bancaria</strong> (<code>/erp/banco/conciliacion/</code>):</p>
 <ol>
-    <li>Las 5 lineas conocidas (deposito, inversion, compra vehiculo, refrigerante contado, cobro venta) se muestran en <strong>VERDE</strong> con match automatico.</li>
-    <li>Las 3 lineas de pago a proveedores aparecen en <strong>AMARILLO</strong> sin match en el ERP (los asientos manuales no tienen movimiento bancario). Marque el checkbox <strong>"Manual"</strong> de cada una.</li>
-    <li>Pulse <strong>"Conciliar seleccionados"</strong>: el sistema <strong>crea el EGRESO ya conciliado</strong> para cada linea (nota "Conciliado desde extracto CSV (manual)").</li>
+    <li>Las 8 lineas conocidas (deposito, inversion, compra vehiculo, refrigerante contado, cobro venta y los 3 pagos a proveedores) se muestran en <strong>VERDE</strong> con match automatico: mismo importe exacto, mismo tipo y fecha +/-2 dias.</li>
+    <li>Los 3 EGRESO generados por el sistema al marcar Pagado concilian ahora <strong>automaticamente</strong> contra el extracto: ya no hace falta el checkbox "Manual".</li>
+    <li>Pulse <strong>"Conciliar seleccionados"</strong> para confirmar las coincidencias.</li>
 </ol>
 <div class="info-box">
     <strong>Resultado tras la conciliacion:</strong><br>
-    &bull; Movimientos bancarios: 6 generados por el ERP + 3 creados desde el extracto = <strong>9 movimientos</strong>.<br>
-    &bull; Saldo total del modulo Banco: 49.014,35 - 405,35 = <strong>48.609,00 EUR</strong> = saldo contable (diferencia resuelta).<br>
+    &bull; Movimientos bancarios: 6 generados por el ERP + 3 EGRESO automaticos de los pagos = <strong>9 movimientos</strong>.<br>
+    &bull; Saldo total del modulo Banco: 49.014,35 - 405,35 = <strong>48.609,00 EUR</strong> = saldo contable desde el momento del pago.<br>
     &bull; Saldo real (conciliado) = <strong>50.649,00 EUR</strong> | Sin conciliar = <strong>-2.040,00 EUR</strong> (el EGRESO del pago del alquiler, Paso 8.6a, espera su linea en el extracto real) | Total = <strong>48.609,00 EUR</strong>.<br>
     &bull; La cuenta 410 queda en <strong>641,30 EUR</strong>: solo los gastos de estructura pendientes (suministros 423,50 + impuestos 217,80).
 </div>
@@ -5988,7 +5990,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>1</td>
         <td><strong>📊 Contabilidad &gt; Asientos</strong></td>
-        <td>Tres nuevos asientos #000015, #000016 y #000017 (DEBE 410 / HABER 572), POSTEADOS y cuadrados. Total pagado: <strong>405,35 &euro;</strong>.</td>
+        <td>Tres nuevos asientos #000015, #000016 y #000017 (DEBE 410 / HABER 572), tipo <strong>PagoCompraMaterial</strong>, POSTEADOS y cuadrados, generados automaticamente. Total pagado: <strong>405,35 &euro;</strong>.</td>
     </tr>
     <tr>
         <td>2</td>
@@ -5998,7 +6000,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr>
         <td>3</td>
         <td><strong>🏦 Banco &gt; Cuentas &gt; Banco Santander</strong></td>
-        <td>Antes de conciliar: saldo 49.014,35 &euro; (diferencia de 405,35 con la contabilidad). Despues de la Parte 2: saldo <strong>48.609,00 &euro;</strong> con los 3 EGRESO creados desde el extracto.</td>
+        <td>Saldo <strong>48.609,00 &euro;</strong> inmediatamente tras el pago (sin diferencia temporal con la contabilidad): cada pago genero su propio EGRESO vinculado al asiento.</td>
     </tr>
     <tr>
         <td>4</td>
@@ -6015,10 +6017,11 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <div class="info-box">
     <strong>Efectos sistemicos del pago de compras a credito:</strong><br>
     &bull; <strong>Cuenta 410:</strong> se reduce de 1.046,65 a <strong>641,30 EUR</strong> (405,35 pagados; quedan suministros 423,50 + impuestos 217,80).<br>
-    &bull; <strong>Cuenta 572:</strong> el activo baja a <strong>48.609,00 EUR</strong> tanto en el Balance como (tras la conciliacion) en el modulo Banco.<br>
+    &bull; <strong>Cuenta 572:</strong> el activo baja a <strong>48.609,00 EUR</strong> tanto en el Balance como en el modulo Banco (EGRESO automatico por cada pago).<br>
     &bull; <strong>PyG e IVA:</strong> sin cambios. El gasto y el IVA de las compras se devengaron en el Paso 3.2; el pago es un movimiento de tesoreria contra pasivo.<br>
-    &bull; <strong>Conciliacion bancaria:</strong> las salidas reales del extracto se incorporan al modulo Banco con el checkbox "Manual" (crea el movimiento ya conciliado), cerrando la diferencia entre saldo contable y saldo del modulo.<br>
-    &bull; <strong>Variante caja (570):</strong> si un pago se hiciera por caja, el asiento seria DEBE 410 / HABER 570 y tampoco generaria movimiento bancario; la caja quedaria mas negativa (en esta prueba no hay dotacion inicial de caja).
+    &bull; <strong>Conciliacion bancaria:</strong> los EGRESO de los pagos hacen match automatico contra las salidas reales del extracto (mismo importe, mismo tipo, fecha +/-2 dias).<br>
+    &bull; <strong>Variante caja (570):</strong> si un pago se marcara con cuenta Caja, el asiento seria DEBE 410 / HABER 570 y no generaria movimiento bancario; la caja quedaria mas negativa (en esta prueba no hay dotacion inicial de caja).<br>
+    &bull; <strong>Deshacer pago:</strong> anula el asiento de pago mediante contrapartida (Ley Antifraude) y elimina el EGRESO vinculado, restaurando el saldo del banco y dejando la compra pendiente en 410.
 </div>
 
 <h2 id="capitulo-20-4">20.4 Registros Esperados</h2>
@@ -6067,9 +6070,9 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>12</td><td>Pago alquiler (cierre 410 contra 572)</td><td>410 (2.040,00)</td><td>572 (2.040,00)</td></tr>
     <tr><td>13</td><td>Suministros (luz, agua, conectividad)</td><td>628 (350,00) + 472 (73,50)</td><td>410 (423,50)</td></tr>
     <tr><td>14</td><td>Impuestos (IBI, tasas municipales)</td><td>631 (180,00) + 472 (37,80)</td><td>410 (217,80)</td></tr>
-    <tr><td>15</td><td>Pago CM-001 aceite (credito, manual)</td><td>410 (205,70)</td><td>572 (205,70)</td></tr>
-    <tr><td>16</td><td>Pago CM-002 pastillas (credito, manual)</td><td>410 (127,05)</td><td>572 (127,05)</td></tr>
-    <tr><td>17</td><td>Pago CM-003 filtro (credito, manual)</td><td>410 (72,60)</td><td>572 (72,60)</td></tr>
+    <tr><td>15</td><td>Pago CM-001 aceite (credito, pago automatico)</td><td>410 (205,70)</td><td>572 (205,70)</td></tr>
+    <tr><td>16</td><td>Pago CM-002 pastillas (credito, pago automatico)</td><td>410 (127,05)</td><td>572 (127,05)</td></tr>
+    <tr><td>17</td><td>Pago CM-003 filtro (credito, pago automatico)</td><td>410 (72,60)</td><td>572 (72,60)</td></tr>
 </table>
 
 <h3>Movimientos bancarios (9)</h3>
@@ -6081,19 +6084,18 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
     <tr><td>4</td><td>EGRESO</td><td>78,65 EUR</td><td>Compra inventario: Refrigerante G12 - Auto Parts Europa S.L. (contado banco)</td><td>Paso 3.2 (#4)</td></tr>
     <tr><td>5</td><td>INGRESO</td><td>11.900,00 EUR</td><td>Cobro venta REBU</td><td>Paso 5.1</td></tr>
     <tr><td>6</td><td>EGRESO</td><td>2.040,00 EUR</td><td>Pago alquiler galpon (automatico al marcar Pagado)</td><td>Paso 8.6a</td></tr>
-    <tr><td>7</td><td>EGRESO</td><td>205,70 EUR</td><td>Pago proveedor Distribuciones Auto S.L. (creado desde extracto)</td><td>Paso 8.6e</td></tr>
-    <tr><td>8</td><td>EGRESO</td><td>127,05 EUR</td><td>Pago proveedor Recambios Martinez S.L. (creado desde extracto)</td><td>Paso 8.6e</td></tr>
-    <tr><td>9</td><td>EGRESO</td><td>72,60 EUR</td><td>Pago proveedor Filtros Madrid S.L. (creado desde extracto)</td><td>Paso 8.6e</td></tr>
+    <tr><td>7</td><td>EGRESO</td><td>205,70 EUR</td><td>Pago proveedor Distribuciones Auto S.L. (automatico al marcar Pagado)</td><td>Paso 8.6e</td></tr>
+    <tr><td>8</td><td>EGRESO</td><td>127,05 EUR</td><td>Pago proveedor Recambios Martinez S.L. (automatico al marcar Pagado)</td><td>Paso 8.6e</td></tr>
+    <tr><td>9</td><td>EGRESO</td><td>72,60 EUR</td><td>Pago proveedor Filtros Madrid S.L. (automatico al marcar Pagado)</td><td>Paso 8.6e</td></tr>
 </table>
 
 <div class="info-box">
     <strong>Saldo en modulo Banco = Saldo contable (Balance) = 48.609,00 EUR</strong><br>
     Calculo: 50.000,00 - 2.480,50 - 8.286,50 - 78,65 + 11.900,00 - 2.040,00 - 205,70 - 127,05 - 72,60 = <strong>48.609,00 EUR</strong><br><br>
     <strong>Detalle de saldos tras la conciliacion del Paso 8.6e:</strong><br>
-    &bull; <strong>Saldo real (conciliado)</strong> = 50.649,00 EUR: los 8 movimientos conciliados (los 3 pagos a proveedores se crearon ya conciliados desde el extracto).<br>
+    &bull; <strong>Saldo real (conciliado)</strong> = 50.649,00 EUR: los 8 movimientos conciliados (los 3 EGRESO de los pagos concilian por match exacto contra el extracto).<br>
     &bull; <strong>Saldo sin conciliar</strong> = -2.040,00 EUR: solo el EGRESO del pago del alquiler (Paso 8.6a), que espera su linea en el extracto real del banco.<br>
-    &bull; <strong>Saldo total</strong> = 48.609,00 EUR: coincide con el saldo contable de la cuenta 572.<br>
-    &bull; Los asientos manuales de pago (#000015-#000017) no tenian movimiento bancario propio; al confirmar la conciliacion, el sistema creo el EGRESO de cada salida ya marcado como conciliado.<br>
+    &bull; <strong>Saldo total</strong> = 48.609,00 EUR: coincide con el saldo contable de la cuenta 572 desde el momento del pago (cada asiento de pago #000015-#000017 genero su propio EGRESO vinculado, sin diferencia temporal).<br>
     &bull; La compra por caja (#5, neumaticos) sigue sin generar ningun movimiento en el modulo Banco: solo el apunte contable DEBE 300 + 472 / HABER 570.<br><br>
     <strong>Nota (Pasos 8.6b y 8.6c):</strong> los gastos de suministros e impuestos siguen pendientes de pago en la cuenta 410 (Acreedores) por 423,50 + 217,80 = <strong>641,30 EUR</strong>. La cuenta 410 totaliza <strong>641,30 EUR</strong> tras pagar las compras de material (405,35) en el Paso 8.6e.
 </div>
@@ -6105,7 +6107,7 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 <ul>
     <li>&#9744; El vehiculo VW Golf 1234ABC esta en estado <strong>VENDIDO</strong></li>
     <li>&#9744; Existen <strong>17 asientos</strong> contables (o mas, considerando anulaciones), todos <strong>POSTEADOS</strong> y cuadrados</li>
-    <li>&#9744; Existen <strong>9 movimientos</strong> bancarios visibles en el modulo Banco (6 del ERP + 3 creados desde el extracto en el Paso 8.6e)</li>
+    <li>&#9744; Existen <strong>9 movimientos</strong> bancarios visibles en el modulo Banco (6 del ERP + 3 EGRESO automaticos del pago de compras en el Paso 8.6e)</li>
     <li>&#9744; El saldo en <strong>Banco &gt; Cuentas</strong> es <strong>48.609,00 EUR</strong>, identico al saldo <strong>contable</strong> (Balance). Saldo real (conciliado) = 50.649,00 | Sin conciliar = -2.040,00 (pago del alquiler pendiente de linea en el extracto real).</li>
     <li>&#9744; El gasto de alquiler (ARRENDAMIENTO) esta marcado como <strong>Pagado = Si</strong> con fecha 21/07/2026</li>
     <li>&#9744; El asiento de pago del alquiler (DEBE 410 / HABER 572) esta <strong>POSTEADO</strong> y cuadrado</li>

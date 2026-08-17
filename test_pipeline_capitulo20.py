@@ -383,60 +383,34 @@ def ejecutar(c, admin):
     check('Gasto NO genera movimiento bancario (pendiente en 410)',
           BancoMovimiento.objects.count() == 5)
 
-    print('\n--- PASO 8.6e: Pagar compras a credito (asientos manuales) ---')
-    from apps.accounting.models import MovimientoContable
-    from apps.accounting.views import generar_numero_asiento
-    pagos = [
-        ('Pago CM-001 Distribuciones Auto S.L.', Decimal('205.70')),
-        ('Pago CM-002 Recambios Martinez S.L.', Decimal('127.05')),
-        ('Pago CM-003 Filtros Madrid S.L.', Decimal('72.60')),
-    ]
-    cuenta_410 = CuentaContable.objects.get(codigo='410')
-    for concepto, importe in pagos:
-        asiento_pago = AsientoContable.objects.create(
-            numero=generar_numero_asiento(),
-            fecha=date(2026, 7, 31),
-            concepto=concepto,
-            estado='POSTEADO',
-            tipo_documento='Manual',
-            created_by=admin,
-        )
-        MovimientoContable.objects.create(
-            asiento=asiento_pago, cuenta=cuenta_410,
-            debe=importe, haber=Decimal('0'), descripcion=concepto,
-        )
-        MovimientoContable.objects.create(
-            asiento=asiento_pago, cuenta=cuenta_572,
-            debe=Decimal('0'), haber=importe, descripcion=concepto,
-        )
-    pagos_asientos = AsientoContable.objects.filter(tipo_documento='Manual')
-    check('3 asientos de pago POSTEADOS y cuadrados (410/572 = 405,35)',
+    print('\n--- PASO 8.6e: Pagar compras a credito (Marcar pagado, automatico) ---')
+    cuenta_572 = CuentaContable.objects.get(codigo='572')
+    for compra in (compra1, compra2, compra3):
+        compra.pagado = True
+        compra.fecha_pago = date(2026, 7, 31)
+        compra.cuenta_pago = cuenta_572
+        compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+        compra.crear_asiento_pago()
+    pagos_asientos = AsientoContable.objects.filter(tipo_documento='PagoCompraMaterial')
+    check('3 asientos de pago (PagoCompraMaterial) POSTEADOS y cuadrados (410/572 = 405,35)',
           pagos_asientos.count() == 3
           and all(a.estado == 'POSTEADO' and a.esta_cuadrado for a in pagos_asientos))
     check('410 = -2.040,00 tras pagar compras (solo alquiler pendiente; '
           'el pipeline no crea suministros/impuestos)',
           saldo('410') == Decimal('-2040.00'), str(saldo('410')))
-    check('572 contable = 50.649,00 tras pagos manuales',
+    check('572 contable = 50.649,00 tras los pagos',
           saldo('572') == Decimal('50649.00'), str(saldo('572')))
-    check('Modulo banco NO refleja pagos manuales (51.054,35, diferencia 405,35)',
-          banco.saldo_pendiente == Decimal('51054.35'), str(banco.saldo_pendiente))
+    check('Modulo banco refleja los pagos automaticamente (50.649,00 = contable, '
+          'sin diferencia temporal)',
+          banco.saldo_pendiente == Decimal('50649.00'), str(banco.saldo_pendiente))
 
-    print('\n--- CONCILIACION: EGRESOS creados desde el extracto (espejo conciliacion_confirmar) ---')
-    pagos_banco = [
-        ('Pago proveedor Distribuciones Auto S.L.', Decimal('205.70')),
-        ('Pago proveedor Recambios Martinez S.L.', Decimal('127.05')),
-        ('Pago proveedor Filtros Madrid S.L.', Decimal('72.60')),
-    ]
-    for concepto, importe in pagos_banco:
-        BancoMovimiento.objects.get_or_create(
-            banco_cuenta=banco,
-            fecha=date(2026, 7, 31),
-            concepto=concepto,
-            tipo='EGRESO',
-            importe=importe,
-            defaults={'conciliado': True, 'notas': 'Conciliado desde extracto CSV (manual)'},
-        )
-    check('3 EGRESO creados y conciliados desde el extracto',
+    print('\n--- CONCILIACION: los 3 EGRESO de pago concilian por match (espejo conciliacion_confirmar) ---')
+    for asiento_pago in pagos_asientos:
+        for movimiento in BancoMovimiento.objects.filter(asiento_asociado=asiento_pago):
+            movimiento.conciliado = True
+            movimiento.notas = 'Conciliado desde extracto CSV (match automatico)'
+            movimiento.save(update_fields=['conciliado', 'notas'])
+    check('3 EGRESO de pago conciliados por match contra el extracto',
           BancoMovimiento.objects.filter(
               conciliado=True, notas__startswith='Conciliado desde extracto').count() == 3)
     check('Saldo modulo banco = contable = 50.649,00',
@@ -455,7 +429,7 @@ def ejecutar(c, admin):
 
     print('\n[Banco]')
     movs = list(BancoMovimiento.objects.order_by('fecha'))
-    check('8 movimientos bancarios (5 ERP + 3 creados desde extracto)',
+    check('8 movimientos bancarios (5 ERP + 3 EGRESOS pagos proveedores)',
           len(movs) == 8, f'{len(movs)}')
     check('Saldo banco = 50.649,00 (51.054,35 - 405,35 pagos proveedores)',
           banco.saldo_pendiente == Decimal('50649.00'), str(banco.saldo_pendiente))
@@ -463,7 +437,7 @@ def ejecutar(c, admin):
           any(m.tipo == 'INGRESO' and m.importe == Decimal('11900.00') for m in movs))
     check('EGRESO compra contado refrigerante registrado (78,65)',
           any(m.tipo == 'EGRESO' and m.importe == Decimal('78.65') for m in movs))
-    check('EGRESOS pagos proveedores conciliados desde extracto (205,70/127,05/72,60)',
+    check('EGRESOS pagos proveedores conciliados por match (205,70/127,05/72,60)',
           all(any(m.tipo == 'EGRESO' and m.importe == imp and m.conciliado for m in movs)
               for imp in (Decimal('205.70'), Decimal('127.05'), Decimal('72.60'))))
 

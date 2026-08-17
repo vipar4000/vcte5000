@@ -105,19 +105,19 @@ CONCILIACION BANCARIA (07_extracto_bancario_santander.csv)
 ----------------------------------------------------------
 
 Cuando terminen el Paso 5.1 (venta), el banco del ERP tendra 5 movimientos.
-Tras el Paso 8.6e (pago de las compras a credito), tendra 6 (5 + el EGRESO
-automatico del pago del alquiler). Para conciliarlos:
+Tras el Paso 8.6e (pago de las compras a credito con "Marcar pagado"), tendra
+9 (6 + los 3 EGRESO automaticos de los pagos a proveedores; el pago del
+alquiler del Paso 8.6a es el noveno). Para conciliarlos:
 
   1. Vaya a Banco > Conciliacion Bancaria y seleccione "Banco Santander".
   2. Suba el archivo 07_extracto_bancario_santander.csv y pulse
      "Procesar Extracto".
-  3. Las 5 primeras lineas se muestran en VERDE (coincidencia automatica:
-     mismo tipo, mismo importe exacto, fecha +/-2 dias).
-  4. Las 3 lineas de "Pago proveedor" (31/07/2026) aparecen en AMARILLO
-     sin match en el ERP: los asientos manuales del Paso 8.6e no generan
-     movimiento bancario. Marque el checkbox "Manual" de cada una y pulse
-     "Conciliar seleccionados": el sistema crea el EGRESO ya conciliado
-     (nota "Conciliado desde extracto CSV (manual)").
+  3. Las 8 primeras lineas se muestran en VERDE (coincidencia automatica:
+     mismo tipo, mismo importe exacto, fecha +/-2 dias), incluidas las 3
+     de "Pago proveedor" (31/07/2026): los EGRESO se generaron
+     automaticamente al marcar Pagado en el Paso 8.6e y hacen match
+     directo contra el extracto (ya no hace falta el checkbox "Manual").
+  4. Pulse "Conciliar seleccionados" para confirmar las coincidencias.
   5. Resultado esperado:
      Saldo real (conciliado) = 50.649,00 EUR | Sin conciliar = -2.040,00
      EUR (EGRESO del pago del alquiler, espera su linea en el extracto
@@ -136,9 +136,12 @@ automatico del pago del alquiler). Para conciliarlos:
   NOTAS IMPORTANTES:
   - Las compras de material a CREDITO (aceite, pastillas y filtro) no
     aparecen al comprarlas: quedan a credito en la cuenta 410 (405,35
-    EUR en total). Sus pagos del Paso 8.6e (31/07/2026) SI aparecen
-    como salidas del banco y se crean en el modulo Banco con el
-    checkbox "Manual" de la conciliacion.
+    EUR en total). Al marcarlas como PAGADAS en el Paso 8.6e
+    (31/07/2026), el sistema genera automaticamente el asiento de pago
+    (PagoCompraMaterial: DEBE 410 / HABER 572) y su EGRESO bancario
+    vinculado, que concilia por match exacto contra estas lineas.
+    Con "Deshacer pago" se anula el asiento (Ley Antifraude) y se
+    elimina el EGRESO.
   - La compra al CONTADO por BANCO (refrigerante, CM-004) SI aparece
     (EGRESO 78,65): el sistema la genera al guardar la compra.
   - La compra al CONTADO por CAJA (neumaticos, CM-005) NO aparece:
