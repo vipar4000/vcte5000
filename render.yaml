@@ -1,7 +1,16 @@
 # Servidores del ERP en Render — región Fráncfort (UE), la más cercana a Madrid.
 #
-# Sobre los planes: los servicios gratuitos se suspenden por inactividad y las
-# bases gratuitas caducan (~30 días). Para un negocio en marcha, plan de pago.
+# SITUACIÓN ACTUAL (sin método de pago en la cuenta de Render):
+# Render no permite crear servicios de pago y no queda ningún servicio activo.
+# Por eso el blueprint solo define STAGING, que es gratuito y sirve para que
+# Madrid ejecute la prueba. La definición de PRODUCCIÓN está al final,
+# comentada, para reactivarla cuando haya tarjeta.
+#
+# Límites del plan gratuito (staging):
+#   - El servicio se suspende por inactividad: el primer acceso tarda ~30-60 s.
+#   - La base de datos gratuita caduca a los ~30 días. Los datos de prueba se
+#     pierden; se vuelven a sembrar con create_test_users.py.
+#   - No hay copias de seguridad automáticas: para la prueba no hacen falta.
 #
 # Sobre los secretos (sync: false): se rellenan en el dashboard de Render y no
 # viven en el repositorio.
@@ -39,32 +48,35 @@ services:
         sync: false
 
   # ------------------------------------------------------------- PRODUCCION
-  - type: web
-    name: eurocar
-    runtime: python
-    plan: starter
-    region: frankfurt
-    rootDir: backend
-    branch: master
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
-    healthCheckPath: /api/ping/
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.production
-      - key: DEBUG
-        value: "False"
-      - key: ALLOWED_HOSTS
-        value: rogil.co,www.rogil.co,.onrender.com
-      - key: CSRF_TRUSTED_ORIGINS
-        value: https://rogil.co,https://www.rogil.co
-      # Dominio temporal: no meter en la lista de preload de los navegadores.
-      - key: HSTS_PRELOAD
-        value: "false"
-      - key: SECRET_KEY
-        sync: false
-      - key: DATABASE_URL
-        sync: false
-      # AWS_* (R2 para fotos y facturas) se añaden en el dashboard cuando
-      # exista el bucket; sin ellas, la media se guarda en disco y se pierde
-      # en cada despliegue.
+  # DESACTIVADA: requiere método de pago en Render. Para activarla, quite el
+  # comentario de este bloque (líneas siguientes) y aplique el blueprint.
+  #
+  # - type: web
+  #   name: eurocar
+  #   runtime: python
+  #   plan: starter
+  #   region: frankfurt
+  #   rootDir: backend
+  #   branch: master
+  #   buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
+  #   startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
+  #   healthCheckPath: /api/ping/
+  #   envVars:
+  #     - key: DJANGO_SETTINGS_MODULE
+  #       value: config.settings.production
+  #     - key: DEBUG
+  #       value: "False"
+  #     - key: ALLOWED_HOSTS
+  #       value: rogil.co,www.rogil.co,.onrender.com
+  #     - key: CSRF_TRUSTED_ORIGINS
+  #       value: https://rogil.co,https://www.rogil.co
+  #     # Dominio temporal: no meter en la lista de preload de los navegadores.
+  #     - key: HSTS_PRELOAD
+  #       value: "false"
+  #     - key: SECRET_KEY
+  #       sync: false
+  #     - key: DATABASE_URL
+  #       sync: false
+  #     # AWS_* (R2 para fotos y facturas) se añaden en el dashboard cuando
+  #     # exista el bucket; sin ellas, la media se guarda en disco y se pierde
+  #     # en cada despliegue.

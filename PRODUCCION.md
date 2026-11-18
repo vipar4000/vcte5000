@@ -288,3 +288,38 @@ servicios nuevos en `frankfurt` y retirar los viejos:
 
 Hoy staging y producción comparten una sola PostgreSQL: un `migrate` en staging
 afecta a producción. Al recrear en Fráncfort, crear **dos bases independientes**.
+
+### Sin método de pago (situación actual)
+
+Render retiró la tarjeta del workspace: **no se pueden crear servicios de pago
+y no queda ningún servicio activo** (las URL antiguas devuelven 404).
+
+Mientras eso no se resuelva, hay una vía que no necesita tarjeta y cubre lo
+inmediato: **desplegar solo staging gratuito** para que Madrid ejecute la prueba.
+
+- `render.yaml` define únicamente el servicio `eurocar-staging` (plan free); el
+  bloque de producción está comentado al final del archivo, listo para
+  reactivar.
+- Hace falta **una base de datos gratuita** y un servicio web gratuito, ambos en
+  Fráncfort. Comprueba cuántas bases gratuitas permite tu workspace; si solo
+  permite una, esa es la de staging.
+- Límites que hay que tener presentes: el servicio **se duerme** por inactividad
+  (el primer acceso tarda 30-60 s) y la base gratuita **caduca a los ~30 días**.
+
+### Reactivar producción cuando haya tarjeta
+
+1. Añadir el método de pago en Render. Si el panel no deja («temporarily
+   prevents adding a new card»), abrir un ticket a soporte de Render: es un
+   bloqueo de la cuenta, no del proyecto.
+2. Crear una base de datos **de pago** en Fráncfort (`rogil-db`).
+3. Descomentar el bloque de producción en `render.yaml` y aplicar el blueprint.
+4. Si la base gratuita tuviera datos que conservar:
+   `pg_dump` de la gratuita → `pg_restore` en la de pago.
+5. No se puede saltar el paso 2: una base gratuita caduca y no debe sostener
+   datos reales.
+
+### Datos reales solo con base de pago
+
+La prueba de Madrid puede correr en staging gratuito. **Los datos del negocio
+—ventas, facturas, asientos— no deben vivir en una base gratuita**, porque a los
+~30 días desaparece.
