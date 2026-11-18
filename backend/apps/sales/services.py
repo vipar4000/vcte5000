@@ -1,12 +1,78 @@
 """
 Servicio de generación de PDFs para R Car Rogil ERP.
-Utiliza WeasyPrint para generar contratos, mandatos y facturas.
+Genera contratos, mandatos y facturas.
+
+Los PDFs se guardan a través del almacenamiento configurado (MEDIA_ROOT local
+en desarrollo, S3/R2 en producción) para que los enlaces de descarga sigan
+funcionando después de un despliegue.
+
+Motor de renderizado: WeasyPrint si sus librerías de sistema (Pango/Cairo)
+están disponibles; si no —por ejemplo en el runtime nativo de Render, que no
+instala paquetes del sistema— se usa xhtml2pdf, que es Python puro.
 """
-from django.template.loader import render_to_string
-from django.conf import settings
-from weasyprint import HTML
+from io import BytesIO
+
 from decimal import Decimal
-import os
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.template.loader import render_to_string
+
+
+class PDFGenerationError(RuntimeError):
+    """No se pudo generar el PDF con ninguno de los motores disponibles."""
+
+
+def _render_pdf(html_string):
+    """Devuelve los bytes del PDF usando el primer motor disponible."""
+    try:
+        from weasyprint import HTML
+    except Exception:
+        # ImportError o librerías de sistema ausentes: se intenta xhtml2pdf.
+        HTML = None
+
+    if HTML is not None:
+        try:
+            return HTML(string=html_string).write_pdf()
+        except Exception as exc:
+            raise PDFGenerationError(
+                f'WeasyPrint no pudo generar el PDF: {exc}'
+            ) from exc
+
+    try:
+        from xhtml2pdf import pisa
+    except Exception as exc:
+        raise PDFGenerationError(
+            'No hay motor de PDF disponible. Instale WeasyPrint con sus '
+            'librerías de sistema (Pango/Cairo) o xhtml2pdf (pip install xhtml2pdf).'
+        ) from exc
+
+    buffer = BytesIO()
+    resultado = pisa.CreatePDF(src=html_string, dest=buffer)
+    if resultado.err:
+        raise PDFGenerationError(
+            f'xhtml2pdf devolvió {resultado.err} error(es) al generar el PDF.'
+        )
+    return buffer.getvalue()
+
+
+def _guardar_en_campo(campo, nombre, pdf_bytes):
+    """Guarda el PDF en un FileField usando el almacenamiento configurado.
+
+    Se borra el archivo anterior para conservar un nombre estable (sin sufijos
+    aleatorios de colisión) y se persiste el modelo.
+    """
+    campo.delete(save=False)
+    campo.save(nombre, ContentFile(pdf_bytes), save=True)
+    return campo.name
+
+
+def _guardar_en_storage(ruta, pdf_bytes):
+    """Guarda los bytes en el almacenamiento por defecto conservando la ruta."""
+    if default_storage.exists(ruta):
+        default_storage.delete(ruta)
+    return default_storage.save(ruta, ContentFile(pdf_bytes))
 
 
 def generar_contrato_compraventa(venta):
@@ -46,17 +112,12 @@ def generar_contrato_compraventa(venta):
     
     html_string = render_to_string('sales/contrato_compraventa.html', context)
     
-    # Generar PDF
-    pdf_path = os.path.join(settings.MEDIA_ROOT, 'contratos', f'contrato_{venta.pk}.pdf')
-    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+    # Generar el PDF y guardarlo en el almacenamiento configurado
+    # (MEDIA_ROOT en desarrollo, S3/R2 en producción).
+    pdf_bytes = _render_pdf(html_string)
+    _guardar_en_campo(venta.contrato_pdf, f'contrato_{venta.pk}.pdf', pdf_bytes)
     
-    HTML(string=html_string).write_pdf(pdf_path)
-    
-    # Guardar ruta en la venta
-    venta.contrato_pdf = f'contratos/contrato_{venta.pk}.pdf'
-    venta.save(update_fields=['contrato_pdf'])
-    
-    return pdf_path
+    return venta.contrato_pdf.name
 
 
 def generar_mandato_gestoria(venta):
@@ -92,17 +153,11 @@ def generar_mandato_gestoria(venta):
     
     html_string = render_to_string('sales/mandato_gestoria.html', context)
     
-    # Generar PDF
-    pdf_path = os.path.join(settings.MEDIA_ROOT, 'mandatos', f'mandato_{venta.pk}.pdf')
-    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+    # Generar el PDF y guardarlo en el almacenamiento configurado.
+    pdf_bytes = _render_pdf(html_string)
+    _guardar_en_campo(venta.mandato_pdf, f'mandato_{venta.pk}.pdf', pdf_bytes)
     
-    HTML(string=html_string).write_pdf(pdf_path)
-    
-    # Guardar ruta en la venta
-    venta.mandato_pdf = f'mandatos/mandato_{venta.pk}.pdf'
-    venta.save(update_fields=['mandato_pdf'])
-    
-    return pdf_path
+    return venta.mandato_pdf.name
 
 
 # =============================================================================
@@ -181,13 +236,8 @@ def generar_pdf_factura(factura):
     
     html_string = render_to_string('sales/factura_rebu.html', context)
     
-    pdf_dir = os.path.join(settings.MEDIA_ROOT, 'facturas')
-    os.makedirs(pdf_dir, exist_ok=True)
-    pdf_path = os.path.join(pdf_dir, f'{factura.codigo_factura}.pdf')
-    
-    HTML(string=html_string).write_pdf(pdf_path)
-    
-    return pdf_path
+    ruta = f'facturas/{factura.codigo_factura}.pdf'
+    return _guardar_en_storage(ruta, _render_pdf(html_string))
 
 
 def crear_factura_rectificativa(factura_original, tipo, motivo, usuario):
@@ -266,10 +316,5 @@ def generar_pdf_factura_rectificativa(factura):
     
     html_string = render_to_string('sales/factura_rectificativa.html', context)
     
-    pdf_dir = os.path.join(settings.MEDIA_ROOT, 'facturas')
-    os.makedirs(pdf_dir, exist_ok=True)
-    pdf_path = os.path.join(pdf_dir, f'{factura.codigo_factura}.pdf')
-    
-    HTML(string=html_string).write_pdf(pdf_path)
-    
-    return pdf_path
+    ruta = f'facturas/{factura.codigo_factura}.pdf'
+    return _guardar_en_storage(ruta, _render_pdf(html_string))

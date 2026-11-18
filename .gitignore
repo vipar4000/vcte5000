@@ -1,4 +1,5 @@
-# Environment files
+# Environment files (nunca versionar secretos; usar los .example)
+.env
 .env.production
 backend/.env
 

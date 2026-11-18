@@ -189,7 +189,7 @@ CACHES = {
 # Axes (brute force protection)
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # 1 hour
-AXES_LOCKOUT_PARAMETERS = ["username"]  # axes 7.x: bloqueo por usuario (sustituye a AXES_LOCK_OUT_BY_USER)
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]  # axes 7.x: bloqueo por usuario + IP
 AXES_RESET_ON_SUCCESS = True
 
 # Session settings
