@@ -73,6 +73,12 @@ gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
 Si el servicio responde 404 en `/api/ping/`, el servicio no está sirviendo la
 aplicación (no es un problema de datos).
 
+**Versión de Python**: el servicio usa `Root Directory = backend`, así que
+Render lee `backend/.python-version` (no el de la raíz). Sin ese archivo usa su
+Python por defecto, más nuevo, y el `pip install` falla porque `Pillow==10.1.0`
+y `psycopg2-binary==2.9.9` no tienen rueda para esa versión. Si el build termina
+con `Exited with status 1` antes de arrancar, revisar esto primero.
+
 ## 4. Verificación tras el despliegue
 
 ```bash
