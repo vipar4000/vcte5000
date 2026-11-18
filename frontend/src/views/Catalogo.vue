@@ -52,7 +52,7 @@
         <div v-for="vehiculo in vehiculosFiltrados" :key="vehiculo.id" 
              class="bg-white rounded-lg shadow-lg overflow-hidden card-hover transition-all duration-300">
           <!-- Carousel de imágenes -->
-          <div class="relative h-48 bg-gray-200 overflow-hidden group">
+          <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden group">
             <div :ref="el => { if (el) carouselRefs[vehiculo.id] = el }"
                  class="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
                  style="-ms-overflow-style:none; scrollbar-width:none;">
@@ -60,14 +60,18 @@
               <div class="min-w-full h-full snap-center flex-shrink-0">
                 <img v-if="vehiculo.imagen_url" :src="vehiculo.imagen_url" 
                      :alt="vehiculo.marca + ' ' + vehiculo.modelo" 
-                     class="w-full h-full object-contain bg-white">
+                     width="800" height="600"
+                     loading="eager" decoding="async"
+                     class="w-full h-full object-cover">
                 <span v-else class="text-6xl flex items-center justify-center h-full">🚗</span>
               </div>
               <!-- Imágenes adicionales -->
               <div v-for="(img, idx) in (vehiculo.imagenes_urls || [])" :key="idx" 
                    class="min-w-full h-full snap-center flex-shrink-0">
                 <img :src="img" :alt="vehiculo.marca + ' ' + vehiculo.modelo + ' (' + (idx+2) + ')'" 
-                     class="w-full h-full object-contain bg-white">
+                     width="800" height="600"
+                     loading="lazy" decoding="async"
+                     class="w-full h-full object-cover">
               </div>
             </div>
             <!-- Flechas -->
