@@ -6,6 +6,16 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '.onrender.com').split(',')
 
+# Origenes de confianza para CSRF. Es opcional: solo hace falta si el sitio se
+# sirve desde varios dominios a la vez (por ejemplo rogil.co y www.rogil.co) o
+# si hay un proxy por delante que no conserva el Host original. Formato:
+#   CSRF_TRUSTED_ORIGINS=https://rogil.co,https://www.rogil.co
+_csrf_origenes = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()
+if _csrf_origenes:
+    CSRF_TRUSTED_ORIGINS = [
+        origen.strip() for origen in _csrf_origenes.split(',') if origen.strip()
+    ]
+
 # Database via Render DATABASE_URL
 DATABASES = {
     'default': dj_database_url.config(
@@ -19,7 +29,13 @@ DATABASES = {
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# El preload de HSTS se puede desactivar por entorno (HSTS_PRELOAD=false).
+# Mientras se use un dominio temporal conviene dejarlo en false: incluir un
+# dominio en la lista de preload de los navegadores es practicamente
+# irreversible durante un año.
+SECURE_HSTS_PRELOAD = os.environ.get('HSTS_PRELOAD', 'True').lower() not in (
+    'false', '0', 'no'
+)
 SECURE_HSTS_SECONDS = 31536000
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -102,9 +102,7 @@ pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" backup_django_YYYYM
 > Los artifacts de GitHub no son un plan de recuperación completo: **descargar
 > una copia periódica fuera de GitHub** y probar la restauración.
 
-## 6. Riesgos que quedan abiertos
-
-- **Base de datos compartida** entre staging y producción: un `migrate` en
+## 6. Riesgos que quedan abiertos- **Base de datos compartida** entre staging y producción: un `migrate` en
   staging afecta a producción. Separar antes de manejar datos reales.
 - **Sin monitorización de errores** (no hay Sentry): los fallos solo se ven en
   los logs de Render.
@@ -112,3 +110,51 @@ pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" backup_django_YYYYM
   bases gratuitas caducan (~30 días).
 - **CI** ejecuta tests y comprobaciones, pero el despliegue no depende de que
   pasen: configurar *branch protection* o el chequeo obligatorio en Render.
+
+## 7. Cambiar de dominio
+
+Se puede cambiar de dominio **sin tocar la base de datos, los asientos, las
+facturas emitidas ni las fotos**: los archivos se guardan con rutas relativas y
+el código no contiene ningún dominio escrito a mano. El coste es de
+configuración y DNS, no de migración.
+
+### Qué no cambia
+
+- Datos contables, ventas, vehículos, facturas ya emitidas y usuarios.
+- Archivos subidos: se guardan como `vehiculos/<matricula>/...` y similares.
+- Código: `ALLOWED_HOSTS` se lee del entorno.
+
+### Qué hay que cambiar
+
+1. **Render → Settings → Custom Domain**: añadir el dominio nuevo. Mientras se
+   convive con el anterior, dejar los dos.
+2. **DNS**: el registro que indique Render (CNAME a `onrender.com` para `www`,
+   ALIAS/ANAME o A para el dominio raíz). El certificado TLS lo emite Render.
+3. **`ALLOWED_HOSTS`** en Render: añadir el dominio nuevo separado por comas,
+   p. ej. `rogil.co,www.rogil.co`.
+4. **`CSRF_TRUSTED_ORIGINS`** (solo si se sirve desde varios dominios a la vez):
+   `https://rogil.co,https://www.rogil.co`.
+5. **Redirecciones 301** del dominio viejo al nuevo para no perder enlaces ni
+   posicionamiento, y actualizar los enlaces de los portales (Coches.net,
+   AutoScout24) y de UptimeRobot.
+6. **Correo**: si se envía desde el dominio nuevo, actualizar
+   `DEFAULT_FROM_EMAIL` y los registros SPF/DKIM del dominio.
+
+### Dos avisos importantes
+
+- **HSTS preload**: el sistema envía HSTS de un año. Mientras el dominio sea
+  temporal, poner `HSTS_PRELOAD=false`. Meter un dominio en la lista de preload
+  de los navegadores es prácticamente irreversible durante un año.
+- **Dominio de los archivos (R2)**: si la media se sirve con un subdominio
+  propio (p. ej. `media.rogil.co`), cambiarlo implica actualizar
+  `AWS_S3_CUSTOM_DOMAIN` y reiniciar el servicio. Los archivos **no se mueven**;
+  solo cambia la URL base con la que se sirven.
+
+### Orden recomendado
+
+1. Registrar/desbloquear el dominio definitivo.
+2. Dejar el temporal (`rogil.co`) funcionando y **sin preload de HSTS**.
+3. Cuando llegue el definitivo: añadirlo en Render, DNS, `ALLOWED_HOSTS` y
+   `CSRF_TRUSTED_ORIGINS`; convivir unos días con ambos.
+4. Poner la redirección 301 del temporal al definitivo y, cuando esté
+   verificada, retirar el temporal de Render.
