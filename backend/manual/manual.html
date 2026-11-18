@@ -163,6 +163,19 @@
             </ul>
         </li>
         <li><a href="#comandos-usados"><span class="chapter-num">21.</span> Comandos Usados</a></li>
+        <li><a href="#capitulo-22"><span class="chapter-num">22.</span> Subir las Fotos de los Vehiculos</a>
+            <ul>
+                <li><a href="#capitulo-22-1"><span class="chapter-num">22.1</span> Antes de empezar</a></li>
+                <li><a href="#capitulo-22-2"><span class="chapter-num">22.2</span> Que fotos hacer y en que orden</a></li>
+                <li><a href="#capitulo-22-3"><span class="chapter-num">22.3</span> Preparar los archivos</a></li>
+                <li><a href="#capitulo-22-4"><span class="chapter-num">22.4</span> Subirlas al ERP, paso a paso</a></li>
+                <li><a href="#capitulo-22-5"><span class="chapter-num">22.5</span> Comprobar que se ven en la web</a></li>
+                <li><a href="#capitulo-22-6"><span class="chapter-num">22.6</span> Cambiar, sustituir o borrar</a></li>
+                <li><a href="#capitulo-22-7"><span class="chapter-num">22.7</span> Cuando el coche se vende</a></li>
+                <li><a href="#capitulo-22-8"><span class="chapter-num">22.8</span> Subida masiva desde consola</a></li>
+                <li><a href="#capitulo-22-9"><span class="chapter-num">22.9</span> Problemas frecuentes</a></li>
+            </ul>
+        </li>
     </ul>
 
     <h2>Roles de Usuario</h2>
@@ -6405,6 +6418,218 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
 
 <div class="info-box">
     <strong>Fuente:</strong> La referencia de comandos se mantiene tambien en el archivo <code>AGENTS.md</code> del repositorio, junto con las notas de arquitectura y los avisos para desarrollo.
+</div>
+
+<!-- ==================== CAPITULO 22 ==================== -->
+<h1 id="capitulo-22">22. Subir las Fotos de los Vehiculos</h1>
+
+<p>Este capitulo explica, paso a paso, como subir las fotos de un coche para que aparezcan en la web publica. No hace falta saber informatica: solo seguir el orden. Se tarda unos 5 minutos por vehiculo.</p>
+
+<div class="info-box">
+    <strong>Lo que el sistema hace solo:</strong> al guardar, cada foto se reduce de tamano (maximo 2560 px de ancho), se convierte a JPEG y se le borran los datos ocultos del movil (fecha, modelo de camara y coordenadas GPS). No hay que recortar, ni comprimir, ni renombrar nada antes de subir.
+</div>
+
+<h2 id="capitulo-22-1">22.1 Antes de empezar: cuatro comprobaciones</h2>
+
+<table>
+    <tr><th>Comprobacion</th><th>Por que</th><th>Donde se ve</th></tr>
+    <tr>
+        <td>El vehiculo ya existe en el ERP</td>
+        <td>Las fotos se cuelgan de un vehiculo, no se pueden subir sueltas</td>
+        <td>Sidebar &rarr; <strong>Vehiculos</strong></td>
+    </tr>
+    <tr>
+        <td>El estado es <strong>EN VENTA</strong></td>
+        <td>Fuera de ese estado la seccion de fotos ni siquiera aparece</td>
+        <td>Ficha del vehiculo &rarr; campo <strong>Estado</strong></td>
+    </tr>
+    <tr>
+        <td>El <strong>precio de venta</strong> es mayor que 0</td>
+        <td>La web publica solo muestra coches en venta <em>y</em> con precio</td>
+        <td>Ficha del vehiculo &rarr; campo <strong>Precio de venta</strong></td>
+    </tr>
+    <tr>
+        <td>Ha entrado con un usuario <strong>ADMIN</strong></td>
+        <td>Solo el administrador puede editar vehiculos y fotos</td>
+        <td>Esquina superior derecha de la pantalla</td>
+    </tr>
+</table>
+
+<h2 id="capitulo-22-2">22.2 Que fotos hacer y en que orden</h2>
+
+<p>Un coche se vende con 8 a 12 fotos bien hechas. Haga siempre las mismas, en el mismo orden: asi todos los anuncios se leen igual y el comprador encuentra lo que busca.</p>
+
+<table>
+    <tr><th>Pos.</th><th>Foto</th><th>Para que sirve</th></tr>
+    <tr><td>1</td><td>3/4 delantero (esquina del morro y lateral)</td><td><strong>Es la portada</strong>: la primera imagen del catalogo</td></tr>
+    <tr><td>2</td><td>3/4 trasero</td><td>Cierra el coche por el otro lado</td></tr>
+    <tr><td>3</td><td>Lateral completo</td><td>Muestra la linea y los golpes de chapa</td></tr>
+    <tr><td>4</td><td>Interior delantero (volante y salpicadero)</td><td>Estado de tapiceria y mandos</td></tr>
+    <tr><td>5</td><td>Cuadro de instrumentos encendido</td><td>Prueba visual de los kilometros</td></tr>
+    <tr><td>6</td><td>Asientos traseros</td><td>Plazas y desgaste</td></tr>
+    <tr><td>7</td><td>Maletero abierto</td><td>Capacidad y estado del suelo</td></tr>
+    <tr><td>8</td><td>Motor con el capo abierto</td><td>Limpieza y estado del vano</td></tr>
+    <tr><td>9-12</td><td>Detalles: neumaticos, llantas, faros, defectos</td><td>Transparencia: genera confianza y evita reclamaciones</td></tr>
+</table>
+
+<div class="warning-box">
+    <strong>Reglas de la foto:</strong> siempre <strong>horizontal</strong> (nunca en vertical), con el movil a la altura de la cintura y sin inclinarlo; coche limpio; luz natural y sin flash; fondo despejado; al menos <strong>2000 px de ancho</strong>. Una foto vertical o de 800 px se vera pequena o borrosa en la ficha.
+</div>
+
+<h2 id="capitulo-22-3">22.3 Preparar los archivos en el ordenador</h2>
+
+<ol>
+    <li>Cree una carpeta con la matricula del coche, por ejemplo <code>1234ABC</code>.</li>
+    <li>Vuelque las fotos del movil en esa carpeta.</li>
+    <li>Renombre las fotos con un numero delante, para subirlas en orden:
+        <pre><code>1234ABC-01-frente.jpg
+1234ABC-02-trasero.jpg
+1234ABC-03-lateral.jpg
+1234ABC-04-interior.jpg
+1234ABC-05-cuadro.jpg
+1234ABC-06-asientos.jpg
+1234ABC-07-maletero.jpg
+1234ABC-08-motor.jpg</code></pre>
+    </li>
+    <li>Compruebe el peso: cada foto debe ocupar <strong>menos de 20 MB</strong>. Si alguna pesa mas, el sistema la rechaza con un aviso claro.</li>
+</ol>
+
+<p>El nombre del archivo no se publica en la web: el sistema lo sustituye por un nombre interno (por ejemplo <code>vehiculos/1234abc/frente-9c1a2b3d.jpg</code>), asi que puede renombrar como le resulte comodo.</p>
+
+<h2 id="capitulo-22-4">22.4 Subirlas al ERP, paso a paso</h2>
+
+<ol>
+    <li><strong>Entre en el ERP</strong> con su usuario y contrasena (<code>/erp/</code>).</li>
+    <li><strong>Vaya a Vehiculos</strong> en el menu lateral izquierdo.</li>
+    <li><strong>Busque el coche</strong> por matricula o marca y haga clic en su fila para abrir la ficha.</li>
+    <li><strong>Pulse "Editar"</strong> (esquina superior de la ficha).</li>
+    <li><strong>Mire el campo "Estado"</strong>:
+        <ul>
+            <li>Si dice <strong>En Venta</strong>, siga al paso 6.</li>
+            <li>Si dice otra cosa, seleccione <strong>En Venta</strong>. La seccion de fotos aparecera en ese momento.</li>
+        </ul>
+    </li>
+    <li><strong>Descargue la pagina un poco</strong> hasta el bloque azul que dice "Hasta 15 fotos adicionales". Justo debajo estan los dos apartados:</li>
+    <li><strong>Imagen Principal.</strong> Pulse <strong>"Seleccionar archivo"</strong> y elija la foto <strong>1</strong> (3/4 delantero). Es la que se vera en el catalogo.</li>
+    <li><strong>Imagenes Adicionales.</strong>
+        <ul>
+            <li>Pulse el boton verde <strong>"+ Anadir imagen"</strong> y elija la foto 2.</li>
+            <li>Repita con la 3, la 4... hasta tener todas (maximo <strong>15</strong>).</li>
+            <li>Deje el campo <strong>"Orden"</strong> como este: 1, 2, 3... (cada foto con un numero distinto).</li>
+            <li>Debajo vera el contador <code>X de 15 imagenes</code>.</li>
+        </ul>
+    </li>
+    <li><strong>Revise</strong> que cada fila tenga su archivo y que no falte la principal.</li>
+    <li><strong>Pulse "Guardar Cambios"</strong> (abajo del todo).</li>
+    <li><strong>Espere el mensaje verde</strong> "Vehiculo actualizado". Si aparece un mensaje rojo, lea el motivo: normalmente es una foto demasiado grande o mas de 15 imagenes.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Si no ve la seccion de imagenes:</strong> el estado no es <strong>En Venta</strong>. Cambielo en el campo "Estado" y la seccion aparecera sin recargar la pagina. Si aun asi no sale, su usuario no es ADMIN.
+</div>
+
+<h2 id="capitulo-22-5">22.5 Comprobar que se ven en la web</h2>
+
+<ol>
+    <li>Abra la web publica (<code>/</code>) y vaya al <strong>Catalogo</strong>.</li>
+    <li>Busque el coche: debe aparecer con la foto principal en la tarjeta y el resto al deslizar.</li>
+    <li>Abra su ficha: la galeria muestra todas las fotos y al pulsar una se amplia.</li>
+</ol>
+
+<p>Si el coche <strong>no aparece</strong> en la web, revise en la ficha: estado <strong>En Venta</strong> y <strong>precio de venta mayor que 0</strong>. Son las dos unicas condiciones.</p>
+
+<h2 id="capitulo-22-6">22.6 Cambiar el orden, sustituir o borrar una foto</h2>
+
+<table>
+    <tr><th>Quiero...</th><th>Como</th></tr>
+    <tr>
+        <td>Cambiar el orden</td>
+        <td>Editar el vehiculo, cambiar el numero del campo <strong>Orden</strong> de las filas afectadas y guardar.</td>
+    </tr>
+    <tr>
+        <td>Sustituir una foto</td>
+        <td>En la fila de esa foto, pulse "Seleccionar archivo" y elija la nueva; luego guarde. La anterior se elimina sola.</td>
+    </tr>
+    <tr>
+        <td>Borrar una foto ya guardada</td>
+        <td>Marque la casilla <strong>"Eliminar"</strong> de esa fila y guarde.</td>
+    </tr>
+    <tr>
+        <td>Quitar una fila que acaba de anadir (sin guardar)</td>
+        <td>Pulse el boton <strong>"Quitar"</strong> de esa fila.</td>
+    </tr>
+    <tr>
+        <td>Cambiar la foto de portada</td>
+        <td>Suba otra en <strong>Imagen Principal</strong> y guarde: sustituye a la anterior.</td>
+    </tr>
+</table>
+
+<h2 id="capitulo-22-7">22.7 Que pasa cuando el coche se vende</h2>
+
+<p>Al cambiar el estado a <strong>Vendido</strong> (o a cualquier otro que no sea En Venta), el coche desaparece de la web publica, pero <strong>sus fotos se conservan</strong>. Si vuelve a ponerlo <strong>En Venta</strong>, reaparecen tal y como estaban, sin tener que subirlas otra vez.</p>
+
+<div class="warning-box">
+    <strong>Antes esto borraba las fotos.</strong> Ya no: desde esta version el cambio de estado solo oculta el anuncio. Para eliminar fotos de verdad hay que marcar "Eliminar" en cada fila, o borrar el vehiculo.
+</div>
+
+<h2 id="capitulo-22-8">22.8 Subida masiva desde la consola (opcional)</h2>
+
+<p>Para cargar muchas fotos de un tiron, sin pasar por el formulario, ejecute este comando desde <code>backend/</code>:</p>
+
+<pre><code>python manage.py subir_imagen_vehiculo --matricula 1234ABC --principal ^
+  --imagen C:\fotos\1234ABC-01-frente.jpg ^
+  --imagen C:\fotos\1234ABC-02-trasero.jpg</code></pre>
+
+<ul>
+    <li><code>--principal</code> marca la <strong>primera</strong> imagen como portada.</li>
+    <li>Se pueden repetir tantos <code>--imagen</code> como fotos haya.</li>
+    <li>El vehiculo debe estar <strong>EN VENTA</strong>; si no, el comando lo dice y no sube nada.</li>
+    <li>Las fotos se optimizan igual que desde el formulario.</li>
+</ul>
+
+<h2 id="capitulo-22-9">22.9 Problemas frecuentes</h2>
+
+<table>
+    <tr><th>Lo que ve</th><th>Por que</th><th>Que hacer</th></tr>
+    <tr>
+        <td>No aparece la seccion de imagenes</td>
+        <td>El estado no es En Venta, o el usuario no es ADMIN</td>
+        <td>Poner En Venta; entrar con un usuario administrador</td>
+    </tr>
+    <tr>
+        <td>"Ha seleccionado N imagenes y el maximo es 15"</td>
+        <td>Se han anadido mas filas de las permitidas</td>
+        <td>Quitar las sobrantes y guardar; el resto, en una segunda edicion</td>
+    </tr>
+    <tr>
+        <td>"La imagen pesa X MB y el maximo son 20 MB"</td>
+        <td>La foto es demasiado grande</td>
+        <td>Reducirla o hacerla de nuevo con el movil</td>
+    </tr>
+    <tr>
+        <td>"El archivo no es una imagen que el sistema pueda leer"</td>
+        <td>Se ha elegido un PDF, un HEIC o un archivo danado</td>
+        <td>Convertir a JPG o repetir la foto</td>
+    </tr>
+    <tr>
+        <td>La foto sale girada</td>
+        <td>No deberia: el sistema corrige la orientacion al guardar</td>
+        <td>Volver a subirla; si persiste, avisar al administrador</td>
+    </tr>
+    <tr>
+        <td>El coche no aparece en la web</td>
+        <td>No esta En Venta o no tiene precio de venta</td>
+        <td>Revisar estado y precio en la ficha</td>
+    </tr>
+    <tr>
+        <td>La foto se ve borrosa en la ficha</td>
+        <td>Se subio una foto de menos de 2000 px</td>
+        <td>Repetir la foto con mas resolucion y sustituirla</td>
+    </tr>
+</table>
+
+<div class="info-box">
+    <strong>Orden recomendado de trabajo:</strong> dar de alta el coche &rarr; cambiar el estado a En Venta &rarr; subir las fotos &rarr; guardar &rarr; comprobar en la web. Asi, si algo falla, las fotos no se pierden por el camino.
 </div>
 
 </body>

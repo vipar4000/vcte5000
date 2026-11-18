@@ -184,6 +184,11 @@
         </div>
 
         <div id="imagenes-section" {% if not mostrar_imagenes %}hidden{% endif %}>
+        <div class="p-4 mb-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm space-y-1">
+            <p><strong>Hasta {{ imagenes_formset.max_num }} fotos adicionales</strong> por vehículo. Se reducen y optimizan automáticamente al guardar.</p>
+            <p>Use fotos <strong>horizontales</strong> de al menos 2000 px de ancho. La que se ve primero en el catálogo es la <strong>Imagen Principal</strong>.</p>
+            <p>El campo <strong>Orden</strong> decide la posición de cada foto (1, 2, 3… sin repetir).</p>
+        </div>
         <fieldset>
             <legend class="text-lg font-semibold mb-4">Imagen Principal</legend>
             {{ form.imagen_principal }}
@@ -222,10 +227,6 @@
                         <label class="block text-xs text-gray-500 mb-1">Imagen</label>
                         {{ empty_form.imagen }}
                     </div>
-                    <div class="w-24">
-                        <label class="block text-xs text-gray-500 mb-1">Principal</label>
-                        {{ empty_form.es_principal }}
-                    </div>
                     <div class="w-20">
                         <label class="block text-xs text-gray-500 mb-1">Orden</label>
                         {{ empty_form.orden }}
@@ -245,10 +246,6 @@
                     <div class="flex-1 min-w-[200px]">
                         <label class="block text-xs text-gray-500 mb-1">Imagen</label>
                         {{ img_form.imagen }}
-                    </div>
-                    <div class="w-24">
-                        <label class="block text-xs text-gray-500 mb-1">Principal</label>
-                        {{ img_form.es_principal }}
                     </div>
                     <div class="w-20">
                         <label class="block text-xs text-gray-500 mb-1">Orden</label>

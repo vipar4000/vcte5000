@@ -142,6 +142,10 @@ def vehiculo_update(request, pk):
         return redirect('vehicles:detail', pk=pk)
     
     if request.method == 'POST':
+        # Valor previo de la portada: si el vehículo sale de EN_VENTA hay que
+        # restaurarlo, porque validar el formulario ya vuelca el archivo nuevo
+        # sobre la instancia del modelo.
+        imagen_principal_previa = vehiculo.imagen_principal
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
         procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
@@ -159,10 +163,23 @@ def vehiculo_update(request, pk):
 
         if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             nuevo_estado = form.cleaned_data.get('estado')
+            # Las fotos NO se borran al salir de EN_VENTA: se conservan ocultas
+            # y vuelven a mostrarse si el vehículo regresa a ese estado. Antes se
+            # eliminaban en silencio y un cambio de estado borraba el trabajo de
+            # fotos de forma irreversible. Para quitarlas, marque "Eliminar" en
+            # cada fila o borre el vehículo.
+            tenia_fotos = bool(vehiculo.imagen_principal) or vehiculo.imagenes.exists()
             if nuevo_estado != 'EN_VENTA':
-                if vehiculo.imagen_principal:
-                    vehiculo.imagen_principal.delete(save=False)
-                vehiculo.imagenes.all().delete()
+                # Las fotos solo se admiten en EN_VENTA: se descarta cualquier
+                # archivo nuevo de este envío y se conserva el que ya hubiera.
+                form.cleaned_data.pop('imagen_principal', None)
+                form.instance.imagen_principal = imagen_principal_previa
+                if tenia_fotos:
+                    messages.info(
+                        request,
+                        'El vehículo ya no está EN VENTA: sus fotos se conservan '
+                        'ocultas y reaparecerán si vuelve a ese estado.'
+                    )
             vehiculo = form.save()
             if procesar_imagenes:
                 imagenes_formset.instance = vehiculo

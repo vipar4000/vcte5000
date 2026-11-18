@@ -2,12 +2,13 @@
  * Vehiculo imagenes: añadir/quitar imágenes adicionales dinamicamente.
  *
  * Maneja el formset inline de ImagenVehiculo con un prototipo oculto
- * y botones para añadir/quitar filas hasta un maximo de 8.
+ * y botones para añadir/quitar filas hasta un maximo de 15 (MAX_IMAGENES
+ * en apps/vehicles/forms.py).
  */
 (function () {
     'use strict';
 
-    var MAX_IMAGES = 8;
+    var MAX_IMAGES = 15;
     var totalFormsInput;
     var formsetContainer;
     var emptyTemplate;

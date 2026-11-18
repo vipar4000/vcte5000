@@ -1,8 +1,13 @@
 from decimal import Decimal, InvalidOperation
 from django import forms
+from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from django.forms.models import BaseInlineFormSet
+from .images import ImagenInvalida, nombre_para, procesar_imagen
 from .models import Vehiculo, ImagenVehiculo
+
+# Tope de fotos adicionales por vehículo. Se aplica en el formset y en el JS.
+MAX_IMAGENES = 15
 
 
 class VehiculoForm(forms.ModelForm):
@@ -168,6 +173,18 @@ class VehiculoForm(forms.ModelForm):
         except InvalidOperation:
             raise forms.ValidationError('Introduzca un número válido.')
 
+    def clean_imagen_principal(self):
+        """Reduce la foto y la guarda en la carpeta de la matrícula."""
+        archivo = self.cleaned_data.get('imagen_principal')
+        if not archivo or not hasattr(archivo, 'read'):
+            # Sin archivo nuevo: se conserva la que ya hubiera.
+            return archivo
+        matricula = self.cleaned_data.get('matricula') or self.instance.matricula
+        try:
+            return procesar_imagen(archivo, nombre_para(matricula, 'portada'))
+        except ImagenInvalida as exc:
+            raise forms.ValidationError(str(exc))
+
 
 class VehiculoBusquedaForm(forms.Form):
     """Formulario de búsqueda de vehículos."""
@@ -200,16 +217,48 @@ class ImagenVehiculoForm(forms.ModelForm):
 
     class Meta:
         model = ImagenVehiculo
-        fields = ['imagen', 'es_principal', 'orden']
+        fields = ['imagen', 'orden']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Las filas vacías (sin archivo) no bloquean el envío del formulario
         self.fields['imagen'].required = False
 
+    def clean_imagen(self):
+        """Reduce la foto y la guarda en la carpeta de la matrícula."""
+        archivo = self.cleaned_data.get('imagen')
+        if not archivo or not hasattr(archivo, 'read'):
+            return archivo
+        # La matrícula se toma del POST (es la que se está guardando); si no
+        # llegara, se usa la del vehículo ya cargado.
+        matricula = (self.data.get('matricula') if self.data else '') or getattr(
+            self.instance.vehiculo, 'matricula', ''
+        )
+        etiqueta = archivo.name.rsplit('.', 1)[0] if getattr(archivo, 'name', '') else 'foto'
+        try:
+            return procesar_imagen(archivo, nombre_para(matricula, etiqueta))
+        except ImagenInvalida as exc:
+            raise forms.ValidationError(str(exc))
+
 
 class ImagenVehiculoBaseFormSet(BaseInlineFormSet):
     """Formset que descarta las filas sin archivo (imagen='')."""
+
+    def clean(self):
+        super().clean()
+        # El formset recorta en silencio los formularios que superan max_num;
+        # aquí se avisa al usuario en vez de perder fotos sin explicación.
+        if self.data:
+            try:
+                enviadas = int(self.data.get(self.add_prefix('TOTAL_FORMS'), 0))
+            except (TypeError, ValueError):
+                enviadas = 0
+            if enviadas > MAX_IMAGENES:
+                raise ValidationError(
+                    f'Ha seleccionado {enviadas} imágenes y el máximo es '
+                    f'{MAX_IMAGENES}. Quite {enviadas - MAX_IMAGENES} o súbalas '
+                    f'en una segunda edición del vehículo.'
+                )
 
     def save(self, commit=True):
         objs = super().save(commit=commit)
@@ -224,8 +273,8 @@ ImagenVehiculoFormSet = inlineformset_factory(
     Vehiculo, ImagenVehiculo,
     form=ImagenVehiculoForm,
     formset=ImagenVehiculoBaseFormSet,
-    fields=['imagen', 'es_principal', 'orden'],
+    fields=['imagen', 'orden'],
     extra=1,
-    max_num=8,
+    max_num=MAX_IMAGENES,
     can_delete=True,
 )

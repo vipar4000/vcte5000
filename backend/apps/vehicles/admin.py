@@ -8,8 +8,8 @@ from apps.core.formatting import format_euros
 class ImagenVehiculoInline(admin.TabularInline):
     model = ImagenVehiculo
     extra = 1
-    max_num = 8
-    fields = ['imagen', 'es_principal', 'orden']
+    max_num = 15
+    fields = ['imagen', 'orden']
 
 
 @admin.register(Vehiculo)

@@ -15,6 +15,12 @@ def _png_bytes():
     return buf.getvalue()
 
 
+def _png_bytes_grande(ancho, alto):
+    buf = BytesIO()
+    Image.new('RGB', (ancho, alto), color='blue').save(buf, 'PNG')
+    return buf.getvalue()
+
+
 class VehiculoImagenesFormTests(TestCase):
     """La sección de imágenes aparece dinámicamente al seleccionar EN_VENTA."""
 
@@ -148,3 +154,111 @@ class VehiculoImagenesFormTests(TestCase):
         self.assertEqual(self.vehiculo.estado, 'ACONDICIONADO')
         self.assertFalse(self.vehiculo.imagen_principal)
         self.assertFalse(ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).exists())
+
+    # ------------------------------------------------------------------
+    # Optimización, carpetas por matrícula y conservación de las fotos
+    # ------------------------------------------------------------------
+
+    def _datos_sin_imagenes(self, **extra):
+        datos = dict(self.datos, **extra)
+        datos.update({
+            'imagenes-TOTAL_FORMS': '0',
+            'imagenes-INITIAL_FORMS': '0',
+            'imagenes-MIN_NUM_FORMS': '0',
+            'imagenes-MAX_NUM_FORMS': '1000',
+        })
+        return datos
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_imagen_principal_se_reduce_y_va_a_la_carpeta_de_la_matricula(self):
+        from apps.accounting.models import PlanContableDefault
+        PlanContableDefault.crear_plan_base()
+        self.client.force_login(self.admin)
+        datos = self._datos_sin_imagenes(estado='EN_VENTA', precio_venta='11900')
+        datos['imagen_principal'] = SimpleUploadedFile(
+            'foto-movil.png', _png_bytes_grande(3000, 2000), content_type='image/png'
+        )
+        response = self.client.post(
+            reverse('vehicles:update', kwargs={'pk': self.vehiculo.pk}), datos
+        )
+        self.assertEqual(response.status_code, 302)
+        self.vehiculo.refresh_from_db()
+
+        nombre = self.vehiculo.imagen_principal.name
+        self.assertTrue(
+            nombre.startswith('vehiculos/1234abc/portada-'),
+            f'Ruta inesperada: {nombre}',
+        )
+        self.assertTrue(nombre.endswith('.jpg'), nombre)
+        with Image.open(self.vehiculo.imagen_principal.path) as img:
+            self.assertEqual(img.format, 'JPEG')
+            self.assertLessEqual(max(img.size), 2560)
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_imagen_adicional_va_a_la_carpeta_de_la_matricula(self):
+        from apps.accounting.models import PlanContableDefault
+        PlanContableDefault.crear_plan_base()
+        self.client.force_login(self.admin)
+        datos = self._datos_sin_imagenes(estado='EN_VENTA', precio_venta='11900')
+        datos.update({
+            'imagenes-TOTAL_FORMS': '1',
+            'imagenes-0-imagen': SimpleUploadedFile(
+                'lateral.png', _png_bytes_grande(1200, 900), content_type='image/png'
+            ),
+            'imagenes-0-orden': '1',
+            'imagenes-0-id': '',
+        })
+        response = self.client.post(
+            reverse('vehicles:update', kwargs={'pk': self.vehiculo.pk}), datos
+        )
+        self.assertEqual(response.status_code, 302)
+        extra = ImagenVehiculo.objects.get(vehiculo=self.vehiculo)
+        self.assertTrue(
+            extra.imagen.name.startswith('vehiculos/1234abc/lateral-'),
+            extra.imagen.name,
+        )
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_formset_avisa_al_superar_el_maximo_de_imagenes(self):
+        self.client.force_login(self.admin)
+        datos = self._datos_sin_imagenes(estado='EN_VENTA', precio_venta='11900')
+        datos['imagenes-TOTAL_FORMS'] = '16'
+        for i in range(16):
+            datos[f'imagenes-{i}-imagen'] = ''
+            datos[f'imagenes-{i}-orden'] = str(i + 1)
+            datos[f'imagenes-{i}-id'] = ''
+
+        response = self.client.post(
+            reverse('vehicles:update', kwargs={'pk': self.vehiculo.pk}), datos
+        )
+        # No se guarda nada y el usuario ve el motivo, en lugar de perder fotos
+        # en silencio porque el formset recorta en max_num.
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'el máximo es 15')
+        self.assertFalse(ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).exists())
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_cambiar_de_estado_conserva_las_fotos(self):
+        from apps.accounting.models import PlanContableDefault
+        PlanContableDefault.crear_plan_base()
+        self.client.force_login(self.admin)
+        self.vehiculo.estado = 'EN_VENTA'
+        self.vehiculo.precio_venta = 11900
+        self.vehiculo.save()
+        self.vehiculo.imagen_principal = SimpleUploadedFile(
+            'foto.png', _png_bytes(), content_type='image/png'
+        )
+        self.vehiculo.save()
+        self.assertTrue(self.vehiculo.imagen_principal)
+
+        datos = self._datos_sin_imagenes(estado='VENDIDO', precio_venta='11900')
+        response = self.client.post(
+            reverse('vehicles:update', kwargs={'pk': self.vehiculo.pk}), datos
+        )
+        self.assertEqual(response.status_code, 302)
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'VENDIDO')
+        self.assertTrue(
+            self.vehiculo.imagen_principal,
+            'Las fotos deben conservarse al salir de EN_VENTA',
+        )
