@@ -73,6 +73,11 @@ gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
 Si el servicio responde 404 en `/api/ping/`, el servicio no está sirviendo la
 aplicación (no es un problema de datos).
 
+> **Entorno de pruebas activo**: https://staging.rogil.co (servicio
+> `eurocar-staging`, plan free, Fráncfort). Comprobado: `/api/ping/` responde
+> `OK`, el catálogo y el login cargan. Es el entorno donde el equipo de Madrid
+> ejecuta el protocolo de prueba.
+
 **Versión de Python**: el servicio usa `Root Directory = backend`, así que
 Render lee `backend/.python-version` (no el de la raíz). Sin ese archivo usa su
 Python por defecto, más nuevo, y el `pip install` falla porque `Pillow==10.1.0`
