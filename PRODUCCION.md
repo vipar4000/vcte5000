@@ -175,29 +175,50 @@ Hasta que el dominio no resuelva, Render no puede emitir el certificado.
 
 Motivo: es gratis, da CDN y es el mismo sitio donde irá R2 para las fotos.
 
-1. Añadir `rogil.co` a Cloudflare (plan Free) y copiar los dos servidores de
-   nombres que asigna.
-2. Cambiar los servidores de nombres en el registrador (donde se compró el
-   dominio) por los de Cloudflare.
-3. Crear estos registros:
+El dominio está **registrado en Namecheap** y hoy apunta a los servidores de
+Route 53 (que no responden). El cambio se hace una sola vez:
 
-   | Nombre | Tipo | Destino | Proxy |
-   |---|---|---|---|
-   | `rogil.co` | CNAME | `eurocar-jdx2.onrender.com` | Nube gris al principio |
-   | `www` | CNAME | `eurocar-jdx2.onrender.com` | Nube gris al principio |
-   | `staging` | CNAME | `eurocar-staging-jdx2.onrender.com` | Nube gris |
-   | `media` | CNAME | (cuando exista R2) | Nube naranja |
+1. Crear cuenta en Cloudflare (plan Free) y **Add a site** → `rogil.co`.
+2. Cloudflare asigna **dos servidores de nombres** (tipo
+   `algo.ns.cloudflare.com`).
+3. En **Namecheap → Domain List → rogil.co → Manage → Nameservers**:
+   - Elegir **Custom DNS**.
+   - Pegar los dos servidores de Cloudflare.
+   - Guardar (aparece una marca verde).
+4. Esperar la propagación. Cloudflare avisa por correo cuando el dominio está
+   activo (normalmente menos de una hora; puede tardar hasta 24).
+5. Ya en Cloudflare → **DNS**, crear los registros de la tabla siguiente.
 
-   Cloudflare permite CNAME en el dominio raíz (CNAME flattening), así que no
-   hace falta dirección IP fija.
-
-4. Dejar el proxy **desactivado** (nube gris) hasta que Render emita el
-   certificado. Después se puede activar con SSL/TLS en *Full (strict)*.
+> **Antes de cambiar los nameservers**: si el dominio tiene correo configurado
+> (MX) o registros TXT (SPF, DKIM, verificaciones), apúntalos del proveedor
+> actual y vuelve a crearlos en Cloudflare. Al mover el DNS, los que no copies
+> dejan de existir y el correo deja de llegar.
 
 ### Opción B: seguir en Route 53
 
-Crear o reparar la hosted zone de `rogil.co`, copiar sus 4 servidores de nombres
-al registrador y añadir allí los mismos registros de la tabla.
+Requiere acceso a la consola de AWS: crear la hosted zone pública de `rogil.co`,
+copiar sus 4 servidores de nombres y pegarlos en Namecheap (**Custom DNS**).
+
+### Registros DNS a crear
+
+Una vez el dominio esté activo en el proveedor elegido:
+
+| Nombre | Tipo | Destino | Proxy |
+|---|---|---|---|
+| `staging` | CNAME | `eurocar-staging.onrender.com` | Nube gris |
+| `rogil.co` | CNAME | `eurocar.onrender.com` | Nube gris al principio |
+| `www` | CNAME | `eurocar.onrender.com` | Nube gris al principio |
+| `media` | CNAME | (cuando exista R2) | Nube naranja |
+
+El destino exacto lo muestra Render al añadir el dominio (puede variar si el
+servicio cambia de nombre). Cloudflare permite CNAME en el dominio raíz
+(*CNAME flattening*), así que no hace falta dirección IP fija.
+
+Dejar el proxy **desactivado** (nube gris) hasta que Render emita el
+certificado. Después se puede activar con SSL/TLS en *Full (strict)*.
+
+> Mientras no exista el servicio de producción (no hay método de pago), solo
+> hay que crear el registro `staging`.
 
 ### En Render
 
