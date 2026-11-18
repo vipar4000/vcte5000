@@ -102,7 +102,9 @@ pg_restore --clean --if-exists --no-owner -d "$DATABASE_URL" backup_django_YYYYM
 > Los artifacts de GitHub no son un plan de recuperación completo: **descargar
 > una copia periódica fuera de GitHub** y probar la restauración.
 
-## 6. Riesgos que quedan abiertos- **Base de datos compartida** entre staging y producción: un `migrate` en
+## 6. Riesgos que quedan abiertos
+
+- **Base de datos compartida** entre staging y producción: un `migrate` en
   staging afecta a producción. Separar antes de manejar datos reales.
 - **Sin monitorización de errores** (no hay Sentry): los fallos solo se ven en
   los logs de Render.
