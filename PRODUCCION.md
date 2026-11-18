@@ -239,3 +239,52 @@ Y en el navegador: entrar al ERP con `admin`, subir una foto a un vehículo
 `render.yaml` ya deja `staging.rogil.co` en `ALLOWED_HOSTS` y
 `CSRF_TRUSTED_ORIGINS` del servicio de staging, para probar el dominio sin
 tocar producción. Cuando funcione en staging, se replica en producción.
+
+## 9. Servidores: Render en Fráncfort
+
+**Decisión: Render, región `frankfurt`, con PostgreSQL gestionado y R2 para la
+media.** Es lo que define `render.yaml`.
+
+### Por qué Fráncfort y no Oregón
+
+Madrid → Oregón son ~150 ms por petición y este ERP **renderiza en servidor**:
+cada clic paga ese peaje. Fráncfort está a ~30-40 ms, y los datos quedan en la UE.
+
+### Por qué Render y no un VPS
+
+El repositorio ya está construido para Render: `Procfile`, `render.yaml`, CI,
+WhiteNoise sin manifest y el respaldo `xhtml2pdf` para el runtime nativo (que no
+trae Pango/Cairo). Render aporta TLS y despliegues automáticos, rollback y cero
+administración de sistema operativo.
+
+Un VPS (Hetzner ~5,49 €, o IONOS en España) es más barato, pero exige parchear
+el sistema, emitir y renovar certificados (hoy `docker/nginx/ssl/` está vacío, así
+que el compose de producción no arrancaría), vigilar el disco y probar
+restauraciones. Con un equipo no técnico en Madrid, el ahorro no compensa el
+riesgo de una caída sin nadie que la atienda.
+
+### Planes
+
+- **Producción: plan de pago.** El gratuito suspende el servicio por inactividad
+  y su base caduca a los ~30 días; eso ya provocó una caída.
+- **Staging: gratuito** a propósito. Se suspende y su base caduca, pero para
+  pruebas puntuales se vuelve a sembrar con `create_test_users.py`.
+
+Coste orientativo: producción son dos recursos de pago (servicio web + base de
+datos). Confirma el precio actual en el dashboard antes de contratar.
+
+### Migración desde Oregón
+
+La **región de un servicio ya creado no se puede cambiar**. Hay que crear los
+servicios nuevos en `frankfurt` y retirar los viejos:
+
+1. Crear el servicio de producción en `frankfurt` (o sincronizar el blueprint).
+2. Crear una base de datos nueva en `frankfurt` y apuntar `DATABASE_URL`.
+3. Si hay datos que conservar del entorno anterior: `pg_dump` → `pg_restore`.
+4. Comprobar `/api/ping/` y el login.
+5. Retirar el servicio antiguo de Oregón.
+
+### Dos bases de datos separadas
+
+Hoy staging y producción comparten una sola PostgreSQL: un `migrate` en staging
+afecta a producción. Al recrear en Fráncfort, crear **dos bases independientes**.
