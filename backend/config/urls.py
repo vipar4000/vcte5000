@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('erp/', include('apps.core.urls')),
     path('erp/accounts/', include('apps.accounts.urls')),
+    path('erp/usuarios/', include('apps.accounts.urls_usuarios')),
     path('erp/vehiculos/', include('apps.vehicles.urls')),
     path('erp/taller/', include('apps.workshop.urls')),
     path('erp/ventas/', include('apps.sales.urls')),

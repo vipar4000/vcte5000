@@ -207,6 +207,35 @@
         </tr>
     </table>
 
+    <h2 id="gestion-usuarios">Gestion de Usuarios</h2>
+
+    <p>Los usuarios se gestionan dentro del propio ERP, con su mismo aspecto:
+    <strong>Sidebar &rarr; 👥 Usuarios</strong> (solo visible para <span class="role role-admin">ADMIN</span>).
+    Ya no hace falta entrar al panel de Django para dar de alta o editar una cuenta.</p>
+
+    <table>
+        <tr><th>Accion</th><th>Como</th></tr>
+        <tr><td>Ver todas las cuentas</td><td><strong>👥 Usuarios</strong>. El buscador filtra por usuario, nombre o correo.</td></tr>
+        <tr><td>Crear una cuenta</td><td><strong>➕ Nuevo Usuario</strong>: usuario, correo, rol y contrasena (minimo 8 caracteres).</td></tr>
+        <tr><td>Editar datos o cambiar contrasena</td><td><strong>✏️ Editar</strong>. Si deja las contrasenas vacias, la actual se conserva.</td></tr>
+        <tr><td>Dar de baja temporalmente</td><td><strong>Desactivar</strong>. La cuenta deja de poder entrar, pero no se borra. Se puede reactivar.</td></tr>
+        <tr><td>Desbloquear tras intentos fallidos</td><td><strong>🔓 Desbloquear</strong> (solo aparece si la cuenta esta bloqueada).</td></tr>
+        <tr><td>PIN de kiosco</td><td>4 digitos, solo para operarios que fichan en el kiosco.</td></tr>
+        <tr><td>Salario base mensual</td><td>Se usa para calcular el coste/hora de las ordenes de trabajo.</td></tr>
+    </table>
+
+    <div class="info-box">
+        <strong>⚙️ Admin tecnico</strong> es otra cosa: el panel de Django, para tareas
+        avanzadas (modelos, permisos finos, tareas programadas, logs). Requiere que la
+        cuenta sea <code>is_staff</code> y tiene su propio acceso. Para el dia a dia use
+        <strong>👥 Usuarios</strong>.
+    </div>
+
+    <div class="warning-box">
+        Un administrador <strong>no puede desactivar su propia cuenta</strong>: el sistema
+        lo impide para no quedarse sin acceso.
+    </div>
+
     <h2 id="credenciales">Credenciales de Prueba</h2>
     <table>
         <tr>

@@ -129,13 +129,13 @@
                 
                 {% if is_admin %}
                 <div class="border-t border-eurocar-light my-4"></div>
-                <a href="/admin/accounts/user/" 
+                <a href="{% url 'usuarios:list' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
                     👥 Usuarios
                 </a>
                 <a href="{% url 'admin:index' %}" 
                    class="block px-4 py-2 rounded hover:bg-eurocar-light transition">
-                    ⚙️ Administración
+                    ⚙️ Admin técnico
                 </a>
                 {% endif %}
             </nav>
