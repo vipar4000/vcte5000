@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Prueba de extremo a extremo — ERP R Car Rogil</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.55;
+         max-width: 1100px; margin: 0 auto; padding: 24px; font-size: 15px; }
+  h1 { color: #0f3d6e; border-bottom: 3px solid #0f3d6e; padding-bottom: 8px; margin-top: 42px; }
+  h1:first-of-type { margin-top: 0; }
+  h2 { color: #14532d; margin-top: 30px; border-left: 5px solid #14532d; padding-left: 10px; }
+  h3 { color: #374151; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 18px; font-size: 14px; }
+  th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #e2e8f0; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  code { background: #eef2f7; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 13px; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+  pre code { background: none; color: inherit; }
+  .box { border-radius: 6px; padding: 12px 16px; margin: 14px 0; }
+  .info { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .warn { background: #fef3c7; border: 1px solid #fcd34d; }
+  .danger { background: #fee2e2; border: 1px solid #fca5a5; }
+  .ok { background: #dcfce7; border: 1px solid #86efac; }
+  .step { background: #0f3d6e; color: #fff; padding: 10px 14px; border-radius: 6px; margin-top: 34px;
+          font-size: 17px; font-weight: 600; }
+  .meta { color: #475569; font-size: 13px; }
+  .check { text-align: center; white-space: nowrap; font-size: 16px; }
+  .small { font-size: 13px; color: #475569; }
+  .fill { display: inline-block; min-width: 130px; border-bottom: 1px solid #64748b; }
+  ul, ol { margin: 8px 0 8px 22px; }
+  li { margin: 4px 0; }
+  .toc li { margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<h1>Prueba de extremo a extremo del ERP</h1>
+
+<p class="meta">
+  Documento de pruebas para el equipo de Madrid · Versión 1.0 ·
+  Sistema: ERP R Car Rogil (Django) · Duración estimada: 3–4 horas
+</p>
+
+<div class="box danger">
+  <strong>Antes de empezar, lea esto:</strong>
+  <ul>
+    <li>Esta prueba <strong>crea datos reales</strong> (asientos, vehículos, compras, ventas, facturas).</li>
+    <li>Ejecútela <strong>siempre en un entorno de prueba</strong> (staging o una copia local), nunca sobre la base de producción.</li>
+    <li>Haga una <strong>copia de seguridad</strong> antes de empezar y otra al terminar.</li>
+    <li>Las facturas REBU generadas son <strong>inmutables</strong> por diseño (cadena VeriFactu): una vez creadas no se pueden editar ni borrar.</li>
+  </ul>
+</div>
+
+<h2 id="indice">Índice</h2>
+<ol class="toc">
+  <li><a href="#como">Cómo se usa este documento</a></li>
+  <li><a href="#entorno">Preparación del entorno</a></li>
+  <li><a href="#fase1">Fase 1 — Construcción del flujo (pasos 1 a 11)</a></li>
+  <li><a href="#fase2">Fase 2 — Anulación paso a paso (pasos A1 a A9)</a></li>
+  <li><a href="#informes">Fase 3 — Comprobación de informes</a></li>
+  <li><a href="#conciliacion">Anexo opcional — Conciliación bancaria</a></li>
+  <li><a href="#hallazgos">Hallazgos conocidos (leer antes de reportar fallos)</a></li>
+  <li><a href="#acta">Acta de la prueba</a></li>
+</ol>
+
+<h1 id="como">1. Cómo se usa este documento</h1>
+
+<p>Cada paso tiene cuatro partes:</p>
+
+<table>
+  <tr><th>Parte</th><th>Qué contiene</th></tr>
+  <tr><td><strong>Dónde</strong></td><td>La ruta exacta dentro del ERP.</td></tr>
+  <tr><td><strong>Datos del formulario</strong></td><td>Campo por campo, con el valor exacto que hay que introducir.</td></tr>
+  <tr><td><strong>Qué debe ver</strong></td><td>Los valores que el sistema debe mostrar. Si alguno no coincide, márquelo como FALLA y anótelo.</td></tr>
+  <tr><td><strong>Resultado</strong></td><td>Casillas <code>OK</code> / <code>FALLA</code> para marcar a mano (o en el navegador).</td></tr>
+</table>
+
+<div class="box info">
+  <strong>Regla de oro:</strong> no pase al paso siguiente hasta que el anterior esté OK.
+  Si algo falla, haga una captura de pantalla y anote el número de paso en el acta final.
+  La prueba continúa igualmente: un fallo en un paso no invalida los demás.
+</div>
+
+<h1 id="entorno">2. Preparación del entorno</h1>
+
+<h2>2.1 Copia de seguridad</h2>
+<p>Desde la consola del servidor de pruebas:</p>
+<pre><code>pg_dump "$DATABASE_URL" -F c -b -f backup_antes_prueba_$(date +%Y%m%d).dump</code></pre>
+
+<h2>2.2 Usuarios necesarios</h2>
+<table>
+  <tr><th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Uso en la prueba</th></tr>
+  <tr><td><code>admin</code></td><td><code>admin123!</code></td><td>ADMIN</td><td>Todo el recorrido</td></tr>
+  <tr><td><code>mecanico1</code></td><td><code>mecanico123!</code></td><td>OPERARIO</td><td>Operario de la orden de trabajo</td></tr>
+</table>
+
+<h2>2.3 Salario del operario (necesario para el coste de la OT)</h2>
+<p>El coste de la mano de obra se calcula desde el salario del operario. Antes de empezar:</p>
+<ol>
+  <li>Entre en <code>http://&lt;servidor&gt;/admin/</code> con <code>admin</code>.</li>
+  <li>Vaya a <strong>Usuarios → mecanico1</strong>.</li>
+  <li>Ponga <strong>Salario base mensual</strong> = <code>6160.00</code> y <strong>% SS patronal</strong> = <code>0</code>.</li>
+  <li>Guarde. Con esos valores, el <strong>coste hora</strong> debe ser <strong>35,00 €</strong>.</li>
+</ol>
+
+<h2>2.4 Plan contable</h2>
+<ol>
+  <li>Menú <strong>Contabilidad → Cuentas</strong>.</li>
+  <li>Si está vacío, pulse <strong>Inicializar plan contable</strong>.</li>
+  <li>Debe haber <strong>56 cuentas</strong>, incluida <code>4751.115</code> (retención IRPF).</li>
+</ol>
+
+<h2>2.5 Anotar el punto de partida</h2>
+<table>
+  <tr><th>Dato</th><th>Valor antes de empezar</th><th>Valor al terminar</th></tr>
+  <tr><td>Nº de asientos contables</td><td class="fill"></td><td class="fill"></td></tr>
+  <tr><td>Nº de movimientos bancarios</td><td class="fill"></td><td class="fill"></td></tr>
+  <tr><td>Saldo total del módulo Banco</td><td class="fill"></td><td class="fill"></td></tr>
+  <tr><td>Nº de vehículos</td><td class="fill"></td><td class="fill"></td></tr>
+</table>
+
+<h2>2.6 Archivos de prueba incluidos</h2>
+
+<p>Junto a este documento viaja una carpeta con todo el material necesario. Los importes y referencias de
+cada archivo coinciden exactamente con los datos de los pasos.</p>
+
+<table>
+  <tr><th>Carpeta</th><th>Archivo</th><th>Se usa en</th><th>Campo del formulario</th></tr>
+  <tr>
+    <td rowspan="5"><code>imagenes/</code></td>
+    <td><code>1234ABC-01-frente.jpg</code></td>
+    <td rowspan="5">Paso 8 (fotos del vehículo)</td>
+    <td rowspan="5">Imagen principal + Imágenes adicionales</td>
+  </tr>
+  <tr><td><code>1234ABC-02-trasero.jpg</code></td></tr>
+  <tr><td><code>1234ABC-03-lateral.jpg</code></td></tr>
+  <tr><td><code>1234ABC-04-interior.jpg</code></td></tr>
+  <tr><td><code>1234ABC-05-cuadro.jpg</code></td></tr>
+  <tr>
+    <td rowspan="8"><code>documentos/</code></td>
+    <td><code>02_FC-2026-001_factura_compra_vehiculo.pdf</code></td>
+    <td>Paso 4 (alta del vehículo)</td>
+    <td><strong>Factura de compra (PDF)</strong></td>
+  </tr>
+  <tr>
+    <td><code>01_INV-2026-001_factura_inversion_taller.pdf</code></td>
+    <td>Paso 3 (inversión inicial)</td>
+    <td><strong>Factura PDF</strong></td>
+  </tr>
+  <tr>
+    <td><code>06_ALQ-2026-07_factura_alquiler_galpon.pdf</code></td>
+    <td>Paso 11 (gasto de estructura)</td>
+    <td><strong>Factura PDF</strong></td>
+  </tr>
+  <tr>
+    <td><code>deposito_bancario.pdf</code></td>
+    <td>Paso 2 (depósito inicial)</td>
+    <td><strong>Soporte del depósito inicial</strong></td>
+  </tr>
+  <tr>
+    <td><code>03_CM-001_factura_aceite.pdf</code><br>
+        <code>04_CM-002_factura_pastillas.pdf</code><br>
+        <code>05_CM-003_factura_filtro.pdf</code><br>
+        <code>08_CM-004_factura_refrigerante.pdf</code><br>
+        <code>09_CM-005_factura_neumaticos.pdf</code></td>
+    <td>Paso 6 (compras de material)</td>
+    <td>Soporte documental (opcional)</td>
+  </tr>
+  <tr>
+    <td><code>07_extracto_bancario_santander.csv</code></td>
+    <td>Anexo opcional (conciliación)</td>
+    <td>Banco → Conciliación → archivo de extracto</td>
+  </tr>
+</table>
+
+<div class="box info">
+  <strong>Las fotos son de prueba</strong> (ilustraciones generadas, no coches reales), pero están a
+  <strong>2400 × 1800 px</strong> y en horizontal, como las que se subirán de verdad. Sirven para comprobar
+  la reducción automática, el guardado por matrícula y el carrusel del catálogo.
+</div>
+
+<div class="box warn">
+  <strong>Importante sobre el orden:</strong> la prueba se hace en dos fases.
+  Primero se construye el flujo completo (Fase 1) y solo después se desmonta en orden inverso (Fase 2).
+  <br><br>
+  <strong>¿Por qué no se anula justo después de cada paso?</strong> Porque cada paso se apoya en el anterior:
+  si anula la compra del vehículo, la venta posterior deja de tener sentido y los importes de los informes
+  no cuadrarían. Anulando en orden inverso, cada anulación se comprueba de inmediato y su efecto es medible.
+</div>
+
+<h1 id="fase1">3. Fase 1 — Construcción del flujo</h1>
+
+<!-- ===================== PASO 1 ===================== -->
+<div class="step">Paso 1 — Asiento manual: aprender a anular sin efectos colaterales</div>
+
+<p><strong>Dónde:</strong> Contabilidad → Asientos → <strong>Nuevo asiento</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Fecha</td><td><code>01/07/2026</code></td></tr>
+  <tr><td>Concepto</td><td><code>Prueba 1 - control de anulación</code></td></tr>
+  <tr><td>Línea 1 — Cuenta</td><td><code>572</code> Banco</td></tr>
+  <tr><td>Línea 1 — Debe</td><td><code>100,00</code></td></tr>
+  <tr><td>Línea 1 — Haber</td><td><code>0,00</code></td></tr>
+  <tr><td>Línea 2 — Cuenta</td><td><code>100</code> Capital social</td></tr>
+  <tr><td>Línea 2 — Debe</td><td><code>0,00</code></td></tr>
+  <tr><td>Línea 2 — Haber</td><td><code>100,00</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Al guardar, el asiento queda en estado</td><td><strong>BORRADOR</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Total debe = total haber</td><td><strong>100,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras pulsar <strong>Postear</strong>, estado</td><td><strong>POSTEADO</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Aparece en <strong>Libro Diario</strong></td><td>Sí, con fecha 01/07/2026</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de la cuenta 572 en <strong>Libro Mayor</strong></td><td><strong>100,00</strong> (debe)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<h3>Anulación inmediata (este paso sí se anula al momento)</h3>
+<ol>
+  <li>En el detalle del asiento, pulse <strong>Anular</strong>.</li>
+</ol>
+<table>
+  <tr><th>Comprobación tras anular</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Estado del asiento</td><td><strong>ANULADO</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Sigue apareciendo en el <strong>Libro Diario</strong></td><td><strong>No</strong> (los anulados no computan)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de la cuenta 572</td><td><strong>0,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El asiento desaparece del listado</td><td><strong>No</strong>: queda registrado como ANULADO (traza de auditoría)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box ok">
+  <strong>Qué demuestra este paso:</strong> anular un asiento no lo borra, lo excluye de los informes.
+  La contabilidad vuelve exactamente al estado anterior. Este es el mecanismo que se usará en toda la Fase 2.
+</div>
+
+<!-- ===================== PASO 2 ===================== -->
+<div class="step">Paso 2 — Cuenta bancaria con depósito inicial de 50.000 €</div>
+
+<p><strong>Dónde:</strong> Banco → Cuentas → <strong>Nueva cuenta</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Nombre</td><td><code>Banco Santander</code></td></tr>
+  <tr><td>IBAN</td><td><code>ES78 0049 1234 5678 9012 3456</code></td></tr>
+  <tr><td>SWIFT</td><td><em>(vacío)</em></td></tr>
+  <tr><td>Cuenta contable</td><td><code>572</code> Banco</td></tr>
+  <tr><td>Activa</td><td>Marcada</td></tr>
+  <tr><td>Depósito inicial</td><td><code>50000,00</code></td></tr>
+  <tr><td>Notas del depósito</td><td><em>(vacío)</em></td></tr>
+  <tr><td>Soporte del depósito inicial</td><td><code>documentos/deposito_bancario.pdf</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Saldo de la cuenta</td><td><strong>50.000,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimiento bancario creado</td><td><strong>INGRESO</strong> de 50.000,00 €</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento generado automáticamente</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Cuentas del asiento</td><td><strong>572 debe 50.000</strong> / <strong>110 haber 50.000</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Aparece en la cuenta de resultados (PyG)</td><td><strong>No</strong> (la 110 es patrimonio, no ingreso)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 3 ===================== -->
+<div class="step">Paso 3 — Inversión inicial en equipamiento (2.480,50 €)</div>
+
+<p><strong>Dónde:</strong> Gastos → Inversión → <strong>Nueva inversión</strong>.</p>
+
+<h3>Datos del formulario (cabecera)</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Fecha de emisión</td><td><code>01/07/2026</code></td></tr>
+  <tr><td>Proveedor / acreedor</td><td><code>Taller Equipamiento S.L.</code></td></tr>
+  <tr><td>Número de factura</td><td><code>INV-2026-001</code></td></tr>
+  <tr><td>Forma de pago</td><td><code>572</code> Banco</td></tr>
+  <tr><td>Total factura física</td><td><code>2480,50</code></td></tr>
+  <tr><td>Factura PDF</td><td><code>documentos/01_INV-2026-001_factura_inversion_taller.pdf</code></td></tr>
+</table>
+
+<h3>Datos de las líneas</h3>
+<table>
+  <tr><th>Línea</th><th>Categoría</th><th>Concepto</th><th>Base imponible</th><th>IVA %</th></tr>
+  <tr><td>1</td><td>HERRAMIENTAS</td><td><code>Compresor industrial 500L</code></td><td><code>1200,00</code></td><td><code>21</code></td></tr>
+  <tr><td>2</td><td>HERRAMIENTAS</td><td><code>Escaner diagnostico OBD2</code></td><td><code>850,00</code></td><td><code>21</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Total calculado de la inversión</td><td><strong>2.480,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento</td><td><strong>214 debe 2.050,00</strong> + <strong>472 debe 430,50</strong> / <strong>572 haber 2.480,50</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Estado del asiento</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Activos fijos creados</td><td><strong>2</strong> (compresor y escáner)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Vida útil de las herramientas</td><td><strong>5 años</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>47.519,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 4 ===================== -->
+<div class="step">Paso 4 — Alta del vehículo comprado en subasta</div>
+
+<p><strong>Dónde:</strong> Vehículos → <strong>Nuevo vehículo</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Matrícula</td><td><code>1234ABC</code></td></tr>
+  <tr><td>Bastidor / VIN</td><td><code>WVWZZZ1KZAW123456</code> (17 caracteres)</td></tr>
+  <tr><td>Marca</td><td><code>Volkswagen</code></td></tr>
+  <tr><td>Modelo</td><td><code>Golf 1.6 TDI</code></td></tr>
+  <tr><td>Año</td><td><code>2018</code></td></tr>
+  <tr><td>Combustible</td><td>Diésel</td></tr>
+  <tr><td>Kilometraje</td><td><code>95000</code></td></tr>
+  <tr><td>Tipo de daño</td><td>Accidental</td></tr>
+  <tr><td>Etiqueta ambiental</td><td>C</td></tr>
+  <tr><td>Estado</td><td><strong>ACONDICIONADO</strong></td></tr>
+  <tr><td>Fecha de adquisición</td><td><code>01/07/2026</code></td></tr>
+  <tr><td>Plataforma de subasta</td><td>BCA</td></tr>
+  <tr><td>Precio subasta</td><td><code>7500,00</code></td></tr>
+  <tr><td>Tasas de sala</td><td><code>400,00</code></td></tr>
+  <tr><td>Logística / grúa</td><td><code>250,00</code></td></tr>
+  <tr><td>Proveedor</td><td><code>Subastas Online S.A.</code></td></tr>
+  <tr><td>CIF/NIF</td><td><code>B12345678</code></td></tr>
+  <tr><td>Número de factura</td><td><code>FC-2026-001</code></td></tr>
+  <tr><td>IVA soportado (€)</td><td><code>136,50</code></td></tr>
+  <tr><td>Forma de pago</td><td><code>572</code> Banco</td></tr>
+  <tr><td>Precio de venta</td><td><em>(dejar 0 en este paso)</em></td></tr>
+  <tr><td>Factura de compra (PDF)</td><td><code>documentos/02_FC-2026-001_factura_compra_vehiculo.pdf</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Coste inicial del vehículo</td><td><strong>8.150,00 €</strong> (7.500 + 400 + 250)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento del vehículo</td><td><strong>310 debe 8.150,00</strong> + <strong>472 debe 136,50</strong> / <strong>572 haber 8.286,50</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimiento bancario</td><td><strong>EGRESO 8.286,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>39.233,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 5 ===================== -->
+<div class="step">Paso 5 — Catálogo de materiales (5 fichas, sin asientos)</div>
+
+<p><strong>Dónde:</strong> Taller → Catálogo → <strong>Nuevo material</strong>.</p>
+
+<table>
+  <tr><th>Nombre</th><th>Unidad</th><th>Stock inicial</th><th>Stock mínimo</th><th>Precio unitario</th></tr>
+  <tr><td><code>Aceite motor 5W30</code></td><td>litros</td><td>0</td><td>0</td><td><code>8,50</code></td></tr>
+  <tr><td><code>Pastillas de freno</code></td><td>juegos</td><td>0</td><td>0</td><td><code>35,00</code></td></tr>
+  <tr><td><code>Filtro de aire</code></td><td>unidades</td><td>0</td><td>0</td><td><code>12,00</code></td></tr>
+  <tr><td><code>Refrigerante G12</code></td><td>litros</td><td>0</td><td>0</td><td><code>6,50</code></td></tr>
+  <tr><td><code>Neumaticos 205/55R16</code></td><td>unidades</td><td>0</td><td>0</td><td><code>75,00</code></td></tr>
+</table>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Materiales en el catálogo</td><td><strong>5</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Se genera algún asiento contable</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 6 ===================== -->
+<div class="step">Paso 6 — Compras de material (5 facturas de proveedor)</div>
+
+<p><strong>Dónde:</strong> Taller → Compras → <strong>Registrar compra</strong>.</p>
+
+<p class="small">Las tres primeras a <strong>crédito</strong> (quedan pendientes en la cuenta 410). La cuarta al <strong>contado por banco</strong> (572). La quinta al <strong>contado por caja</strong> (570).</p>
+
+<table>
+  <tr><th>#</th><th>Proveedor / CIF</th><th>Factura</th><th>Material</th><th>Cantidad</th><th>Precio</th><th>Forma de pago</th></tr>
+  <tr><td>1</td><td>Distribuciones Auto S.L. / C12345678</td><td>CM-001</td><td>Aceite motor 5W30</td><td>20</td><td>8,50</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>2</td><td>Recambios Martinez S.L. / D12345678</td><td>CM-002</td><td>Pastillas de freno</td><td>3</td><td>35,00</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>3</td><td>Filtros Madrid S.L. / E12345678</td><td>CM-003</td><td>Filtro de aire</td><td>5</td><td>12,00</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>4</td><td>Auto Parts Europa S.L. / F12345678</td><td>CM-004</td><td>Refrigerante G12</td><td>10</td><td>6,50</td><td><strong>Contado banco</strong> (572)</td></tr>
+  <tr><td>5</td><td>Neumaticos Express S.L. / G12345678</td><td>CM-005</td><td>Neumaticos 205/55R16</td><td>2</td><td>75,00</td><td><strong>Contado caja</strong> (570)</td></tr>
+</table>
+
+<p class="small">IVA de todas las líneas: <strong>21 %</strong>. Fecha de compra: <code>02/07/2026</code>.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Asiento compra 1</td><td>300 debe 170,00 + 472 debe 35,70 / <strong>410 haber 205,70</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento compra 2</td><td>300 debe 105,00 + 472 debe 22,05 / <strong>410 haber 127,05</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento compra 3</td><td>300 debe 60,00 + 472 debe 12,60 / <strong>410 haber 72,60</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento compra 4</td><td>300 debe 65,00 + 472 debe 13,65 / <strong>572 haber 78,65</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento compra 5</td><td>300 debe 150,00 + 472 debe 31,50 / <strong>570 haber 181,50</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimiento bancario de la compra 4</td><td><strong>EGRESO 78,65 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>La compra 5 (caja) genera movimiento bancario</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>39.154,35 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Stock: aceite / pastillas / filtro / refrigerante / neumáticos</td><td><strong>20 / 3 / 5 / 10 / 2</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 7 ===================== -->
+<div class="step">Paso 7 — Orden de trabajo: diagnóstico, materiales y cierre</div>
+
+<p><strong>Dónde:</strong> Taller → Órdenes de trabajo → <strong>Nueva OT</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Vehículo</td><td><code>1234ABC — Volkswagen Golf 1.6 TDI</code></td></tr>
+  <tr><td>Operario</td><td><code>mecanico1</code></td></tr>
+  <tr><td>Título</td><td><code>Diagnostico general y reparacion</code></td></tr>
+  <tr><td>Descripción</td><td><code>Revision general: cambio aceite, filtros, frenos</code></td></tr>
+  <tr><td>Horas estimadas</td><td><code>4</code></td></tr>
+  <tr><td>Estado</td><td>Pendiente</td></tr>
+</table>
+
+<h3>Materiales usados (dentro de la OT)</h3>
+<table>
+  <tr><th>Material</th><th>Cantidad</th></tr>
+  <tr><td>Aceite motor 5W30</td><td><code>5</code></td></tr>
+  <tr><td>Pastillas de freno</td><td><code>1</code></td></tr>
+</table>
+
+<h3>Cierre de la OT</h3>
+<table>
+  <tr><td>Estado</td><td><strong>COMPLETADA</strong></td></tr>
+  <tr><td>Horas reales</td><td><code>3</code></td></tr>
+  <tr><td>Fecha de fin</td><td><code>05/07/2026</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Stock tras consumir: aceite / pastillas</td><td><strong>15 / 2</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Coste de materiales de la OT</td><td><strong>77,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento de la OT al completarla</td><td><strong>310 debe 182,50</strong> / <strong>300 haber 77,50</strong> + <strong>611 haber 105,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Coste de reparación del vehículo</td><td><strong>182,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Coste total del vehículo</td><td><strong>8.332,50 €</strong> (8.150 + 182,50)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box info">
+  <strong>Por qué 105,00 € en la 611:</strong> son las 3 horas reales × 35 €/hora de mano de obra, que se
+  capitalizan en el vehículo (cuenta 310) y se compensan como variación de existencias (611).
+</div>
+
+<!-- ===================== PASO 8 ===================== -->
+<div class="step">Paso 8 — Poner el vehículo en venta y subir sus fotos</div>
+
+<p><strong>Dónde:</strong> Vehículos → <code>1234ABC</code> → <strong>Editar</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Estado</td><td><strong>EN VENTA</strong></td></tr>
+  <tr><td>Precio de venta</td><td><code>11900,00</code></td></tr>
+  <tr><td>Imagen principal</td><td><code>imagenes/1234ABC-01-frente.jpg</code></td></tr>
+  <tr><td>Imágenes adicionales</td><td><code>1234ABC-02-trasero.jpg</code>, <code>1234ABC-03-lateral.jpg</code>, <code>1234ABC-04-interior.jpg</code>, <code>1234ABC-05-cuadro.jpg</code></td></tr>
+</table>
+
+<p class="small">Las cinco fotos están en la carpeta <code>imagenes/</code>, a 2400 × 1800 px. Suba la 01 como principal y las demás como adicionales, en orden.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>La sección de imágenes aparece al elegir EN VENTA</td><td>Sí, sin recargar la página</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Contador de fotos</td><td><code>N de 15 imagenes</code></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Las fotos se guardan</td><td>Sí, y se reducen automáticamente</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El coche aparece en el catálogo público (<code>/catalogo</code>)</td><td>Sí, con su portada y el carrusel</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Al pasar el ratón por la tarjeta aparecen las flechas ‹ ›</td><td>Sí (si hay más de una foto)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Si el coche no aparece en el catálogo:</strong> compruebe que el estado es EN VENTA
+  <em>y</em> que el precio de venta es mayor que 0. Son las dos únicas condiciones.
+</div>
+
+<!-- ===================== PASO 9 ===================== -->
+<div class="step">Paso 9 — Venta del vehículo (REBU)</div>
+
+<p><strong>Dónde:</strong> Ventas → <strong>Nueva venta</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Vehículo</td><td><code>1234ABC — Volkswagen Golf 1.6 TDI</code></td></tr>
+  <tr><td>Tipo de cliente</td><td>Particular</td></tr>
+  <tr><td>Nombre del cliente</td><td><code>Antonio Perez Martin</code></td></tr>
+  <tr><td>DNI</td><td><code>12345678Z</code></td></tr>
+  <tr><td>Dirección</td><td><code>Calle Mayor 10, 4oA</code></td></tr>
+  <tr><td>Población</td><td><code>Alcala de Henares</code></td></tr>
+  <tr><td>Provincia</td><td><code>Madrid</code></td></tr>
+  <tr><td>Código postal</td><td><code>28801</code></td></tr>
+  <tr><td>Teléfono</td><td><code>612345678</code></td></tr>
+  <tr><td>Email</td><td><code>antonio.perez@email.com</code></td></tr>
+  <tr><td>Fecha de venta</td><td><code>15/07/2026</code></td></tr>
+  <tr><td>Método de pago</td><td>Transferencia</td></tr>
+  <tr><td>Precio de venta</td><td><code>11900,00</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Base imponible REBU</td><td><strong>2.948,35 €</strong> (3.567,50 / 1,21)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Cuota de IVA repercutido</td><td><strong>619,15 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Estado del vehículo tras la venta</td><td><strong>VENDIDO</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento de la venta</td><td><strong>572 debe 11.900</strong> / <strong>700 haber 2.948,35</strong> + <strong>471 haber 619,15</strong> + <strong>310 haber 8.332,50</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimiento bancario</td><td><strong>INGRESO 11.900,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Garantía creada</td><td><strong>12 meses</strong> desde 15/07/2026</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>51.054,35 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== PASO 10 ===================== -->
+<div class="step">Paso 10 — Factura REBU del vehículo</div>
+
+<p><strong>Dónde:</strong> Ventas → <code>1234ABC</code> → <strong>Generar factura</strong>.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Código de factura generado</td><td>Formato <code>F1-2026-0001</code> (tipo F1)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>PDF de la factura</td><td>Se genera y se puede abrir</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>QR / cadena VeriFactu</td><td>Presente en la factura</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Importe total</td><td><strong>11.900,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box danger">
+  <strong>Aviso:</strong> a partir de este momento la venta <strong>ya no se puede borrar</strong>
+  (la factura la protege). Es intencionado: una factura emitida no se elimina.
+  En la Fase 2 este hecho se comprobará expresamente.
+</div>
+
+<!-- ===================== PASO 11 ===================== -->
+<div class="step">Paso 11 — Gasto de estructura y pago de compras a crédito</div>
+
+<h3>11.1 Gasto de alquiler con retención de IRPF</h3>
+<p><strong>Dónde:</strong> Gastos → <strong>Nuevo gasto</strong>.</p>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Fecha de factura</td><td><code>20/07/2026</code></td></tr>
+  <tr><td>Proveedor / acreedor</td><td><code>Propietario Galpon S.L.</code></td></tr>
+  <tr><td>CIF/NIF</td><td><code>B87654321</code></td></tr>
+  <tr><td>Categoría</td><td>ARRENDAMIENTO</td></tr>
+  <tr><td>Base imponible</td><td><code>2000,00</code></td></tr>
+  <tr><td>Tipo de IVA</td><td><code>21</code></td></tr>
+  <tr><td>Retención IRPF</td><td><code>19</code></td></tr>
+  <tr><td>Pagado</td><td><strong>No</strong> (queda pendiente en la cuenta 410)</td></tr>
+  <tr><td>Factura PDF</td><td><code>documentos/06_ALQ-2026-07_factura_alquiler_galpon.pdf</code></td></tr>
+</table>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Cuota de IVA</td><td><strong>420,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Retención IRPF</td><td><strong>380,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Total de la factura</td><td><strong>2.040,00 €</strong> (2.000 + 420 − 380)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento (automático, POSTEADO)</td><td><strong>621 debe 2.000</strong> + <strong>472 debe 420</strong> / <strong>4751.115 haber 380</strong> + <strong>410 haber 2.040</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Genera movimiento bancario</td><td><strong>No</strong> (está pendiente de pago)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<h3>11.2 Pagar las tres compras a crédito</h3>
+<p><strong>Dónde:</strong> Taller → Compras → abrir cada compra → <strong>Pagar</strong>.</p>
+<table>
+  <tr><th>Compra</th><th>Importe</th><th>Fecha de pago</th><th>Cuenta</th></tr>
+  <tr><td>CM-001 (aceite)</td><td>205,70 €</td><td><code>31/07/2026</code></td><td>572 Banco</td></tr>
+  <tr><td>CM-002 (pastillas)</td><td>127,05 €</td><td><code>31/07/2026</code></td><td>572 Banco</td></tr>
+  <tr><td>CM-003 (filtro)</td><td>72,60 €</td><td><code>31/07/2026</code></td><td>572 Banco</td></tr>
+</table>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Asientos de pago generados</td><td><strong>3</strong>, POSTEADOS y cuadrados (410 / 572)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimientos bancarios nuevos</td><td><strong>3 EGRESO</strong> (205,70 / 127,05 / 72,60)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>50.649,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de la cuenta 410</td><td><strong>−2.040,00 €</strong> (solo queda el alquiler)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== RESUMEN FASE 1 ===================== -->
+<h2>Resumen de la Fase 1</h2>
+<table>
+  <tr><th>Concepto</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Asientos totales</td><td><strong>14</strong>, todos POSTEADOS y cuadrados</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimientos bancarios</td><td><strong>8</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>50.649,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Stock valorado</td><td><strong>472,50 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<h1 id="fase2">4. Fase 2 — Anulación paso a paso</h1>
+
+<p>Se desmonta el flujo en <strong>orden inverso</strong>. Después de cada anulación hay que comprobar el efecto
+<em>inmediatamente</em>, antes de pasar a la siguiente.</p>
+
+<div class="box warn">
+  <strong>Lea esto antes de la Fase 2.</strong> El sistema tiene límites reales de anulación que están
+  documentados en la sección «Hallazgos conocidos». Si en algún paso el resultado no es exactamente
+  «vuelve todo a cero», <strong>no es necesariamente un fallo nuevo</strong>: compárelo con esa sección
+  antes de reportarlo.
+</div>
+
+<!-- ===================== A9 ===================== -->
+<div class="step">Anulación 9 — Venta con factura (comprobación del bloqueo)</div>
+
+<p><strong>Dónde:</strong> Ventas → <code>1234ABC</code> → <strong>Eliminar</strong>.</p>
+
+<ol>
+  <li>Pulse <strong>Eliminar</strong> y confirme.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>La venta se borra</td><td><strong>No</strong>: el sistema debe impedirlo (tiene factura)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Mensaje que ve el usuario</td><td>Un aviso claro del tipo «no se puede eliminar: tiene factura»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Página de error interno (500)</td><td><strong>No debería aparecer</strong> (ver hallazgo H8)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>La factura sigue existiendo</td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>La venta sigue existiendo</td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H8:</strong> al intentar eliminar una venta con factura, el sistema lanza un error interno
+  (<code>ProtectedError</code>) en lugar de un mensaje comprensible. <strong>Los datos están protegidos</strong>
+  —la factura y la venta se conservan—, pero la experiencia es un error 500. Anótelo como hallazgo,
+  no como pérdida de datos.
+</div>
+
+<h3>Continuar el desmontaje</h3>
+<p>Como la venta no se puede borrar, para seguir con la prueba <strong>anule su asiento contable</strong>:</p>
+<ol>
+  <li>Contabilidad → Asientos → el asiento de la venta (<code>Venta vehículo 1234ABC</code>) → <strong>Anular</strong>.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación tras anular el asiento de la venta</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Cuenta 700 (ventas)</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Cuenta 471 (IVA repercutido)</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Cuenta 310 (existencias)</td><td><strong>8.332,50 €</strong> (vuelve el coste del coche)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Cuenta 572 en contabilidad</td><td><strong>38.749,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo en el módulo Banco</td><td><strong>50.649,00 €</strong> — el cobro del cliente <strong>sigue</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H6:</strong> aunque la contabilidad de la venta se anule, el <strong>INGRESO de 11.900 €
+  permanece en el módulo Banco</strong> y no hay forma de eliminarlo desde la interfaz. Contabilidad y banco
+  quedan descuadrados hasta que se compense con un movimiento manual.
+</div>
+
+<!-- ===================== A8 ===================== -->
+<div class="step">Anulación 8 — Gasto de estructura</div>
+
+<p><strong>Dónde:</strong> Gastos → <code>Propietario Galpon S.L.</code> → <strong>Eliminar</strong>.</p>
+
+<ol>
+  <li><strong>Primero</strong> anule su asiento: Contabilidad → Asientos → el asiento del gasto → <strong>Anular</strong>.</li>
+  <li>Después elimine el gasto.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Tras anular el asiento: cuenta 621 en PyG</td><td><strong>0,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular el asiento: cuenta 4751.115</td><td><strong>0,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular el asiento: cuenta 410</td><td><strong>0,00 €</strong> (la deuda del alquiler desaparece)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras eliminar el gasto: aparece en el listado</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El asiento anulado sigue consultable</td><td>Sí, como ANULADO</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Si elimina el gasto sin anular antes el asiento</strong>, el asiento queda POSTEADO y
+  la contabilidad seguirá mostrando el gasto de 2.000 € aunque el gasto ya no exista. Ese es el
+  comportamiento actual del sistema (hallazgo H2).
+</div>
+
+<!-- ===================== A7 ===================== -->
+<div class="step">Anulación 7 — Pagos de compras a crédito</div>
+
+<p><strong>Dónde:</strong> Taller → Compras → abrir la compra → <strong>Deshacer pago</strong>.</p>
+
+<ol>
+  <li>Repita con las tres compras (CM-001, CM-002, CM-003).</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Estado de pago de las compras</td><td>Pendiente (no pagadas)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asientos de pago</td><td><strong>3 contra-asientos</strong> (DEBE 572 / HABER 410)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimientos EGRESO de los pagos</td><td><strong>Eliminados</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td><strong>51.054,35 €</strong> (vuelve al valor anterior a los pagos)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de la cuenta 410</td><td>Vuelve a <strong>−405,35 €</strong> (las tres compras pendientes)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== A6 ===================== -->
+<div class="step">Anulación 6 — Orden de trabajo</div>
+
+<p><strong>Dónde:</strong> Taller → Órdenes de trabajo → la OT → <strong>Eliminar</strong>.</p>
+
+<ol>
+  <li><strong>Primero</strong> anule el asiento de capitalización de la OT (Contabilidad → Asientos).</li>
+  <li>Después elimine la OT.</li>
+  <li>Por último, corrija el stock a mano si quiere dejarlo como estaba: Taller → Catálogo → editar material.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Tras anular el asiento: cuenta 611</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular el asiento: cuenta 310</td><td>Vuelve a <strong>8.150,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras eliminar la OT: sigue en el listado</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Stock de aceite tras eliminar la OT</td><td>Sigue en <strong>15</strong> (no se devuelve solo)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H3:</strong> eliminar una OT <em>no</em> devuelve el material consumido al stock.
+  Hay que ajustarlo a mano desde el catálogo de materiales.
+</div>
+
+<!-- ===================== A5 ===================== -->
+<div class="step">Anulación 5 — Compras de material</div>
+
+<p><strong>Dónde:</strong> Taller → Compras. <strong>No existe botón de eliminar compra.</strong></p>
+
+<ol>
+  <li>Compruebe que la compra no se puede borrar (no hay acción disponible).</li>
+  <li>Anule sus asientos: Contabilidad → Asientos → uno por uno → <strong>Anular</strong>.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Existe acción para eliminar una compra</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular los asientos: cuenta 300</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular los asientos: stock de materiales</td><td>Sigue con las cantidades compradas (no cambia)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H4:</strong> las compras de material no se pueden eliminar ni corregir desde la interfaz.
+  En una prueba real, la única forma de dejar el entorno limpio es restaurar la copia de seguridad.
+</div>
+
+<!-- ===================== A4 ===================== -->
+<div class="step">Anulación 4 — Vehículo</div>
+
+<p><strong>Dónde:</strong> Vehículos → <code>1234ABC</code> → <strong>Eliminar</strong>.</p>
+
+<ol>
+  <li>Intente eliminar el vehículo.</li>
+  <li>Después anule su asiento de compra (Contabilidad → Asientos → <strong>Anular</strong>).</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>El vehículo se puede eliminar</td><td><strong>No</strong>: tiene una venta asociada (protegida)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Mensaje que ve el usuario</td><td>Un aviso claro; <strong>no</strong> una página de error 500 (ver H9)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular el asiento: cuenta 310</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El EGRESO de 8.286,50 € del banco</td><td><strong>Sigue existiendo</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo del banco</td><td>No cambia al intentar eliminar el vehículo</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H5:</strong> el pago del vehículo no se revierte al anular su asiento: el EGRESO del banco
+  queda huérfano y el saldo del módulo Banco no coincide con la contabilidad.
+  <br><br>
+  <strong>Hallazgo H9:</strong> intentar borrar un vehículo que tiene una venta asociada lanza un error
+  interno (<code>ProtectedError</code>) en lugar de un aviso. La protección de los datos es correcta;
+  la experiencia no.
+</div>
+
+<!-- ===================== A3 ===================== -->
+<div class="step">Anulación 3 — Inversión inicial</div>
+
+<p><strong>Dónde:</strong> Gastos → Inversión. <strong>No existe botón de eliminar inversión.</strong></p>
+
+<ol>
+  <li>Anule su asiento en Contabilidad → Asientos → <strong>Anular</strong>.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>La inversión se puede eliminar</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Tras anular el asiento: cuenta 214</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Los 2 activos fijos siguen existiendo</td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== A2 ===================== -->
+<div class="step">Anulación 2 — Depósito bancario</div>
+
+<p><strong>Dónde:</strong> Contabilidad → Asientos → asiento del depósito → <strong>Anular</strong>.</p>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Tras anular: cuenta 572 en contabilidad</td><td><strong>0,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo en el módulo Banco</td><td><strong>No cambia</strong> (sigue mostrando el depósito)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Se puede eliminar la cuenta bancaria</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box warn">
+  <strong>Hallazgo H1:</strong> anular el asiento de un depósito deja el módulo Banco descuadrado
+  respecto a la contabilidad. No hay forma de borrar el movimiento ni la cuenta desde la interfaz.
+</div>
+
+<!-- ===================== A1 ===================== -->
+<div class="step">Anulación 1 — Asientos restantes</div>
+
+<p><strong>Dónde:</strong> Contabilidad → Asientos.</p>
+
+<ol>
+  <li>Anule cualquier asiento que siga en estado POSTEADO.</li>
+  <li>Compruebe los informes al final.</li>
+</ol>
+
+<h1 id="informes">5. Fase 3 — Comprobación de informes</h1>
+
+<p>Con todo anulado, abra cada informe y compruebe los valores.</p>
+
+<table>
+  <tr><th>Informe</th><th>Dónde</th><th>Qué debe ver</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Libro Diario</td><td>Contabilidad → Informes → Libro Diario</td><td>Solo asientos POSTEADOS (ninguno de la prueba)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Libro Mayor</td><td>Contabilidad → Informes → Libro Mayor</td><td>Saldos a 0 en las cuentas usadas</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Pérdidas y Ganancias</td><td>Contabilidad → Informes → PyG</td><td>Sin ingresos ni gastos de la prueba</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Balance</td><td>Contabilidad → Informes → Balance</td><td>Activo = Pasivo + Patrimonio <strong>(debe cuadrar)</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Libro de IVA</td><td>Contabilidad → Informes → IVA</td><td>IVA repercutido y soportado a 0</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Valoración de existencias</td><td>Contabilidad → Informes → Existencias</td><td>Aviso de descuadre: <strong>no</strong> debe aparecer</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Módulo Banco</td><td>Banco → Movimientos</td><td>Los movimientos de la prueba <strong>siguen ahí</strong> (ver H1 y H5)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<h3>Estado final esperado tras anular todo</h3>
+
+<table>
+  <tr><th>Elemento</th><th>Valor esperado</th><th>¿Vuelve al estado inicial?</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Asientos en estado POSTEADO</td><td><strong>0</strong></td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Contabilidad (todas las cuentas usadas)</td><td><strong>0,00 €</strong></td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Balance</td><td>Activo = Pasivo + Patrimonio</td><td>Sí, cuadra</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Módulo Banco (saldo)</td><td><strong>51.054,35 €</strong></td><td><strong>No</strong> (H1, H5, H6)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Stock de materiales</td><td><strong>472,50 €</strong></td><td><strong>No</strong> (H3)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Vehículo, venta, factura y compras</td><td>Siguen existiendo</td><td><strong>No</strong> (H4, H8, H9)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box info">
+  <strong>Resultado esperado de la Fase 3:</strong> la <strong>contabilidad</strong> vuelve a cero
+  (anular un asiento lo excluye de los informes) y el <strong>Balance cuadra</strong>.
+  Pero el <strong>módulo Banco y el stock no vuelven solos</strong> al estado inicial, y los registros
+  (venta, vehículo, compras) siguen existiendo porque el sistema no permite eliminarlos.
+  Eso es lo que hay que anotar en el acta: <strong>la contabilidad es reversible; el resto, no</strong>.
+</div>
+
+<div class="box warn">
+  <strong>Cómo dejar el entorno limpio:</strong> tras la prueba, <strong>restaure la copia de seguridad</strong>
+  del punto 2.1. No intente limpiar a mano: con los hallazgos H4, H8 y H9 no es posible dejar la base
+  como estaba desde la interfaz.
+</div>
+
+<h2 id="conciliacion">Anexo opcional — Conciliación bancaria</h2>
+
+<p>Si quieren probar además la conciliación con extracto, háganlo <strong>después del paso 11</strong> y
+<strong>antes de la Fase 2</strong>:</p>
+
+<ol>
+  <li>Banco → <strong>Conciliación</strong>.</li>
+  <li>Cuenta: <code>Banco Santander</code>.</li>
+  <li>Archivo: <code>documentos/07_extracto_bancario_santander.csv</code>.</li>
+  <li>Subir y revisar las sugerencias de emparejamiento.</li>
+</ol>
+
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>El archivo se procesa sin error</td><td>Sí</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Sugerencias de conciliación</td><td>Aparecen los movimientos del extracto</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimientos confirmados como conciliados</td><td>Se marcan y dejan de estar pendientes</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box info">
+  Este anexo es <strong>opcional</strong>: no afecta a los importes de los pasos anteriores ni al desmontaje
+  de la Fase 2. Si lo ejecutan, anótenlo en el acta.
+</div>
+
+<h1 id="hallazgos">6. Hallazgos conocidos</h1>
+
+<p>Estos comportamientos están verificados sobre el sistema actual. <strong>No los reporte como fallos
+nuevos</strong>: están aquí para que la prueba los confirme y para decidir si se corrigen antes de producción.</p>
+
+<table>
+  <tr><th>#</th><th>Hallazgo</th><th>Efecto</th><th>Gravedad</th></tr>
+  <tr>
+    <td>H1</td>
+    <td>Anular el asiento de un depósito no descuadra el módulo Banco</td>
+    <td>El saldo del banco sigue mostrando el dinero aunque la contabilidad ya no lo recoja</td>
+    <td>Media</td>
+  </tr>
+  <tr>
+    <td>H2</td>
+    <td>Eliminar un gasto no anula su asiento</td>
+    <td>El gasto desaparece del listado pero sigue en la contabilidad</td>
+    <td><strong>Alta</strong></td>
+  </tr>
+  <tr>
+    <td>H3</td>
+    <td>Eliminar una OT no devuelve el material al stock</td>
+    <td>El inventario queda inflado tras la anulación</td>
+    <td>Media</td>
+  </tr>
+  <tr>
+    <td>H4</td>
+    <td>Las compras de material no se pueden eliminar</td>
+    <td>Un error de compra solo se corrige anulando asientos y ajustando el stock a mano</td>
+    <td><strong>Alta</strong></td>
+  </tr>
+  <tr>
+    <td>H5</td>
+    <td>Eliminar un vehículo no revierte su pago bancario</td>
+    <td>Queda un EGRESO huérfano y el banco no coincide con la contabilidad</td>
+    <td><strong>Alta</strong></td>
+  </tr>
+  <tr>
+    <td>H6</td>
+    <td>Anular una venta desde «Eliminar» deja el cobro en el banco</td>
+    <td>El INGRESO del cliente permanece aunque la venta desaparezca</td>
+    <td><strong>Alta</strong></td>
+  </tr>
+  <tr>
+    <td>H7</td>
+    <td>No hay forma de borrar movimientos bancarios</td>
+    <td>Los movimientos erróneos solo se compensan con otro movimiento</td>
+    <td>Media</td>
+  </tr>
+  <tr>
+    <td>H8</td>
+    <td>Eliminar una venta con factura lanza un error interno</td>
+    <td>La protección funciona (los datos se conservan) pero el usuario ve un error 500 en vez de un aviso claro</td>
+    <td>Media</td>
+  </tr>
+  <tr>
+    <td>H9</td>
+    <td>Eliminar un vehículo con venta asociada lanza un error interno</td>
+    <td>Los datos se protegen correctamente, pero el usuario ve un error 500 en vez de un aviso</td>
+    <td>Media</td>
+  </tr>
+</table>
+
+<h1 id="acta">7. Acta de la prueba</h1>
+
+<table>
+  <tr><th>Dato</th><th>Valor</th></tr>
+  <tr><td>Fecha de la prueba</td><td class="fill"></td></tr>
+  <tr><td>Entorno usado (staging / local / otro)</td><td class="fill"></td></tr>
+  <tr><td>Persona que ejecuta</td><td class="fill"></td></tr>
+  <tr><td>Versión / commit del sistema</td><td class="fill"></td></tr>
+  <tr><td>Pasos OK</td><td class="fill"></td></tr>
+  <tr><td>Pasos con FALLA</td><td class="fill"></td></tr>
+  <tr><td>Copia de seguridad restaurada</td><td>Sí ☐ &nbsp;&nbsp; No ☐</td></tr>
+</table>
+
+<h3>Fallos encontrados</h3>
+<table>
+  <tr><th>Nº de paso</th><th>Qué pasó</th><th>Qué se esperaba</th><th>Captura</th></tr>
+  <tr><td class="fill"></td><td></td><td></td><td></td></tr>
+  <tr><td class="fill"></td><td></td><td></td><td></td></tr>
+  <tr><td class="fill"></td><td></td><td></td><td></td></tr>
+</table>
+
+<h3>Observaciones</h3>
+<pre><code>
+
+
+
+
+
+</code></pre>
+
+<div class="box ok">
+  <strong>Cierre:</strong> al terminar, restaure la copia de seguridad del punto 2.1 para dejar el entorno
+  como estaba. La prueba ha creado vehículos, ventas, facturas y asientos que no deben quedar en un
+  entorno que se vaya a usar después.
+</div>
+
+<p class="small">
+  Documento generado para la puesta en marcha del ERP. Versión 1.0.
+  Los importes y resultados esperados coinciden con el pipeline del capítulo 20 del manual y con la suite de 86 pruebas automáticas del sistema.
+</p>
+
+</body>
+</html>
