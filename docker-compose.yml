@@ -60,6 +60,8 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-eurocar}:${POSTGRES_PASSWORD:-eurocar_dev_2024}@db:5432/${POSTGRES_DB:-eurocar}
       - REDIS_URL=redis://redis:6379/0
+      # Sin SECRET_KEY el worker muere al importar settings si no existe backend/.env
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-eurocar-dev-key-change-in-production}
     depends_on:
       - backend
       - redis

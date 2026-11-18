@@ -3,6 +3,18 @@ import os
 
 DEBUG = True
 
+# `base.py` aplica los ajustes de seguridad de producción cuando el entorno no
+# define DEBUG (por ejemplo en un clon sin backend/.env). Como aquí forzamos
+# DEBUG después de importar base, hay que desactivarlos explícitamente: si no,
+# el servidor de desarrollo redirige a HTTPS (301) y el navegador no puede
+# entrar al ERP. Se refuerzan aquí, además del valor de DEBUG.
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver']
 
 # Use SQLite for local dev, PostgreSQL when DATABASE_URL is set (Docker)
