@@ -158,3 +158,84 @@ configuración y DNS, no de migración.
    `CSRF_TRUSTED_ORIGINS`; convivir unos días con ambos.
 4. Poner la redirección 301 del temporal al definitivo y, cuando esté
    verificada, retirar el temporal de Render.
+
+## 8. Dominio rogil.co — puesta en marcha
+
+### Estado detectado
+
+`rogil.co` está delegado a los servidores de nombres de **AWS Route 53**
+(205.251.192.139, 205.251.195.69, 205.251.196.64, 205.251.199.227), pero esos
+servidores responden **REFUSED**: la zona DNS no existe o no está publicada.
+Por eso el dominio no resuelve todavía.
+
+**Conclusión: el primer paso es publicar la zona DNS, no tocar la aplicación.**
+Hasta que el dominio no resuelva, Render no puede emitir el certificado.
+
+### Opción A (recomendada): DNS en Cloudflare
+
+Motivo: es gratis, da CDN y es el mismo sitio donde irá R2 para las fotos.
+
+1. Añadir `rogil.co` a Cloudflare (plan Free) y copiar los dos servidores de
+   nombres que asigna.
+2. Cambiar los servidores de nombres en el registrador (donde se compró el
+   dominio) por los de Cloudflare.
+3. Crear estos registros:
+
+   | Nombre | Tipo | Destino | Proxy |
+   |---|---|---|---|
+   | `rogil.co` | CNAME | `eurocar-jdx2.onrender.com` | Nube gris al principio |
+   | `www` | CNAME | `eurocar-jdx2.onrender.com` | Nube gris al principio |
+   | `staging` | CNAME | `eurocar-staging-jdx2.onrender.com` | Nube gris |
+   | `media` | CNAME | (cuando exista R2) | Nube naranja |
+
+   Cloudflare permite CNAME en el dominio raíz (CNAME flattening), así que no
+   hace falta dirección IP fija.
+
+4. Dejar el proxy **desactivado** (nube gris) hasta que Render emita el
+   certificado. Después se puede activar con SSL/TLS en *Full (strict)*.
+
+### Opción B: seguir en Route 53
+
+Crear o reparar la hosted zone de `rogil.co`, copiar sus 4 servidores de nombres
+al registrador y añadir allí los mismos registros de la tabla.
+
+### En Render
+
+1. **Settings → Custom Domain**: añadir `rogil.co` y `www.rogil.co` al servicio
+   de producción, y `staging.rogil.co` al de staging.
+2. Esperar a que el certificado aparezca como emitido (minutos).
+3. En el servicio de **producción**, variables de entorno:
+
+   ```
+   ALLOWED_HOSTS=rogil.co,www.rogil.co,eurocar-jdx2.onrender.com
+   CSRF_TRUSTED_ORIGINS=https://rogil.co,https://www.rogil.co,https://eurocar-jdx2.onrender.com
+   HSTS_PRELOAD=false
+   ```
+
+   Mantener los hosts de `onrender.com` evita quedarse fuera si algo falla con
+   el dominio nuevo. `HSTS_PRELOAD=false` porque `rogil.co` es temporal.
+
+4. Redeploy (Manual Deploy) para aplicar las variables.
+
+### Orden importante
+
+Las variables `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` deben estar puestas
+**antes** de apuntar el DNS al servicio. Si se invierte el orden, el dominio
+responde `400 Bad Request` (DisallowedHost) y parece que está roto.
+
+### Verificación
+
+```bash
+curl -I https://rogil.co                     # 200 o 301, con TLS válido
+curl -fsS https://rogil.co/api/ping/         # OK
+curl -fsS -o /dev/null -w '%{http_code}\n' https://www.rogil.co/erp/   # 200
+```
+
+Y en el navegador: entrar al ERP con `admin`, subir una foto a un vehículo
+(paso 8 del protocolo) y comprobar que la imagen se ve en el catálogo.
+
+### Staging primero
+
+`render.yaml` ya deja `staging.rogil.co` en `ALLOWED_HOSTS` y
+`CSRF_TRUSTED_ORIGINS` del servicio de staging, para probar el dominio sin
+tocar producción. Cuando funcione en staging, se replica en producción.
