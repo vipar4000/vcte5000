@@ -78,6 +78,13 @@ def cuenta_create(request):
         messages.error(request, 'No tiene permisos para crear cuentas bancarias.')
         return redirect('bank:cuenta_list')
 
+    # Defensa: si el plan contable está vacío (base restaurada o migrada antes
+    # de existir la inicialización automática), el desplegable «Cuenta contable»
+    # saldría vacío y el formulario no dejaría guardar.
+    from apps.accounting.models import CuentaContable, PlanContableDefault
+    if not CuentaContable.objects.exists():
+        PlanContableDefault.crear_plan_base()
+
     if request.method == 'POST':
         form = BancoCuentaForm(request.POST, request.FILES)
         if form.is_valid():

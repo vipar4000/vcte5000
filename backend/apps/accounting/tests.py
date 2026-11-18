@@ -14,6 +14,42 @@ from apps.workshop.models import Material
 User = get_user_model()
 
 
+class InicializacionAutomaticaPlanTest(TestCase):
+    """El PGC se crea solo al migrar (post_migrate), sin pasar por Contabilidad."""
+
+    def test_la_senal_post_migrate_crea_el_plan(self):
+        """Comprueba el cableado real de la señal, no solo la función."""
+        from django.apps import apps
+        from django.db.models.signals import post_migrate
+
+        CuentaContable.objects.all().delete()
+        self.assertEqual(CuentaContable.objects.count(), 0)
+
+        config = apps.get_app_config('accounting')
+        post_migrate.send(
+            sender=config, app_config=config, verbosity=0,
+            interactive=False, using='default',
+        )
+
+        self.assertTrue(
+            CuentaContable.objects.filter(codigo='572').exists(),
+            'La señal post_migrate debe crear el plan contable',
+        )
+
+    def test_el_receptor_es_idempotente(self):
+        from apps.accounting.apps import inicializar_pgc
+
+        CuentaContable.objects.all().delete()
+        inicializar_pgc()
+        total = CuentaContable.objects.count()
+        self.assertGreaterEqual(total, 56)
+
+        inicializar_pgc()
+        self.assertEqual(CuentaContable.objects.count(), total)
+
+
+
+
 class BaseReportesTestCase(TestCase):
     """Seed compartido: plan contable, materiales y asientos posteados."""
 

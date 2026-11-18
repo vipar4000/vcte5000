@@ -105,11 +105,15 @@
   <li>Guarde. Con esos valores, el <strong>coste hora</strong> debe ser <strong>35,00 €</strong>.</li>
 </ol>
 
-<h2>2.4 Plan contable</h2>
+<h2>2.4 Plan contable (ahora automático)</h2>
+<p>El plan contable se crea solo cada vez que se despliega o se ejecuta
+<code>migrate</code>. <strong>No hay que pulsar ningún botón para empezar.</strong></p>
 <ol>
   <li>Menú <strong>Contabilidad → Cuentas</strong>.</li>
-  <li>Si está vacío, pulse <strong>Inicializar plan contable</strong>.</li>
-  <li>Debe haber <strong>56 cuentas</strong>, incluida <code>4751.115</code> (retención IRPF).</li>
+  <li>Deben aparecer ya las <strong>56 cuentas</strong>, incluida <code>4751.115</code> (retención IRPF).</li>
+  <li><strong>Comprobación de regresión:</strong> si aparecen 0 cuentas y el sistema
+      le pide pulsar «Inicializar PGC», anótelo como <strong>FALLA</strong>: la
+      inicialización automática no funcionó.</li>
 </ol>
 
 <h2>2.5 Anotar el punto de partida</h2>
@@ -258,6 +262,7 @@ cada archivo coinciden exactamente con los datos de los pasos.</p>
 <h3>Qué debe ver</h3>
 <table>
   <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>El desplegable <strong>Cuenta contable</strong> ya trae opciones</td><td>Sí, sin haber entrado antes a Contabilidad (el PGC se crea solo)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Saldo de la cuenta</td><td><strong>50.000,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Movimiento bancario creado</td><td><strong>INGRESO</strong> de 50.000,00 €</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Asiento generado automáticamente</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>

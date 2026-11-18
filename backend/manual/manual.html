@@ -1304,9 +1304,18 @@ vencimiento  reparacion
 </table>
 
 <h3>Inicializar el Plan Contable</h3>
+
+<div class="info-box">
+    <strong>Automatico:</strong> el plan contable se crea solo cada vez que se
+    despliega o se ejecuta <code>migrate</code>, asi que un sistema recien
+    instalado ya tiene sus 56 cuentas. No hay que pulsar nada para empezar a
+    trabajar. El boton sigue existiendo solo para recrear cuentas que falten
+    (por ejemplo tras restaurar una copia antigua).
+</div>
+
 <ol class="steps">
     <li>Navegue a <strong>Contabilidad > Cuentas</strong></li>
-    <li>Haga clic en <strong>"Inicializar PGC"</strong></li>
+    <li>Haga clic en <strong>"Inicializar PGC"</strong> (opcional)</li>
     <li>Confirme la accion</li>
     <li>El sistema crea todas las cuentas base usando <code>get_or_create</code> (idempotente)</li>
 </ol>
@@ -4856,14 +4865,19 @@ Fase 5  Venta REBU (B2C) + garantia de 12 meses</code></pre>
 
 <p>Cada paso sigue la numeracion de la Pipeline de Datos (§17) y enlaza con el flujo automatico correspondiente (§18). Complete los pasos en orden; cada uno depende del anterior.</p>
 
-<h3>Paso 0.3 &mdash; Inicializar Plan Contable</h3>
-<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>📊 Contabilidad</strong> &rarr; <strong>Cuentas</strong> &rarr; boton <strong>Inicializar PGC</strong> (<code>/erp/contabilidad/cuentas/</code>).</p>
+<h3>Paso 0.3 &mdash; Verificar el Plan Contable (automatico)</h3>
+<p><strong>Navegacion:</strong> Sidebar &rarr; <strong>📊 Contabilidad</strong> &rarr; <strong>Cuentas</strong> (<code>/erp/contabilidad/cuentas/</code>).</p>
 <table>
     <tr><th>Accion</th><th>Datos</th><th>Resultado esperado</th></tr>
     <tr>
-        <td>Hacer clic en "Inicializar Plan"</td>
-        <td>1 clic</td>
-        <td>Mensaje: "Plan contable inicializado correctamente". Se crean <strong>56 cuentas</strong> (grupos 100-799, incluidas 465/476 de nominas y 4751.115 de retenciones IRPF)</td>
+        <td>Abrir el listado de cuentas</td>
+        <td>Sin pulsar nada</td>
+        <td>Ya aparecen las <strong>56 cuentas</strong> (grupos 100-799, incluidas 465/476 de nominas y 4751.115 de retenciones IRPF). El plan se crea solo al desplegar o ejecutar <code>migrate</code>.</td>
+    </tr>
+    <tr>
+        <td>Solo si faltara alguna cuenta</td>
+        <td>Boton "Inicializar PGC"</td>
+        <td>Mensaje: "Plan contable inicializado correctamente". Es idempotente: no duplica las existentes.</td>
     </tr>
 </table>
 <div class="info-box">
