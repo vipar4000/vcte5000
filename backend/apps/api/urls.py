@@ -66,6 +66,10 @@ def api_vehiculos_public(request):
             vehiculo_data['imagen_url'] = f"{settings.MEDIA_URL}{imagenes_adicionales[0]}"
         else:
             vehiculo_data['imagen_url'] = None
+        # Galería para el carrusel de la tarjeta del catálogo (en orden).
+        vehiculo_data['imagenes_urls'] = [
+            f"{settings.MEDIA_URL}{ruta}" for ruta in imagenes_adicionales
+        ]
         vehiculos_list.append(vehiculo_data)
     
     # Filtros

@@ -181,10 +181,10 @@ def ejecutar(c, admin):
                                         precio_unitario=Decimal('35.00'))
     filtro = Material.objects.create(nombre='Filtro de aire', unidad='unidades',
                                      precio_unitario=Decimal('12.00'))
-    Material.objects.create(nombre='Refrigerante G12', unidad='litros',
-                            precio_unitario=Decimal('6.50'))
-    Material.objects.create(nombre='Neumaticos 205/55R16', unidad='unidades',
-                            precio_unitario=Decimal('75.00'))
+    refrigerante = Material.objects.create(nombre='Refrigerante G12', unidad='litros',
+                                           precio_unitario=Decimal('6.50'))
+    neumaticos = Material.objects.create(nombre='Neumaticos 205/55R16', unidad='unidades',
+                                         precio_unitario=Decimal('75.00'))
     check('Catalogo: 5 materiales', Material.objects.count() == 5)
 
     print('\n--- PASO 3.2: Compras de material con factura (entrada inventario) ---')
@@ -218,23 +218,60 @@ def ejecutar(c, admin):
     if compra3.asiento_contable.esta_cuadrado:
         compra3.asiento_contable.estado = 'POSTEADO'
         compra3.asiento_contable.save()
+    # Compra #4: contado por banco (572) - Refrigerante G12
+    cuenta_570 = CuentaContable.objects.get(codigo='570')
+    compra4 = CompraMaterial.objects.create(
+        material=refrigerante, cantidad=Decimal('10'), precio_unitario=Decimal('6.50'),
+        fecha_compra=date(2026, 7, 2), proveedor='Auto Parts Europa S.L.',
+        cif_nif='F12345678', numero_factura='CM-004',
+        tipo_inventario='300', tipo_iva=Decimal('21.00'),
+        forma_pago=cuenta_572, created_by=admin,
+    )
+    compra4.crear_asiento_contable()
+    # Compra #5: contado por caja (570) - Neumaticos
+    compra5 = CompraMaterial.objects.create(
+        material=neumaticos, cantidad=Decimal('2'), precio_unitario=Decimal('75.00'),
+        fecha_compra=date(2026, 7, 2), proveedor='Neumaticos Express S.L.',
+        cif_nif='G12345678', numero_factura='CM-005',
+        tipo_inventario='300', tipo_iva=Decimal('21.00'),
+        forma_pago=cuenta_570, created_by=admin,
+    )
+    compra5.crear_asiento_contable()
     a1 = compra1.asiento_contable
     a2 = compra2.asiento_contable
     a3 = compra3.asiento_contable
+    a4 = compra4.asiento_contable
+    a5 = compra5.asiento_contable
     check('Compra #1 POSTEADA y cuadrada (300 170 + 472 35,70 / 410 205,70)',
           a1.estado == 'POSTEADO' and a1.esta_cuadrado)
     check('Compra #2 POSTEADA y cuadrada (300 105 + 472 22,05 / 410 127,05)',
           a2.estado == 'POSTEADO' and a2.esta_cuadrado)
     check('Compra #3 POSTEADA y cuadrada (300 60 + 472 12,60 / 410 72,60)',
           a3.estado == 'POSTEADO' and a3.esta_cuadrado)
+    check('Compra #4 contado banco POSTEADA y cuadrada (300 65 + 472 13,65 / 572 78,65)',
+          a4.estado == 'POSTEADO' and a4.esta_cuadrado
+          and {m.cuenta.codigo for m in a4.movimientos.all()} == {'300', '472', '572'})
+    check('Compra #5 contado caja POSTEADA y cuadrada (300 150 + 472 31,50 / 570 181,50)',
+          a5.estado == 'POSTEADO' and a5.esta_cuadrado
+          and {m.cuenta.codigo for m in a5.movimientos.all()} == {'300', '472', '570'})
+    check('Compra contado banco genera EGRESO 78,65',
+          BancoMovimiento.objects.filter(tipo='EGRESO', importe=Decimal('78.65')).count() == 1)
+    check('Banco = 39.154,35 tras compra contado banco',
+          banco.saldo_pendiente == Decimal('39154.35'), str(banco.saldo_pendiente))
+    check('Compra contado caja NO genera movimiento bancario',
+          BancoMovimiento.objects.count() == 4)
     # CompraMaterial.save() incrementa el stock sobre una instancia fresca
     # (select_for_update); refrescar antes de verificar el stock en memoria.
     aceite.refresh_from_db()
     pastillas.refresh_from_db()
     filtro.refresh_from_db()
-    check('Stock: aceite 20L / pastillas 3 / filtro 5',
-          aceite.stock_actual == 20 and pastillas.stock_actual == 3 and filtro.stock_actual == 5,
-          f'{aceite.stock_actual} / {pastillas.stock_actual} / {filtro.stock_actual}')
+    refrigerante.refresh_from_db()
+    neumaticos.refresh_from_db()
+    check('Stock: aceite 20L / pastillas 3 / filtro 5 / refrigerante 10L / neumaticos 2',
+          aceite.stock_actual == 20 and pastillas.stock_actual == 3 and filtro.stock_actual == 5
+          and refrigerante.stock_actual == 10 and neumaticos.stock_actual == 2,
+          f'{aceite.stock_actual} / {pastillas.stock_actual} / {filtro.stock_actual}'
+          f' / {refrigerante.stock_actual} / {neumaticos.stock_actual}')
 
     print('\n--- PASO 3.1/3.3/3.4: OT diagnostico, usar material, completar ---')
     mecanico = User.objects.get(username='mecanico1')
@@ -344,32 +381,74 @@ def ejecutar(c, admin):
           {m.cuenta.codigo for m in gasto_asiento.movimientos.all()}
           == {'621', '472', '4751.115', '410'})
     check('Gasto NO genera movimiento bancario (pendiente en 410)',
-          BancoMovimiento.objects.count() == 4)
+          BancoMovimiento.objects.count() == 5)
+
+    print('\n--- PASO 8.6e: Pagar compras a credito (Marcar pagado, automatico) ---')
+    cuenta_572 = CuentaContable.objects.get(codigo='572')
+    for compra in (compra1, compra2, compra3):
+        compra.pagado = True
+        compra.fecha_pago = date(2026, 7, 31)
+        compra.cuenta_pago = cuenta_572
+        compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+        compra.crear_asiento_pago()
+    pagos_asientos = AsientoContable.objects.filter(tipo_documento='PagoCompraMaterial')
+    check('3 asientos de pago (PagoCompraMaterial) POSTEADOS y cuadrados (410/572 = 405,35)',
+          pagos_asientos.count() == 3
+          and all(a.estado == 'POSTEADO' and a.esta_cuadrado for a in pagos_asientos))
+    check('410 = -2.040,00 tras pagar compras (solo alquiler pendiente; '
+          'el pipeline no crea suministros/impuestos)',
+          saldo('410') == Decimal('-2040.00'), str(saldo('410')))
+    check('572 contable = 50.649,00 tras los pagos',
+          saldo('572') == Decimal('50649.00'), str(saldo('572')))
+    check('Modulo banco refleja los pagos automaticamente (50.649,00 = contable, '
+          'sin diferencia temporal)',
+          banco.saldo_pendiente == Decimal('50649.00'), str(banco.saldo_pendiente))
+
+    print('\n--- CONCILIACION: los 3 EGRESO de pago concilian por match (espejo conciliacion_confirmar) ---')
+    for asiento_pago in pagos_asientos:
+        for movimiento in BancoMovimiento.objects.filter(asiento_asociado=asiento_pago):
+            movimiento.conciliado = True
+            movimiento.notas = 'Conciliado desde extracto CSV (match automatico)'
+            movimiento.save(update_fields=['conciliado', 'notas'])
+    check('3 EGRESO de pago conciliados por match contra el extracto',
+          BancoMovimiento.objects.filter(
+              conciliado=True, notas__startswith='Conciliado desde extracto').count() == 3)
+    check('Saldo modulo banco = contable = 50.649,00',
+          banco.saldo_pendiente == Decimal('50649.00')
+          and saldo('572') == Decimal('50649.00'),
+          f'{banco.saldo_pendiente} / {saldo("572")}')
 
     print('\n--- §20.4: VERIFICACION POST-PRUEBA ---')
     print('\n[Asientos]')
     asientos = list(AsientoContable.objects.order_by('numero'))
-    check(f'Total asientos POSTEADOS = 9 (7 del manual + capitalizacion OT + gasto estructura)',
-          len(asientos) == 9 and all(a.estado == 'POSTEADO' for a in asientos),
+    check(f'Total asientos POSTEADOS = 14 (11 + 3 pagos compras credito)',
+          len(asientos) == 14 and all(a.estado == 'POSTEADO' for a in asientos),
           f'{len(asientos)}')
     check('Todos los asientos cuadrados (DEBE = HABER)',
           all(a.esta_cuadrado for a in asientos))
 
     print('\n[Banco]')
     movs = list(BancoMovimiento.objects.order_by('fecha'))
-    check('4 movimientos bancarios (deposito, inversion, vehiculo, cobro)',
-          len(movs) == 4, f'{len(movs)}')
-    check('Saldo banco = 51.133,00 (50.000 - 2.480,50 - 8.286,50 + 11.900)',
-          banco.saldo_pendiente == Decimal('51133.00'), str(banco.saldo_pendiente))
+    check('8 movimientos bancarios (5 ERP + 3 EGRESOS pagos proveedores)',
+          len(movs) == 8, f'{len(movs)}')
+    check('Saldo banco = 50.649,00 (51.054,35 - 405,35 pagos proveedores)',
+          banco.saldo_pendiente == Decimal('50649.00'), str(banco.saldo_pendiente))
     check('Cobro venta registrado (INGRESO 11.900)',
           any(m.tipo == 'INGRESO' and m.importe == Decimal('11900.00') for m in movs))
+    check('EGRESO compra contado refrigerante registrado (78,65)',
+          any(m.tipo == 'EGRESO' and m.importe == Decimal('78.65') for m in movs))
+    check('EGRESOS pagos proveedores conciliados por match (205,70/127,05/72,60)',
+          all(any(m.tipo == 'EGRESO' and m.importe == imp and m.conciliado for m in movs)
+              for imp in (Decimal('205.70'), Decimal('127.05'), Decimal('72.60'))))
 
     print('\n[Inventario]')
     valor_stock = aceite.stock_actual * aceite.precio_unitario + \
         pastillas.stock_actual * pastillas.precio_unitario + \
-        filtro.stock_actual * filtro.precio_unitario
-    check('Valor stock materiales = 257,50 (15L + 2 juegos + 5 filtros)',
-          valor_stock == Decimal('257.50'), str(valor_stock))
+        filtro.stock_actual * filtro.precio_unitario + \
+        refrigerante.stock_actual * refrigerante.precio_unitario + \
+        neumaticos.stock_actual * neumaticos.precio_unitario
+    check('Valor stock materiales = 472,50 (15L + 2 juegos + 5 filtros + 10L + 2 uds)',
+          valor_stock == Decimal('472.50'), str(valor_stock))
 
     print('\n[Informes]')
     pyg = reports.calcular_pyg(date(2026, 1, 1), date(2026, 12, 31))
@@ -392,8 +471,8 @@ def ejecutar(c, admin):
     iva = reports.calcular_libro_iva(date(2026, 1, 1), date(2026, 12, 31))
     check('IVA repercutido (471) = 619,15', iva['iva_repercutido']['total'] == Decimal('619.15'),
           str(iva['iva_repercutido']['total']))
-    check('IVA soportado (472) = 1.057,35 (637,35 + 420,00 alquiler)',
-          iva['iva_soportado']['total'] == Decimal('1057.35'),
+    check('IVA soportado (472) = 1.102,50 (682,50 + 420,00 alquiler)',
+          iva['iva_soportado']['total'] == Decimal('1102.50'),
           str(iva['iva_soportado']['total']))
 
     balance = reports.calcular_balance(date(2026, 12, 31))
@@ -402,12 +481,14 @@ def ejecutar(c, admin):
           f'{balance["activo"]["total"]} vs {balance["total_pasivo_patrimonio"]}')
     check('310 a 0 tras la venta (reparacion capitalizada)',
           saldo('310') == Decimal('0'), str(saldo('310')))
-    check('300 = 257,50 (materiales no consumidos)',
-          saldo('300') == Decimal('257.50'), str(saldo('300')))
+    check('300 = 472,50 (materiales no consumidos)',
+          saldo('300') == Decimal('472.50'), str(saldo('300')))
+    check('570 = -181,50 (caja contado, sin dotacion inicial)',
+          saldo('570') == Decimal('-181.50'), str(saldo('570')))
     check('621 = 2.000,00 (alquiler devengado)',
           saldo('621') == Decimal('2000.00'), str(saldo('621')))
-    check('410 = -2.445,35 (compras 405,35 + alquiler 2.040 pendientes)',
-          saldo('410') == Decimal('-2445.35'), str(saldo('410')))
+    check('410 = -2.040,00 (solo alquiler pendiente; compras ya pagadas)',
+          saldo('410') == Decimal('-2040.00'), str(saldo('410')))
     check('4751 = -380,00 (retencion IRPF pendiente de ingreso)',
           saldo('4751') == Decimal('-380.00'), str(saldo('4751')))
 
@@ -415,8 +496,8 @@ def ejecutar(c, admin):
     check('Existencias: diferencia = 0 (stock == contable)',
           existencias['diferencia'] == Decimal('0'),
           f"valor {existencias['total_valor']} / contable {existencias['saldo_contable']}")
-    check('Gasto de estructura NO toca inventario (300 sigue en 257,50)',
-          saldo('300') == Decimal('257.50'), str(saldo('300')))
+    check('Gasto de estructura NO toca inventario (300 sigue en 472,50)',
+          saldo('300') == Decimal('472.50'), str(saldo('300')))
     resp = c.get('/erp/contabilidad/informes/existencias/')
     check('Informe existencias renderiza sin aviso de descuadre',
           resp.status_code == 200 and 'supera el valor seg' not in resp.content.decode('utf-8', 'ignore'))

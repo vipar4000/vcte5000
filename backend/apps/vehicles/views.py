@@ -77,21 +77,22 @@ def vehiculo_create(request):
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
 
-        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+        if procesar_imagenes:
             imagenes_formset = ImagenVehiculoFormSet(
                 request.POST, request.FILES, prefix='imagenes'
             )
-        elif mostrar_imagenes:
-            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
         else:
-            imagenes_formset = None
+            # Unbound: solo para renderizar la sección de imágenes (no se valida
+            # ni se guarda salvo que el estado POST sea EN_VENTA).
+            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
 
-        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
-            if imagenes_formset:
+            if procesar_imagenes:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif any(request.FILES.getlist('imagenes-' + k) for k in ('imagen',)) or request.FILES.get('imagen_principal'):
@@ -119,7 +120,7 @@ def vehiculo_create(request):
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
-        imagenes_formset = None
+        imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
         mostrar_imagenes = False
     
     context = {
@@ -141,28 +142,46 @@ def vehiculo_update(request, pk):
         return redirect('vehicles:detail', pk=pk)
     
     if request.method == 'POST':
+        # Valor previo de la portada: si el vehículo sale de EN_VENTA hay que
+        # restaurarlo, porque validar el formulario ya vuelca el archivo nuevo
+        # sobre la instancia del modelo.
+        imagen_principal_previa = vehiculo.imagen_principal
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
 
-        if mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST:
+        if procesar_imagenes:
             imagenes_formset = ImagenVehiculoFormSet(
                 request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
             )
-        elif mostrar_imagenes:
+        else:
+            # Unbound: solo para renderizar la sección de imágenes (no se valida
+            # ni se guarda salvo que el estado POST sea EN_VENTA).
             imagenes_formset = ImagenVehiculoFormSet(
                 instance=vehiculo, prefix='imagenes'
             )
-        else:
-            imagenes_formset = None
 
-        if form.is_valid() and (imagenes_formset is None or imagenes_formset.is_valid()):
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             nuevo_estado = form.cleaned_data.get('estado')
+            # Las fotos NO se borran al salir de EN_VENTA: se conservan ocultas
+            # y vuelven a mostrarse si el vehículo regresa a ese estado. Antes se
+            # eliminaban en silencio y un cambio de estado borraba el trabajo de
+            # fotos de forma irreversible. Para quitarlas, marque "Eliminar" en
+            # cada fila o borre el vehículo.
+            tenia_fotos = bool(vehiculo.imagen_principal) or vehiculo.imagenes.exists()
             if nuevo_estado != 'EN_VENTA':
-                if vehiculo.imagen_principal:
-                    vehiculo.imagen_principal.delete(save=False)
-                vehiculo.imagenes.all().delete()
+                # Las fotos solo se admiten en EN_VENTA: se descarta cualquier
+                # archivo nuevo de este envío y se conserva el que ya hubiera.
+                form.cleaned_data.pop('imagen_principal', None)
+                form.instance.imagen_principal = imagen_principal_previa
+                if tenia_fotos:
+                    messages.info(
+                        request,
+                        'El vehículo ya no está EN VENTA: sus fotos se conservan '
+                        'ocultas y reaparecerán si vuelve a ese estado.'
+                    )
             vehiculo = form.save()
-            if imagenes_formset:
+            if procesar_imagenes:
                 imagenes_formset.instance = vehiculo
                 imagenes_formset.save()
             elif request.FILES.get('imagen_principal') or any(
@@ -197,7 +216,7 @@ def vehiculo_update(request, pk):
     else:
         form = VehiculoForm(instance=vehiculo)
         mostrar_imagenes = vehiculo.estado == 'EN_VENTA'
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes') if mostrar_imagenes else None
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
 
     context = {
         'form': form,

@@ -1,11 +1,12 @@
 import unittest
+from datetime import date
 from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.db import connections
 from apps.accounts.models import User
 from apps.vehicles.models import Vehiculo
-from apps.accounting.models import PlanContableDefault, CuentaContable
+from apps.accounting.models import PlanContableDefault, CuentaContable, AsientoContable
 from apps.bank.models import BancoCuenta, BancoMovimiento
 from apps.workshop.models import Material, CompraMaterial
 
@@ -116,6 +117,70 @@ class OrdenTrabajoFormTests(TestCase):
         self.assertIsNotNone(asiento)
         self.assertEqual(asiento.estado, 'POSTEADO')
         self.assertTrue(asiento.esta_cuadrado)
+
+
+class OrdenTrabajoListaFiltroTests(TestCase):
+    """El filtro de búsqueda del listado de OTs incluye título y descripción."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin',
+            email='admin@eurocar.local',
+            password='admin123!',
+            rol='ADMIN',
+        )
+        self.operario = User.objects.create_user(
+            username='mecanico1',
+            email='mecanico1@eurocar.local',
+            password='mecanico123!',
+            rol='OPERARIO',
+            pin_kiosco='1234',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC',
+            bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen',
+            modelo='Golf',
+            anio=2019,
+            combustible='DIESEL',
+            kilometraje=85000,
+            tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='ECO',
+            estado='TALLER',
+            fecha_adquisicion='2026-07-01',
+            precio_subasta=7500,
+            tasas_sala=400,
+            logistica_grua=250,
+            created_by=self.admin,
+        )
+        from apps.workshop.models import OrdenTrabajo
+        self.ot = OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo,
+            operario=self.operario,
+            titulo='Diagnostico general y reparacion',
+            descripcion='Revision general: cambio aceite, filtros, frenos',
+            horas_estimadas=4,
+            estado='PENDIENTE',
+            created_by=self.admin,
+        )
+
+    def test_busqueda_por_descripcion(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('workshop:list'), {'busqueda': 'cambio aceite'}
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('Diagnostico general y reparacion', html)
+
+    def test_busqueda_sin_resultados_excluye_ot(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('workshop:list'), {'busqueda': 'texto inexistente'}
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertNotIn('Diagnostico general y reparacion', html)
 
 
 class OrdenTrabajoCosteTests(TestCase):
@@ -309,7 +374,7 @@ class CompraMaterialTests(TestCase):
         self.assertEqual(self.pastillas.stock_actual, 0)
 
     def _post_compra(self, forma_pago='', cantidad='20', precio='8.50',
-                     tipo_iva='21.00'):
+                     tipo_iva='21.00', pagado='', fecha_pago='', cuenta_pago=''):
         """POST de una compra de una línea (aceite) con la forma de pago dada."""
         self.client.force_login(self.admin)
         data = {
@@ -320,6 +385,9 @@ class CompraMaterialTests(TestCase):
             'tipo_inventario': '300',
             'tipo_iva': tipo_iva,
             'forma_pago': forma_pago,
+            'pagado': pagado,
+            'fecha_pago': fecha_pago,
+            'cuenta_pago': cuenta_pago,
             'lineas-TOTAL_FORMS': '1',
             'lineas-INITIAL_FORMS': '0',
             'lineas-MIN_NUM_FORMS': '0',
@@ -330,6 +398,31 @@ class CompraMaterialTests(TestCase):
             'lineas-0-DELETE': '',
         }
         return self.client.post(reverse('workshop:compra_material_create'), data)
+
+    def _banco_con_saldo(self, saldo='1000.00', nombre='Santander Prueba'):
+        """Crea la cuenta banco 572 con un INGRESO inicial (para poder pagar)."""
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        banco = BancoCuenta.objects.create(
+            nombre=nombre,
+            iban='ES9121000418450200051332',
+            cuenta_contable=cuenta_572,
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco,
+            fecha='2026-06-30',
+            concepto='Deposito inicial',
+            tipo='INGRESO',
+            importe=Decimal(saldo),
+            conciliado=True,
+        )
+        return banco
+
+    def _crear_compra_credito(self):
+        """Crea una compra a crédito (aceite 20 x 8,50, IVA 21% → 205,70)."""
+        self.client.force_login(self.admin)
+        response = self._post_compra()
+        self.assertEqual(response.status_code, 302)
+        return CompraMaterial.objects.get(material=self.aceite)
 
     def _cuentas_haber(self, compra):
         return {
@@ -408,6 +501,172 @@ class CompraMaterialTests(TestCase):
         self.assertEqual(self.aceite.stock_actual, 0)
         self.assertEqual(CompraMaterial.objects.count(), 0)
         self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 0)
+
+    def test_compra_credito_pagada_al_crear_genera_asiento_pago_y_egreso(self):
+        """Checkbox 'Pagar ahora' al crear a crédito: asiento PagoCompraMaterial + EGRESO."""
+        banco = self._banco_con_saldo()
+
+        response = self._post_compra(pagado='on', fecha_pago='2026-07-31', cuenta_pago='572')
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertTrue(compra.pagado)
+        self.assertEqual(compra.fecha_pago.strftime('%Y-%m-%d'), '2026-07-31')
+        self.assertEqual(compra.cuenta_pago.codigo, '572')
+
+        pago = AsientoContable.objects.get(
+            tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+        )
+        self.assertEqual(pago.estado, 'POSTEADO')
+        self.assertTrue(pago.esta_cuadrado)
+        cuentas = {
+            m.cuenta.codigo: (m.debe, m.haber)
+            for m in pago.movimientos.all()
+        }
+        self.assertEqual(cuentas['410'][0], Decimal('205.70'))
+        self.assertEqual(cuentas['572'][1], Decimal('205.70'))
+
+        egreso = BancoMovimiento.objects.get(tipo='EGRESO')
+        self.assertEqual(egreso.importe, Decimal('205.70'))
+        self.assertEqual(egreso.asiento_asociado, pago)
+        self.assertEqual(egreso.banco_cuenta, banco)
+
+    def test_compra_credito_pagada_al_crear_sin_saldo_no_se_guarda(self):
+        """'Pagar ahora' sin saldo en banco: la factura entera se rechaza."""
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        BancoCuenta.objects.create(
+            nombre='Santander Vacio',
+            iban='ES9121000418450200051444',
+            cuenta_contable=cuenta_572,
+        )
+
+        response = self._post_compra(pagado='on', cuenta_pago='572')
+        self.assertEqual(response.status_code, 200)
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 0)
+        self.assertEqual(CompraMaterial.objects.count(), 0)
+
+    def test_pagar_compra_posterior_genera_asiento_y_egreso(self):
+        """Acción 'Marcar pagado' sobre una compra a crédito ya registrada."""
+        compra = self._crear_compra_credito()
+        banco = self._banco_con_saldo()
+        self.assertFalse(compra.pagado)
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('workshop:compra_pagar', args=[compra.pk]),
+            {'fecha_pago': '2026-07-31', 'cuenta_pago': '572'},
+        )
+        self.assertEqual(response.status_code, 302)
+        compra.refresh_from_db()
+        self.assertTrue(compra.pagado)
+
+        pago = AsientoContable.objects.get(
+            tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+        )
+        self.assertEqual(pago.estado, 'POSTEADO')
+        self.assertEqual(pago.fecha.strftime('%Y-%m-%d'), '2026-07-31')
+        egreso = BancoMovimiento.objects.get(tipo='EGRESO')
+        self.assertEqual(egreso.importe, Decimal('205.70'))
+        self.assertEqual(egreso.banco_cuenta, banco)
+
+    def test_crear_asiento_pago_es_idempotente(self):
+        """Pagar dos veces no duplica el asiento de pago."""
+        compra = self._crear_compra_credito()
+        self._banco_con_saldo()
+        compra.pagado = True
+        compra.fecha_pago = date(2026, 7, 31)
+        compra.save(update_fields=['pagado', 'fecha_pago'])
+
+        primero = compra.crear_asiento_pago()
+        segundo = compra.crear_asiento_pago()
+        self.assertEqual(primero.pk, segundo.pk)
+        self.assertEqual(
+            AsientoContable.objects.filter(
+                tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+            ).count(),
+            1,
+        )
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
+
+    def test_pago_por_caja_no_genera_movimiento_banco(self):
+        """Pagar con cuenta_pago 570: asiento HABER 570, sin movimiento bancario."""
+        compra = self._crear_compra_credito()
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('workshop:compra_pagar', args=[compra.pk]),
+            {'fecha_pago': '2026-07-31', 'cuenta_pago': '570'},
+        )
+        self.assertEqual(response.status_code, 302)
+        compra.refresh_from_db()
+        self.assertTrue(compra.pagado)
+        self.assertEqual(compra.cuenta_pago.codigo, '570')
+
+        pago = AsientoContable.objects.get(
+            tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+        )
+        cuentas = {m.cuenta.codigo: m.haber for m in pago.movimientos.all()}
+        self.assertEqual(cuentas.get('570'), Decimal('205.70'))
+        self.assertNotIn('572', cuentas)
+        self.assertEqual(BancoMovimiento.objects.count(), 0)
+
+    def test_deshacer_pago_anula_y_elimina_egreso(self):
+        """'Deshacer pago': asiento anulado + contrapartida + EGRESO eliminado."""
+        compra = self._crear_compra_credito()
+        self._banco_con_saldo()
+
+        self.client.force_login(self.admin)
+        self.client.post(
+            reverse('workshop:compra_pagar', args=[compra.pk]),
+            {'fecha_pago': '2026-07-31', 'cuenta_pago': '572'},
+        )
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
+
+        response = self.client.post(
+            reverse('workshop:compra_deshacer_pago', args=[compra.pk])
+        )
+        self.assertEqual(response.status_code, 302)
+        compra.refresh_from_db()
+        self.assertFalse(compra.pagado)
+        self.assertIsNone(compra.fecha_pago)
+        self.assertIsNone(compra.cuenta_pago)
+
+        pago = AsientoContable.objects.get(
+            tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+        )
+        self.assertEqual(pago.estado, 'ANULADO')
+        reverso = AsientoContable.objects.get(
+            tipo_documento='AnulacionPagoCompra', documento_id=compra.pk
+        )
+        self.assertTrue(reverso.esta_cuadrado)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 0)
+
+    def test_crear_asiento_pago_en_contado_lanza_error(self):
+        """Una compra al contado no admite asiento de pago (ya pagó al crear)."""
+        self._banco_con_saldo()
+        response = self._post_compra(forma_pago='572')
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertFalse(compra.es_credito)
+
+        with self.assertRaises(ValueError):
+            compra.crear_asiento_pago()
+
+    def test_checkbox_pagado_ignorado_en_contado(self):
+        """Checkbox 'Pagar ahora' con forma de pago contado: no genera pago duplicado."""
+        self._banco_con_saldo()
+        response = self._post_compra(forma_pago='572', pagado='on',
+                                     fecha_pago='2026-07-31', cuenta_pago='572')
+        self.assertEqual(response.status_code, 302)
+        compra = CompraMaterial.objects.get(material=self.aceite)
+        self.assertFalse(compra.pagado)
+        self.assertFalse(
+            AsientoContable.objects.filter(
+                tipo_documento='PagoCompraMaterial', documento_id=compra.pk
+            ).exists()
+        )
+        # Solo el EGRESO del contado, no un segundo por el checkbox.
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
 
 
 class MaterialCreateTests(TestCase):

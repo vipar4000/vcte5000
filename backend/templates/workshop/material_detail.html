@@ -175,16 +175,54 @@
             {% if compras %}
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-semibold mb-3">🛒 Compras Registradas</h3>
-                <div class="space-y-2">
+                <div class="space-y-3">
                     {% for compra in compras %}
-                    <div class="flex justify-between text-sm border-b pb-2">
-                        <span>
-                            {{ compra.fecha_compra }} · {{ compra.proveedor }}
-                            · {% if compra.forma_pago and compra.forma_pago.codigo != '410' %}Contado{% else %}Crédito{% endif %}
-                        </span>
-                        <span class="font-medium">
-                            {{ compra.cantidad }} × €{{ compra.precio_unitario|floatformat:2 }}
-                        </span>
+                    <div class="text-sm border-b pb-2">
+                        <div class="flex justify-between">
+                            <span>
+                                {{ compra.fecha_compra }} · {{ compra.proveedor }}
+                            </span>
+                            <span class="font-medium">
+                                {{ compra.cantidad }} × €{{ compra.precio_unitario|floatformat:2 }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs text-gray-500">
+                                {% if not compra.es_credito %}
+                                Contado ({{ compra.forma_pago.codigo }})
+                                {% elif compra.pagado %}
+                                Pagado el {{ compra.fecha_pago|default:"—" }}
+                                ({{ compra.cuenta_pago.codigo|default:"572" }})
+                                {% else %}
+                                Crédito pendiente (410)
+                                {% endif %}
+                            </span>
+                            {% if is_admin %}
+                                {% if not compra.es_credito %}
+                                <span class="text-xs text-gray-400">Pago ya registrado al contado</span>
+                                {% elif compra.pagado %}
+                                <form method="post" action="{% url 'workshop:compra_deshacer_pago' compra.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs text-red-600 hover:underline">
+                                        Deshacer pago
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{% url 'workshop:compra_pagar' compra.pk %}" class="flex items-center gap-2">
+                                    {% csrf_token %}
+                                    <input type="date" name="fecha_pago" class="text-xs border rounded px-1 py-0.5">
+                                    <select name="cuenta_pago" class="text-xs border rounded px-1 py-0.5">
+                                        <option value="">Banco (572)</option>
+                                        <option value="572">Banco (572)</option>
+                                        <option value="570">Caja (570)</option>
+                                    </select>
+                                    <button type="submit" class="text-xs text-green-700 font-medium hover:underline">
+                                        Marcar pagado
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>

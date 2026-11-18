@@ -14,7 +14,11 @@ django-celery-beat==2.5.0
 redis==5.0.1
 
 # PDF Generation
-weasyprint>=62.0
+# WeasyPrint da la mejor fidelidad, pero necesita librerías de sistema
+# (Pango/Cairo) que el runtime nativo de Render no instala. xhtml2pdf es el
+# respaldo en Python puro: apps/sales/services.py lo usa si WeasyPrint no carga.
+weasyprint==69.0
+xhtml2pdf==0.2.17
 
 # Images
 Pillow==10.1.0
@@ -38,8 +42,8 @@ django-htmx==1.17.0
 qrcode[pil]==7.4.2
 
 # XML & Crypto (Verifactu/SII)
-lxml>=4.9.0
-cryptography>=41.0.0
+lxml==6.1.1
+cryptography==50.0.0
 
 # Production
 whitenoise==6.6.0

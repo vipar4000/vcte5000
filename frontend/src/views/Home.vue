@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <!-- Hero Section -->
     <section class="hero-gradient text-white py-20">
@@ -52,8 +52,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div v-for="vehiculo in vehiculosDestacados" :key="vehiculo.id" 
                class="bg-white rounded-lg shadow-lg overflow-hidden card-hover transition-all duration-300">
-            <div class="h-48 bg-gray-200 flex items-center justify-center">
-              <img v-if="vehiculo.imagen_url" :src="vehiculo.imagen_url" :alt="vehiculo.marca + ' ' + vehiculo.modelo" class="w-full h-full object-contain">
+            <div class="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
+              <img v-if="vehiculo.imagen_url" :src="vehiculo.imagen_url" :alt="vehiculo.marca + ' ' + vehiculo.modelo"
+                   width="800" height="600" loading="lazy" decoding="async"
+                   class="w-full h-full object-cover">
               <span v-else class="text-6xl">🚗</span>
             </div>
             <div class="p-6">

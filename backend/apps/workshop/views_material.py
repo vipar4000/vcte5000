@@ -4,8 +4,12 @@ from django.contrib import messages
 from django.db.models import Q, Sum, Count, F, ExpressionWrapper, DecimalField
 from django.db import transaction
 from django.core.files import File
+from datetime import date
 from decimal import Decimal
-from .models import Material, MaterialUsado, OrdenTrabajo, CompraMaterial
+from .models import (
+    Material, MaterialUsado, OrdenTrabajo, CompraMaterial,
+    _anular_asiento_pago_compra,
+)
 from .forms import MaterialForm, CompraFacturaForm, CompraMaterialLineaFormSet
 from apps.accounting.models import CuentaContable
 from apps.bank.models import BancoCuenta
@@ -132,6 +136,9 @@ def compra_material_create(request):
         if header_form.is_valid() and linea_formset.is_valid():
             pdf_file = header_form.cleaned_data.get('documento_pdf')
             forma_pago_code = header_form.cleaned_data.get('forma_pago') or ''
+            pagado = header_form.cleaned_data.get('pagado', False)
+            fecha_pago = header_form.cleaned_data.get('fecha_pago') or None
+            cuenta_pago_code = header_form.cleaned_data.get('cuenta_pago') or ''
 
             # Resolver la cuenta de contrapartida (vacío = crédito 410)
             forma_pago_cuenta = None
@@ -153,10 +160,31 @@ def compra_material_create(request):
                         'materiales': Material.objects.all().order_by('nombre'),
                     })
 
+            # El checkbox "Pagar ahora" solo aplica a crédito; en contado el
+            # pago ya quedó registrado en el asiento de compra.
+            pagar_ahora = pagado and (not forma_pago_code or forma_pago_code == '410')
+            cuenta_pago = None
+            if pagar_ahora and cuenta_pago_code:
+                try:
+                    cuenta_pago = CuentaContable.objects.get(codigo=cuenta_pago_code)
+                except CuentaContable.DoesNotExist:
+                    messages.error(
+                        request,
+                        f'Falta la cuenta contable {cuenta_pago_code} en el plan '
+                        f'contable. Inicialice el plan en Contabilidad > Cuentas > '
+                        f'Inicializar.'
+                    )
+                    return render(request, 'workshop/material_compra_form.html', {
+                        'header_form': header_form,
+                        'linea_formset': linea_formset,
+                        'materiales': Material.objects.all().order_by('nombre'),
+                    })
+
             # Validar saldo disponible ANTES de crear nada (evita errores a
-            # mitad de la transacción si el banco no cubre el total contado).
-            if forma_pago_code == '572':
-                total_contado = Decimal('0')
+            # mitad de la transacción si el banco no cubre el total a pagar).
+            paga_con_banco = pagar_ahora and (not cuenta_pago_code or cuenta_pago_code == '572')
+            if forma_pago_code == '572' or paga_con_banco:
+                total_a_pagar = Decimal('0')
                 for linea_form in linea_formset:
                     if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
                         continue
@@ -166,7 +194,7 @@ def compra_material_create(request):
                     if not material or cantidad is None or precio is None:
                         continue
                     tipo_iva = header_form.cleaned_data['tipo_iva']
-                    total_contado += cantidad * precio * (
+                    total_a_pagar += cantidad * precio * (
                         Decimal('1') + tipo_iva / Decimal('100')
                     )
                 banco_cuenta = BancoCuenta.objects.filter(
@@ -174,11 +202,11 @@ def compra_material_create(request):
                 ).first()
                 if not banco_cuenta:
                     banco_cuenta = obtener_cuenta_banco_default()
-                if banco_cuenta and total_contado > banco_cuenta.saldo_pendiente:
+                if banco_cuenta and total_a_pagar > banco_cuenta.saldo_pendiente:
                     messages.error(
                         request,
                         f'Saldo insuficiente en {banco_cuenta.nombre} para el pago '
-                        f'contado de {format_euros(total_contado)}. '
+                        f'de {format_euros(total_a_pagar)}. '
                         f'Disponible: {format_euros(banco_cuenta.saldo_pendiente)}.'
                     )
                     return render(request, 'workshop/material_compra_form.html', {
@@ -189,6 +217,7 @@ def compra_material_create(request):
 
             lineas_creadas = 0
             asientos_ok = 0
+            pagos_ok = 0
 
             with transaction.atomic():
                 for i, linea_form in enumerate(linea_formset):
@@ -224,6 +253,16 @@ def compra_material_create(request):
                             asiento.estado = 'POSTEADO'
                             asiento.save()
                             asientos_ok += 1
+
+                        # "Pagar ahora" (solo crédito): asiento de pago
+                        # automático (DEBE 410 / HABER tesorería) + EGRESO si 572.
+                        if pagar_ahora:
+                            compra.pagado = True
+                            compra.fecha_pago = fecha_pago
+                            compra.cuenta_pago = cuenta_pago
+                            compra.crear_asiento_pago()
+                            compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+                            pagos_ok += 1
                     except Exception as e:
                         # La factura se procesa en una única transacción atómica:
                         # cualquier error revierte todas las líneas (stock, asientos
@@ -246,10 +285,19 @@ def compra_material_create(request):
                 '572': 'Contado banco (EGRESO registrado)',
                 '570': 'Contado caja',
             }.get(forma_pago_code, 'Crédito (pendiente en 410)')
+            if pagar_ahora:
+                descripcion_pago = (
+                    'Crédito pagado (asiento de pago DEBE 410 / HABER tesorería'
+                    ' generado por línea)'
+                )
+            if pagado and not pagar_ahora:
+                descripcion_pago += ' — el checkbox "Pagar ahora" no aplica al contado'
             messages.success(
                 request,
                 f'Factura registrada: {lineas_creadas} material(es) comprado(s), '
-                f'{asientos_ok} asiento(s) posteado(s). {descripcion_pago}.'
+                f'{asientos_ok} asiento(s) posteado(s)'
+                f'{" y " + str(pagos_ok) + " pago(s) registrado(s)" if pagos_ok else ""}. '
+                f'{descripcion_pago}.'
             )
             return redirect('workshop:material_list')
         else:
@@ -264,6 +312,106 @@ def compra_material_create(request):
         'materiales': Material.objects.all().order_by('nombre'),
     }
     return render(request, 'workshop/material_compra_form.html', context)
+
+
+@login_required
+def compra_pagar(request, pk):
+    """Marcar como pagada una compra de material a crédito (asiento + EGRESO)."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para pagar compras.')
+        return redirect('workshop:material_list')
+
+    compra = get_object_or_404(CompraMaterial, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    if not compra.es_credito:
+        messages.error(
+            request,
+            'La compra se registró al contado: su pago ya quedó reflejado '
+            'en el asiento de compra.'
+        )
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    if compra.pagado:
+        messages.info(request, 'La compra ya está marcada como pagada.')
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    fecha_pago = request.POST.get('fecha_pago') or None
+    if fecha_pago:
+        try:
+            fecha_pago = date.fromisoformat(fecha_pago)
+        except ValueError:
+            fecha_pago = None
+    cuenta_pago_code = request.POST.get('cuenta_pago') or ''
+    cuenta_pago = None
+    if cuenta_pago_code in ('570', '572'):
+        cuenta_pago = CuentaContable.objects.filter(
+            codigo=cuenta_pago_code
+        ).first()
+        if not cuenta_pago:
+            messages.error(
+                request,
+                f'Falta la cuenta contable {cuenta_pago_code} en el plan '
+                f'contable. Inicialice el plan en Contabilidad > Cuentas > '
+                f'Inicializar.'
+            )
+            return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    compra.pagado = True
+    compra.fecha_pago = fecha_pago
+    compra.cuenta_pago = cuenta_pago
+    compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+
+    try:
+        pago = compra.crear_asiento_pago()
+        codigo = pago.movimientos.filter(haber__gt=0).first()
+        codigo_pago = codigo.cuenta.codigo if codigo else 'tesorería'
+        messages.success(
+            request,
+            f'Compra pagada. Asiento de pago #{pago.numero} '
+            f'(DEBE 410 / HABER {codigo_pago}) generado automáticamente.'
+        )
+    except Exception as e:
+        messages.error(
+            request,
+            f'No se pudo generar el asiento de pago: {e}'
+        )
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    return redirect('workshop:material_detail', pk=compra.material.pk)
+
+
+@login_required
+def compra_deshacer_pago(request, pk):
+    """Desmarcar el pago de una compra (anula el asiento y elimina el EGRESO)."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para modificar compras.')
+        return redirect('workshop:material_list')
+
+    compra = get_object_or_404(CompraMaterial, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    if not compra.pagado:
+        messages.info(request, 'La compra no está marcada como pagada.')
+        return redirect('workshop:material_detail', pk=compra.material.pk)
+
+    with transaction.atomic():
+        _anular_asiento_pago_compra(compra, request.user)
+        compra.pagado = False
+        compra.fecha_pago = None
+        compra.cuenta_pago = None
+        compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+
+    messages.success(
+        request,
+        'Pago deshecho: asiento de pago anulado (Ley Antifraude) y EGRESO '
+        'bancario eliminado. La compra vuelve a quedar pendiente en 410.'
+    )
+    return redirect('workshop:material_detail', pk=compra.material.pk)
 
 
 @login_required
