@@ -39,6 +39,12 @@ AWS_S3_CUSTOM_DOMAIN=pub-<hash>.r2.dev
 `AWS_STORAGE_BUCKET_NAME`; con el dominio personalizado, `MEDIA_URL` apunta
 ahí y los enlaces de descarga del ERP siguen funcionando.
 
+**Sin bucket, en staging los PDFs se abren igualmente** gracias a
+`SERVE_MEDIA_LOCAL = True` en `staging.py`: la propia app sirve `/media/`. Sirve
+para probar, pero **el disco de Render es efímero**: en cada redeploy los
+archivos subidos desaparecen y los enlaces guardados dejan de funcionar. En
+producción esa bandera está en `False`, así que sin R2 los adjuntos darían 404.
+
 ## 2. Variables de entorno en Render [manual]
 
 ```

@@ -4,6 +4,11 @@ from .base import *
 
 DEBUG = False
 
+# La aplicación NO sirve /media/ en producción: los archivos subidos deben ir a
+# S3/R2 (MEDIA_URL apunta al bucket). El disco de Render es efímero, así que
+# servirlos desde aquí daría enlaces que se rompen en el siguiente despliegue.
+SERVE_MEDIA_LOCAL = False
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '.onrender.com').split(',')
 
 # Origenes de confianza para CSRF. Es opcional: solo hace falta si el sitio se
