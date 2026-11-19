@@ -9,6 +9,7 @@ from django.db.models import (
 from django.db import transaction
 from django.core.files import File
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.forms import formset_factory
 from django.http import Http404
 from datetime import date
@@ -475,6 +476,15 @@ def compra_detail(request, grupo):
         and not pagada
     )
 
+    # Puede haber referencia en BD a un PDF que ya no existe (disco efímero):
+    # en ese caso no se muestra el enlace, sino un aviso.
+    pdf_disponible = False
+    if cabecera.documento_pdf:
+        try:
+            pdf_disponible = default_storage.exists(cabecera.documento_pdf.name)
+        except Exception:
+            pdf_disponible = False
+
     return render(request, 'workshop/compra_detail.html', {
         'lineas': lineas,
         'cabecera': cabecera,
@@ -486,6 +496,7 @@ def compra_detail(request, grupo):
         'pagada': pagada,
         'vencida': vencida,
         'hoy': hoy,
+        'pdf_disponible': pdf_disponible,
     })
 
 
@@ -536,15 +547,25 @@ def compra_edit(request, grupo):
             else:
                 try:
                     with transaction.atomic():
-                        # El PDF se conserva antes de borrar las líneas antiguas
+                        # El PDF se conserva antes de borrar las líneas antiguas.
+                        # Puede que el archivo ya no exista (el disco de Render se
+                        # borra en cada despliegue): en ese caso la corrección
+                        # sigue adelante, simplemente sin adjunto.
                         pdf_contenido = None
                         pdf_nombre = None
+                        pdf_perdido = False
                         for linea in lineas:
-                            if linea.documento_pdf:
+                            if not linea.documento_pdf:
+                                continue
+                            try:
                                 with linea.documento_pdf.open('rb') as archivo:
                                     pdf_contenido = archivo.read()
                                 pdf_nombre = os.path.basename(linea.documento_pdf.name)
-                                break
+                            except (FileNotFoundError, OSError):
+                                pdf_contenido = None
+                                pdf_nombre = None
+                                pdf_perdido = True
+                            break
 
                         for linea in lineas:
                             linea.revertir(request.user)
@@ -571,6 +592,13 @@ def compra_edit(request, grupo):
                         'Factura corregida. Los asientos anteriores quedaron '
                         'anulados con su contrapartida y se registraron los nuevos.'
                     )
+                    if pdf_perdido:
+                        messages.warning(
+                            request,
+                            'El PDF de la factura ya no estaba en el servidor '
+                            '(se perdió en un despliegue), así que se guardó sin '
+                            'adjunto. Puede volver a subirlo con «Editar».'
+                        )
                     return redirect('workshop:compra_detail', grupo=grupo)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')

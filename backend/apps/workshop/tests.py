@@ -956,3 +956,46 @@ class CompraFacturaFlujoTest(TestCase):
             reverse('workshop:compra_detail', args=[compra.factura_grupo])
         )
         self.assertContains(resumen, 'Factura vencida')
+
+    # --------------------------------- PDF perdido tras un despliegue
+    def test_editar_con_el_pdf_perdido_no_falla(self):
+        import shutil
+        import tempfile
+
+        from django.core.files.storage import default_storage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+
+        with override_settings(MEDIA_ROOT=media):
+            datos = self._datos()
+            datos['documento_pdf'] = SimpleUploadedFile(
+                'factura_cm003.pdf', b'%PDF-1.4\n',
+                content_type='application/pdf',
+            )
+            self.client.post(reverse('workshop:compra_material_create'), datos)
+
+            compra = CompraMaterial.objects.get()
+            self.assertTrue(compra.documento_pdf)
+            nombre = compra.documento_pdf.name
+
+            # El servidor perdió el archivo (disco efímero de Render)
+            default_storage.delete(nombre)
+            self.assertFalse(default_storage.exists(nombre))
+
+            # El resumen avisa en vez de ofrecer un enlace roto
+            resumen = self.client.get(
+                reverse('workshop:compra_detail', args=[compra.factura_grupo])
+            )
+            self.assertContains(resumen, 'PDF no disponible')
+
+            # Y la corrección se guarda igual, sin adjunto
+            respuesta = self.client.post(
+                reverse('workshop:compra_edit', args=[compra.factura_grupo]),
+                self._datos(),
+            )
+            self.assertEqual(respuesta.status_code, 302)
+            self.assertEqual(CompraMaterial.objects.count(), 1)
+            self.assertFalse(CompraMaterial.objects.get().documento_pdf)
