@@ -15,6 +15,9 @@ urlpatterns = [
     
     # Materiales / Inventario
     path('materiales/', views_material.material_list, name='material_list'),
+    path('compras/', views_material.compra_list, name='compra_list'),
+    path('compras/<str:grupo>/', views_material.compra_detail, name='compra_detail'),
+    path('compras/<str:grupo>/editar/', views_material.compra_edit, name='compra_edit'),
     path('materiales/nuevo/', views_material.material_create, name='material_create'),
     path('materiales/comprar/', views_material.compra_material_create, name='compra_material_create'),
     path('materiales/compra/<int:pk>/pagar/', views_material.compra_pagar, name='compra_pagar'),

@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Factura de compra{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Cabecera -->
+    <div class="flex justify-between items-start">
+        <div>
+            <a href="{% url 'workshop:compra_list' %}" class="text-eurocar-light hover:underline text-sm">← Volver a compras</a>
+            <h1 class="text-2xl font-bold text-gray-800 mt-1">
+                Factura {{ cabecera.numero_factura|default:"sin número" }}
+            </h1>
+            <p class="text-gray-500">{{ cabecera.proveedor }} · {{ cabecera.fecha_compra|date:"d/m/Y" }}</p>
+        </div>
+        <div class="flex gap-2">
+            {% if cabecera.documento_pdf %}
+            <a href="{{ cabecera.documento_pdf.url }}" target="_blank"
+               class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">📎 Ver PDF</a>
+            {% endif %}
+            <a href="{% url 'workshop:compra_edit' grupo %}"
+               class="px-4 py-2 border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'workshop:compra_material_create' %}"
+               class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                ➕ Nueva compra
+            </a>
+        </div>
+    </div>
+
+    <!-- Datos de la factura -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">🧾 Datos de la factura</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Proveedor</p>
+                <p class="font-medium">{{ cabecera.proveedor }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">CIF/NIF</p>
+                <p class="font-medium">{{ cabecera.cif_nif }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Nº factura</p>
+                <p class="font-medium">{{ cabecera.numero_factura|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Fecha</p>
+                <p class="font-medium">{{ cabecera.fecha_compra|date:"d/m/Y" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Cuenta de inventario</p>
+                <p class="font-medium">{{ cabecera.get_tipo_inventario_display }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Tipo de IVA</p>
+                <p class="font-medium">{{ cabecera.tipo_iva|floatformat:2 }} %</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Forma de pago</p>
+                <p class="font-medium">
+                    {% if cabecera.forma_pago %}{{ cabecera.forma_pago.codigo }} {{ cabecera.forma_pago.nombre }}
+                    {% else %}Crédito (410){% endif %}
+                </p>
+            </div>
+            <div>
+                <p class="text-gray-500">Estado</p>
+                {% if pagada %}
+                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Pagada</span>
+                {% elif cabecera.forma_pago and cabecera.forma_pago.codigo in "570,572" %}
+                <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">Contado</span>
+                {% else %}
+                <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pendiente de pago</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Líneas -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">📦 Materiales ({{ lineas|length }} línea{{ lineas|length|pluralize:"s" }})</h2>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                    <th class="px-3 py-2 text-left">Material</th>
+                    <th class="px-3 py-2 text-center">Unidad</th>
+                    <th class="px-3 py-2 text-right">Cantidad</th>
+                    <th class="px-3 py-2 text-right">Precio</th>
+                    <th class="px-3 py-2 text-right">Base</th>
+                    <th class="px-3 py-2 text-right">IVA</th>
+                    <th class="px-3 py-2 text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for linea in lineas %}
+                <tr>
+                    <td class="px-3 py-2">
+                        <a href="{% url 'workshop:material_detail' linea.material.pk %}"
+                           class="text-eurocar-blue hover:underline">{{ linea.material.nombre }}</a>
+                    </td>
+                    <td class="px-3 py-2 text-center text-gray-500">{{ linea.material.unidad }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ linea.cantidad|floatformat:2 }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ linea.precio_unitario|floatformat:2 }} €</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ linea.base_imponible|floatformat:2 }} €</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ linea.cuota_iva|floatformat:2 }} €</td>
+                    <td class="px-3 py-2 text-right tabular-nums font-medium">
+                        {{ linea.base_imponible|add:linea.cuota_iva|floatformat:2 }} €
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-gray-50">
+                <tr>
+                    <td colspan="4" class="px-3 py-2 text-right text-gray-500">Totales</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ total_base|floatformat:2 }} €</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ total_iva|floatformat:2 }} €</td>
+                    <td class="px-3 py-2 text-right font-bold tabular-nums">{{ total_factura|floatformat:2 }} €</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Asientos -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">📒 Asientos contables</h2>
+        {% for asiento in asientos %}
+        <div class="border rounded-lg mb-4 last:mb-0">
+            <div class="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-t-lg">
+                <div class="text-sm">
+                    <span class="font-medium">Asiento {{ asiento.numero }}</span>
+                    <span class="text-gray-500">· {{ asiento.fecha|date:"d/m/Y" }}</span>
+                    <span class="text-gray-500">· {{ asiento.concepto }}</span>
+                </div>
+                <span class="px-2 py-1 rounded-full text-xs
+                    {% if asiento.estado == 'POSTEADO' %}bg-green-100 text-green-800
+                    {% elif asiento.estado == 'ANULADO' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ asiento.get_estado_display }}
+                </span>
+            </div>
+            <table class="w-full text-sm">
+                <thead class="text-gray-500">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Cuenta</th>
+                        <th class="px-4 py-2 text-left">Descripción</th>
+                        <th class="px-4 py-2 text-right">Debe</th>
+                        <th class="px-4 py-2 text-right">Haber</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for movimiento in asiento.movimientos.all %}
+                    <tr>
+                        <td class="px-4 py-2">{{ movimiento.cuenta.codigo }} {{ movimiento.cuenta.nombre }}</td>
+                        <td class="px-4 py-2 text-gray-500">{{ movimiento.descripcion }}</td>
+                        <td class="px-4 py-2 text-right tabular-nums">
+                            {% if movimiento.debe %}{{ movimiento.debe|floatformat:2 }} €{% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-right tabular-nums">
+                            {% if movimiento.haber %}{{ movimiento.haber|floatformat:2 }} €{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% empty %}
+        <p class="text-sm text-gray-500">Esta factura no tiene asientos registrados.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Pago -->
+    {% if cabecera.forma_pago is not None and cabecera.forma_pago.codigo == '410' %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-2">💰 Pago</h2>
+        <p class="text-sm text-gray-500 mb-4">
+            Compra a crédito: queda pendiente en la cuenta 410 (acreedores) hasta que se pague.
+        </p>
+        <div class="space-y-2">
+            {% for linea in lineas %}
+            <div class="flex justify-between items-center text-sm border rounded px-4 py-2">
+                <span>{{ linea.material.nombre }} — {{ linea.base_imponible|add:linea.cuota_iva|floatformat:2 }} €</span>
+                {% if linea.pagado %}
+                <span class="text-green-700 font-medium">
+                    Pagada{% if linea.fecha_pago %} el {{ linea.fecha_pago|date:"d/m/Y" }}{% endif %}
+                </span>
+                {% else %}
+                <form method="post" action="{% url 'workshop:compra_pagar' linea.pk %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">
+                        Marcar como pagada
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <p class="text-xs text-gray-500">
+        Si algo está mal (importe, forma de pago, proveedor), use <strong>✏️ Editar</strong>:
+        el sistema anula los asientos actuales con su contrapartida y registra los corregidos,
+        dejando la traza completa.
+    </p>
+</div>
+{% endblock %}

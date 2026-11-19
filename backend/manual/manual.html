@@ -817,6 +817,25 @@ Material (stock: 100)
     Cuando ese material se consuma en una OT, la cuenta 300 se acredita por el importe consumido (ver diagrama en <a href="#capitulo-15-7">15.7</a>), de modo que el saldo de 300 siempre refleja el material que queda en el almacen.
 </div>
 
+<h3>Historial de compras, hoja resumen y correccion</h3>
+
+<p>El menu <strong>&#128722; Compras</strong> abre el <strong>historial de facturas</strong>: una fila por
+factura, con sus lineas agrupadas.</p>
+
+<table>
+    <tr><th>Accion</th><th>Como</th></tr>
+    <tr><td>Cargar varias facturas seguidas</td><td>Boton <strong>"Guardar y registrar otra compra"</strong>: guarda y deja el formulario listo para la siguiente.</td></tr>
+    <tr><td>Ver la factura completa</td><td>Al guardar se abre la <strong>hoja resumen</strong> (datos, lineas, asientos contables y enlace al PDF). Tambien desde <strong>Historial &gt; Ver</strong>.</td></tr>
+    <tr><td>Corregir un error</td><td><strong>Editar</strong> en el historial o en el resumen: permite cambiar proveedor, importe, material o forma de pago.</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Que hace la correccion:</strong> no se reescribe el asiento anterior. Se
+    <strong>anula con su contrapartida</strong> (Ley Antifraude), se devuelve la cantidad al stock y se
+    elimina el movimiento bancario si lo habia. Despues se registra la factura corregida con sus asientos
+    nuevos: el stock y el banco quedan cuadrados y se conserva la traza completa.
+</div>
+
 <div class="diagram">
     <div class="title">Ciclo contable del material (cuenta 300)</div>
     <div class="flow">

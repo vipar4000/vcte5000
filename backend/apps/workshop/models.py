@@ -1,6 +1,12 @@
 from django.db import models
 from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
+import uuid
+
+
+def nuevo_grupo_factura():
+    """Identificador de una factura de compra (agrupa sus líneas)."""
+    return uuid.uuid4().hex
 
 
 class OrdenTrabajo(models.Model):
@@ -284,6 +290,11 @@ class CompraMaterial(models.Model):
         max_length=50, blank=True, verbose_name='número de factura',
         help_text='Permite agrupar varias compras (materiales) de la misma factura de proveedor.',
     )
+    factura_grupo = models.CharField(
+        max_length=36, db_index=True, default=nuevo_grupo_factura,
+        editable=False, verbose_name='grupo de factura',
+        help_text='Identifica las líneas que pertenecen a la misma factura.',
+    )
     tipo_inventario = models.CharField(
         max_length=3, choices=TIPOS_INVENTARIO, default='300',
         verbose_name='cuenta de inventario',
@@ -373,6 +384,62 @@ class CompraMaterial(models.Model):
                 )
         else:
             super().save(*args, **kwargs)
+
+    def revertir(self, user):
+        """Deshace esta línea antes de corregirla.
+
+        Devuelve la cantidad al stock y anula por contrapartida el asiento de
+        compra y el de pago (Ley Antifraude: no se borran asientos, quedan
+        ANULADOS con su reversion), eliminando los movimientos bancarios
+        (EGRESO) asociados.
+        """
+        from datetime import date
+
+        from django.db import transaction
+
+        from apps.accounting.models import AsientoContable, MovimientoContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoMovimiento
+
+        with transaction.atomic():
+            # 1. Stock: la compra lo incrementó al crearse
+            material = Material.objects.select_for_update().get(pk=self.material_id)
+            material.stock_actual -= self.cantidad
+            material.alerta_stock = material.stock_actual <= material.stock_minimo
+            material.save(update_fields=['stock_actual', 'alerta_stock'])
+
+            # 2. Asiento de pago (si lo hubiera)
+            _anular_asiento_pago_compra(self, user)
+
+            # 3. Asiento de compra
+            asiento = AsientoContable.objects.filter(
+                tipo_documento='CompraMaterial',
+                documento_id=self.pk,
+            ).exclude(estado='ANULADO').first()
+            if not asiento:
+                return
+
+            BancoMovimiento.objects.filter(asiento_asociado=asiento).delete()
+
+            reversion = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=date.today(),
+                concepto=f'ANULACIÓN: {asiento.concepto}',
+                estado='BORRADOR',
+                tipo_documento='AnulacionCompraMaterial',
+                documento_id=self.pk,
+                created_by=user,
+            )
+            for mov in asiento.movimientos.all():
+                MovimientoContable.objects.create(
+                    asiento=reversion,
+                    cuenta=mov.cuenta,
+                    debe=mov.haber,
+                    haber=mov.debe,
+                    descripcion=f'Reversión: {mov.descripcion}',
+                )
+            asiento.estado = 'ANULADO'
+            asiento.save(update_fields=['estado'])
 
     def crear_asiento_contable(self):
         """Genera el asiento de entrada a inventario (Grupo 3) + IVA + contrapartida.

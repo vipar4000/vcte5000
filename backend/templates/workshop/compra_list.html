@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Compras{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Compras de material</h1>
+            <p class="text-gray-500">
+                Facturas de proveedor registradas. Cada factura puede tener varias líneas.
+            </p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'workshop:compra_material_create' %}"
+           class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+            ➕ Registrar compra
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Buscador -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="flex flex-wrap gap-4">
+            <input type="text" name="busqueda" value="{{ busqueda }}"
+                   placeholder="Buscar por proveedor, CIF o número de factura..."
+                   class="flex-1 min-w-[220px] px-4 py-2 border rounded-lg">
+            <button type="submit"
+                    class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+                Filtrar
+            </button>
+            {% if busqueda %}
+            <a href="{% url 'workshop:compra_list' %}"
+               class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700">
+                <tr>
+                    <th class="px-4 py-3 text-left">Fecha</th>
+                    <th class="px-4 py-3 text-left">Proveedor</th>
+                    <th class="px-4 py-3 text-left">Factura</th>
+                    <th class="px-4 py-3 text-center">Líneas</th>
+                    <th class="px-4 py-3 text-right">Base</th>
+                    <th class="px-4 py-3 text-right">IVA</th>
+                    <th class="px-4 py-3 text-right">Total</th>
+                    <th class="px-4 py-3 text-left">Pago</th>
+                    <th class="px-4 py-3 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for factura in facturas %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap">{{ factura.fecha_compra|date:"d/m/Y" }}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-medium">{{ factura.proveedor }}</div>
+                        <div class="text-xs text-gray-500">{{ factura.cif_nif }}</div>
+                    </td>
+                    <td class="px-4 py-3">{{ factura.numero_factura|default:"—" }}</td>
+                    <td class="px-4 py-3 text-center">{{ factura.lineas }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums">{{ factura.base|floatformat:2 }} €</td>
+                    <td class="px-4 py-3 text-right tabular-nums">{{ factura.cuota|floatformat:2 }} €</td>
+                    <td class="px-4 py-3 text-right font-semibold tabular-nums">{{ factura.total|floatformat:2 }} €</td>
+                    <td class="px-4 py-3">
+                        {% if factura.forma_pago == '570' %}
+                        <span class="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Caja</span>
+                        {% elif factura.forma_pago == '572' %}
+                        <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">Banco</span>
+                        {% elif factura.pagada %}
+                        <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Pagada</span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">A crédito</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex justify-end gap-2">
+                            <a href="{% url 'workshop:compra_detail' factura.factura_grupo %}"
+                               class="px-3 py-1 text-sm border rounded hover:bg-gray-50 transition">
+                                👁️ Ver
+                            </a>
+                            <a href="{% url 'workshop:compra_edit' factura.factura_grupo %}"
+                               class="px-3 py-1 text-sm border rounded hover:bg-gray-50 transition">
+                                ✏️ Editar
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="px-4 py-10 text-center text-gray-500">
+                        Todavía no hay compras registradas.
+                        <a href="{% url 'workshop:compra_material_create' %}"
+                           class="text-eurocar-light hover:underline">Registrar la primera →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

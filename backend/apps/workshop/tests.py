@@ -770,3 +770,142 @@ class MaterialCreateTests(TestCase):
         self.assertEqual(Material.objects.count(), 2)
         bujia = Material.objects.get(nombre='Bujía')
         self.assertRedirects(response, reverse('workshop:material_detail', args=[bujia.pk]))
+
+class CompraFacturaFlujoTest(TestCase):
+    """Historial, hoja resumen, «guardar y otra» y corrección de una factura."""
+
+    def setUp(self):
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin',
+            email='admin@eurocar.local',
+            password='admin123!',
+            rol='ADMIN',
+        )
+        self.aceite = Material.objects.create(
+            nombre='Aceite motor 5W30',
+            unidad='litros',
+            stock_actual=0,
+            stock_minimo=0,
+            precio_unitario=Decimal('8.50'),
+        )
+        self.client.force_login(self.admin)
+
+    def _datos(self, **extra):
+        datos = {
+            'proveedor': 'Distribuciones Auto S.L.',
+            'cif_nif': 'C12345678',
+            'fecha_compra': '2026-07-02',
+            'numero_factura': 'CM-001',
+            'tipo_inventario': '300',
+            'tipo_iva': '21.00',
+            'forma_pago': '',
+            'lineas-TOTAL_FORMS': '1',
+            'lineas-INITIAL_FORMS': '0',
+            'lineas-MIN_NUM_FORMS': '0',
+            'lineas-MAX_NUM_FORMS': '1000',
+            'lineas-0-material': 'Aceite motor 5W30',
+            'lineas-0-unidad': 'litros',
+            'lineas-0-cantidad': '20',
+            'lineas-0-precio_unitario': '8.50',
+            'lineas-0-DELETE': '',
+        }
+        datos.update(extra)
+        return datos
+
+    def _banco_con_saldo(self, saldo='1000.00'):
+        banco = BancoCuenta.objects.create(
+            nombre='Santander Prueba',
+            iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco,
+            tipo='INGRESO',
+            importe=Decimal(saldo),
+            concepto='Aportación inicial',
+            fecha=date(2026, 7, 1),
+        )
+        return banco
+
+    # ------------------------------------------------- guardar y otra
+    def test_guardar_y_otra_vuelve_al_formulario(self):
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos(guardar_y_otra='1'),
+        )
+        self.assertRedirects(respuesta, reverse('workshop:compra_material_create'))
+        self.assertEqual(CompraMaterial.objects.count(), 1)
+
+    # ------------------------------------------------- hoja resumen
+    def test_tras_guardar_se_abre_el_resumen(self):
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'), self._datos()
+        )
+        compra = CompraMaterial.objects.get()
+        self.assertRedirects(
+            respuesta,
+            reverse('workshop:compra_detail', args=[compra.factura_grupo]),
+        )
+
+        detalle = self.client.get(respuesta.url)
+        self.assertEqual(detalle.status_code, 200)
+        self.assertContains(detalle, 'CM-001')
+        self.assertContains(detalle, 'Aceite motor 5W30')
+        self.assertContains(detalle, compra.asiento_contable.numero)
+
+    def test_historial_agrupa_por_factura(self):
+        self.client.post(reverse('workshop:compra_material_create'), self._datos())
+
+        historial = self.client.get(reverse('workshop:compra_list'))
+        self.assertEqual(historial.status_code, 200)
+        self.assertContains(historial, 'CM-001')
+        self.assertContains(historial, 'Distribuciones Auto S.L.')
+
+    # ------------------------------------------------- corrección
+    def test_editar_forma_de_pago_anula_y_crea_el_contado(self):
+        self._banco_con_saldo()
+        self.client.post(reverse('workshop:compra_material_create'), self._datos())
+        compra = CompraMaterial.objects.get()
+        asiento_viejo = compra.asiento_contable
+
+        respuesta = self.client.post(
+            reverse('workshop:compra_edit', args=[compra.factura_grupo]),
+            self._datos(forma_pago='572'),
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        asiento_viejo.refresh_from_db()
+        self.assertEqual(asiento_viejo.estado, 'ANULADO')
+        self.assertTrue(
+            AsientoContable.objects.filter(
+                tipo_documento='AnulacionCompraMaterial'
+            ).exists()
+        )
+
+        nueva = CompraMaterial.objects.get()
+        self.assertEqual(nueva.forma_pago.codigo, '572')
+        self.assertEqual(nueva.asiento_contable.estado, 'POSTEADO')
+        cuentas = nueva.asiento_contable.movimientos.values_list(
+            'cuenta__codigo', flat=True
+        )
+        self.assertIn('572', cuentas)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
+
+        # La cantidad no cambió: el stock sigue igual
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 20)
+
+    def test_editar_cantidad_ajusta_el_stock(self):
+        self.client.post(reverse('workshop:compra_material_create'), self._datos())
+        compra = CompraMaterial.objects.get()
+
+        respuesta = self.client.post(
+            reverse('workshop:compra_edit', args=[compra.factura_grupo]),
+            self._datos(**{'lineas-0-cantidad': '30'}),
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, Decimal('30'))
+        self.assertEqual(CompraMaterial.objects.get().cantidad, Decimal('30'))

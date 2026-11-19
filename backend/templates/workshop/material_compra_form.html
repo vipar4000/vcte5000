@@ -1,15 +1,23 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}R Car Rogil ERP - Registrar Compra de Material{% endblock %}
+{% block title %}R Car Rogil ERP - {% if modo_edicion %}Corregir compra{% else %}Registrar Compra{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
 
     <div class="mb-6">
-        <a href="{% url 'workshop:material_list' %}" class="text-eurocar-light hover:underline">← Volver a inventario</a>
-        <h1 class="text-2xl font-bold text-gray-800">🛒 Registrar Compra de Material</h1>
-        <p class="text-gray-500 mt-1">Una misma factura puede incluir varios materiales.</p>
+        <a href="{% url 'workshop:compra_list' %}" class="text-eurocar-light hover:underline">← Volver a compras</a>
+        <h1 class="text-2xl font-bold text-gray-800">
+            {% if modo_edicion %}✏️ Corregir factura de compra{% else %}🛒 Registrar Compra de Material{% endif %}
+        </h1>
+        <p class="text-gray-500 mt-1">
+            {% if modo_edicion %}
+            Al guardar se anulan los asientos actuales (con su contrapartida) y se registran los corregidos.
+            {% else %}
+            Una misma factura puede incluir varios materiales.
+            {% endif %}
+        </p>
     </div>
 
     <form method="post" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-6 space-y-6">
@@ -208,14 +216,20 @@
         </fieldset>
 
         <!-- Submit -->
-        <div class="flex justify-end gap-4 pt-4 border-t">
-            <a href="{% url 'workshop:material_list' %}"
+        <div class="flex flex-wrap justify-end gap-3 pt-4 border-t">
+            <a href="{% if modo_edicion %}{% url 'workshop:compra_detail' grupo %}{% else %}{% url 'workshop:compra_list' %}{% endif %}"
                class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
                 Cancelar
             </a>
+            {% if not modo_edicion %}
+            <button type="submit" name="guardar_y_otra" value="1"
+                    class="px-6 py-2 border border-eurocar-light text-eurocar-blue rounded-lg hover:bg-blue-50 transition">
+                Guardar y registrar otra compra
+            </button>
+            {% endif %}
             <button type="submit"
                     class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
-                Registrar Compra
+                {% if modo_edicion %}Guardar corrección{% else %}Registrar Compra{% endif %}
             </button>
         </div>
     </form>

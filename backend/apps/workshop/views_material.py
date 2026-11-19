@@ -1,19 +1,27 @@
+import os
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Sum, Count, F, ExpressionWrapper, DecimalField
+from django.db.models import (
+    Q, Sum, Count, F, Max, Min, ExpressionWrapper, DecimalField,
+)
 from django.db import transaction
 from django.core.files import File
+from django.core.files.base import ContentFile
+from django.forms import formset_factory
+from django.http import Http404
 from datetime import date
 from decimal import Decimal
 from .models import (
     Material, MaterialUsado, OrdenTrabajo, CompraMaterial,
-    _anular_asiento_pago_compra,
+    _anular_asiento_pago_compra, nuevo_grupo_factura,
 )
 from .forms import (
-    MaterialForm, CompraFacturaForm, CompraMaterialLineaFormSet, UNIDADES_SUGERIDAS,
+    MaterialForm, CompraFacturaForm, CompraMaterialLineaForm,
+    CompraMaterialLineaFormSet, UNIDADES_SUGERIDAS,
 )
-from apps.accounting.models import CuentaContable
+from apps.accounting.models import AsientoContable, CuentaContable
 from apps.bank.models import BancoCuenta
 from apps.bank.services import obtener_cuenta_banco_default
 from apps.core.formatting import format_euros
@@ -33,6 +41,130 @@ def _contexto_compra(header_form, linea_formset):
         'materiales': Material.objects.all().order_by('nombre'),
         'unidades': sorted(unidades),
     }
+
+
+def _mensaje_falta_cuenta(codigo):
+    return (
+        f'Falta la cuenta contable {codigo} en el plan contable. '
+        f'El plan se crea solo al desplegar; si falta, ejecute '
+        f'"python manage.py migrate".'
+    )
+
+
+def _lineas_validas(formset):
+    """Formularios de línea con datos y no marcados para borrar."""
+    return [
+        form for form in formset
+        if form.cleaned_data and not form.cleaned_data.get('DELETE')
+    ]
+
+
+def _resolver_forma_pago(header_form):
+    """Devuelve (cuenta_contrapartida, cuenta_pago, pagar_ahora, error)."""
+    datos = header_form.cleaned_data
+    forma_pago_code = datos.get('forma_pago') or ''
+    pagado = datos.get('pagado', False)
+    cuenta_pago_code = datos.get('cuenta_pago') or ''
+
+    forma_pago_cuenta = None
+    if forma_pago_code:
+        forma_pago_cuenta = CuentaContable.objects.filter(codigo=forma_pago_code).first()
+        if forma_pago_cuenta is None:
+            return None, None, False, _mensaje_falta_cuenta(forma_pago_code)
+
+    # "Pagar ahora" solo aplica al crédito (410); en contado el pago ya está
+    # registrado en el asiento de compra.
+    pagar_ahora = pagado and (not forma_pago_code or forma_pago_code == '410')
+    cuenta_pago = None
+    if pagar_ahora and cuenta_pago_code:
+        cuenta_pago = CuentaContable.objects.filter(codigo=cuenta_pago_code).first()
+        if cuenta_pago is None:
+            return None, None, False, _mensaje_falta_cuenta(cuenta_pago_code)
+
+    return forma_pago_cuenta, cuenta_pago, pagar_ahora, None
+
+
+def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_pago_code):
+    """Valida el saldo del banco antes de pagar al contado. Devuelve texto o None."""
+    paga_con_banco = pagar_ahora and (not cuenta_pago_code or cuenta_pago_code == '572')
+    if forma_pago_code != '572' and not paga_con_banco:
+        return None
+
+    total = Decimal('0')
+    for linea in _lineas_validas(formset):
+        cantidad = linea.cleaned_data.get('cantidad')
+        precio = linea.cleaned_data.get('precio_unitario')
+        if cantidad is None or precio is None:
+            continue
+        total += cantidad * precio * (
+            Decimal('1') + Decimal(tipo_iva) / Decimal('100')
+        )
+
+    banco_cuenta = BancoCuenta.objects.filter(cuenta_contable__codigo='572').first()
+    if not banco_cuenta:
+        banco_cuenta = obtener_cuenta_banco_default()
+    if banco_cuenta and total > banco_cuenta.saldo_pendiente:
+        return (
+            f'Saldo insuficiente en {banco_cuenta.nombre} para el pago de '
+            f'{format_euros(total)}. Disponible: '
+            f'{format_euros(banco_cuenta.saldo_pendiente)}.'
+        )
+    return None
+
+
+def _crear_lineas_factura(header_form, formset, grupo, forma_pago_cuenta,
+                          pagar_ahora, fecha_pago, cuenta_pago, pdf_file, user):
+    """Crea las líneas de la factura con sus asientos y pagos.
+
+    Debe llamarse dentro de una transacción: si algo falla, el llamador
+    revierte todo (stock, asientos y movimientos bancarios).
+    """
+    datos = header_form.cleaned_data
+    lineas_creadas = asientos_ok = pagos_ok = 0
+
+    for linea_form in _lineas_validas(formset):
+        # Material existente o nuevo: se resuelve (y crea si hace falta) dentro
+        # de la transacción, para no dejar materiales sueltos si algo falla.
+        material = linea_form.resolver_material()
+        cantidad = linea_form.cleaned_data.get('cantidad')
+        precio_unitario = linea_form.cleaned_data.get('precio_unitario')
+        if not material or cantidad is None or precio_unitario is None:
+            continue
+
+        compra = CompraMaterial(
+            material=material,
+            cantidad=cantidad,
+            precio_unitario=precio_unitario,
+            proveedor=datos['proveedor'],
+            cif_nif=datos['cif_nif'],
+            fecha_compra=datos['fecha_compra'],
+            numero_factura=datos.get('numero_factura', ''),
+            factura_grupo=grupo,
+            tipo_inventario=datos['tipo_inventario'],
+            tipo_iva=datos['tipo_iva'],
+            forma_pago=forma_pago_cuenta,
+            created_by=user,
+        )
+        if lineas_creadas == 0 and pdf_file:
+            compra.documento_pdf = pdf_file
+        compra.save()
+        lineas_creadas += 1
+
+        asiento = compra.crear_asiento_contable()
+        if asiento.esta_cuadrado:
+            asiento.estado = 'POSTEADO'
+            asiento.save()
+            asientos_ok += 1
+
+        if pagar_ahora:
+            compra.pagado = True
+            compra.fecha_pago = fecha_pago
+            compra.cuenta_pago = cuenta_pago
+            compra.crear_asiento_pago()
+            compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
+            pagos_ok += 1
+
+    return lineas_creadas, asientos_ok, pagos_ok
 
 
 @login_required
@@ -153,153 +285,55 @@ def compra_material_create(request):
 
         if header_form.is_valid() and linea_formset.is_valid():
             pdf_file = header_form.cleaned_data.get('documento_pdf')
-            forma_pago_code = header_form.cleaned_data.get('forma_pago') or ''
-            pagado = header_form.cleaned_data.get('pagado', False)
             fecha_pago = header_form.cleaned_data.get('fecha_pago') or None
+            forma_pago_code = header_form.cleaned_data.get('forma_pago') or ''
             cuenta_pago_code = header_form.cleaned_data.get('cuenta_pago') or ''
 
-            # Resolver la cuenta de contrapartida (vacío = crédito 410)
-            forma_pago_cuenta = None
-            if forma_pago_code:
-                try:
-                    forma_pago_cuenta = CuentaContable.objects.get(
-                        codigo=forma_pago_code
-                    )
-                except CuentaContable.DoesNotExist:
-                    messages.error(
-                        request,
-                        f'Falta la cuenta contable {forma_pago_code} en el plan '
-                        f'contable. El plan se crea solo al desplegar; si falta, ejecute '
-                        f'"python manage.py migrate".'
-                    )
-                    return render(
-                        request,
-                        'workshop/material_compra_form.html',
-                        _contexto_compra(header_form, linea_formset),
-                    )
-
-            # El checkbox "Pagar ahora" solo aplica a crédito; en contado el
-            # pago ya quedó registrado en el asiento de compra.
-            pagar_ahora = pagado and (not forma_pago_code or forma_pago_code == '410')
-            cuenta_pago = None
-            if pagar_ahora and cuenta_pago_code:
-                try:
-                    cuenta_pago = CuentaContable.objects.get(codigo=cuenta_pago_code)
-                except CuentaContable.DoesNotExist:
-                    messages.error(
-                        request,
-                        f'Falta la cuenta contable {cuenta_pago_code} en el plan '
-                        f'contable. El plan se crea solo al desplegar; si falta, ejecute '
-                        f'"python manage.py migrate".'
-                    )
-                    return render(
-                        request,
-                        'workshop/material_compra_form.html',
-                        _contexto_compra(header_form, linea_formset),
-                    )
+            forma_pago_cuenta, cuenta_pago, pagar_ahora, error_cuenta = (
+                _resolver_forma_pago(header_form)
+            )
+            if error_cuenta:
+                messages.error(request, error_cuenta)
+                return render(
+                    request,
+                    'workshop/material_compra_form.html',
+                    _contexto_compra(header_form, linea_formset),
+                )
 
             # Validar saldo disponible ANTES de crear nada (evita errores a
             # mitad de la transacción si el banco no cubre el total a pagar).
-            paga_con_banco = pagar_ahora and (not cuenta_pago_code or cuenta_pago_code == '572')
-            if forma_pago_code == '572' or paga_con_banco:
-                total_a_pagar = Decimal('0')
-                for linea_form in linea_formset:
-                    if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
-                        continue
-                    material = linea_form.cleaned_data.get('material')
-                    cantidad = linea_form.cleaned_data.get('cantidad')
-                    precio = linea_form.cleaned_data.get('precio_unitario')
-                    if not material or cantidad is None or precio is None:
-                        continue
-                    tipo_iva = header_form.cleaned_data['tipo_iva']
-                    total_a_pagar += cantidad * precio * (
-                        Decimal('1') + tipo_iva / Decimal('100')
-                    )
-                banco_cuenta = BancoCuenta.objects.filter(
-                    cuenta_contable__codigo='572'
-                ).first()
-                if not banco_cuenta:
-                    banco_cuenta = obtener_cuenta_banco_default()
-                if banco_cuenta and total_a_pagar > banco_cuenta.saldo_pendiente:
-                    messages.error(
-                        request,
-                        f'Saldo insuficiente en {banco_cuenta.nombre} para el pago '
-                        f'de {format_euros(total_a_pagar)}. '
-                        f'Disponible: {format_euros(banco_cuenta.saldo_pendiente)}.'
-                    )
-                    return render(
-                        request,
-                        'workshop/material_compra_form.html',
-                        _contexto_compra(header_form, linea_formset),
-                    )
+            error_saldo = _error_saldo_banco(
+                linea_formset, header_form.cleaned_data['tipo_iva'],
+                forma_pago_code, pagar_ahora, cuenta_pago_code,
+            )
+            if error_saldo:
+                messages.error(request, error_saldo)
+                return render(
+                    request,
+                    'workshop/material_compra_form.html',
+                    _contexto_compra(header_form, linea_formset),
+                )
 
-            lineas_creadas = 0
-            asientos_ok = 0
-            pagos_ok = 0
-
-            with transaction.atomic():
-                for i, linea_form in enumerate(linea_formset):
-                    # Saltar formularios vacíos o marcados para borrar
-                    if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
-                        continue
-                    # Material existente o nuevo: se resuelve (y crea si hace
-                    # falta) dentro de la transacción, para que un error en
-                    # cualquier línea no deje materiales sueltos en inventario.
-                    material = linea_form.resolver_material()
-                    cantidad = linea_form.cleaned_data.get('cantidad')
-                    precio_unitario = linea_form.cleaned_data.get('precio_unitario')
-                    if not material or cantidad is None or precio_unitario is None:
-                        continue
-                    compra = CompraMaterial(
-                        material=material,
-                        cantidad=cantidad,
-                        precio_unitario=precio_unitario,
-                        proveedor=header_form.cleaned_data['proveedor'],
-                        cif_nif=header_form.cleaned_data['cif_nif'],
-                        fecha_compra=header_form.cleaned_data['fecha_compra'],
-                        numero_factura=header_form.cleaned_data.get('numero_factura', ''),
-                        tipo_inventario=header_form.cleaned_data['tipo_inventario'],
-                        tipo_iva=header_form.cleaned_data['tipo_iva'],
-                        forma_pago=forma_pago_cuenta,
-                        created_by=request.user,
+            grupo = nuevo_grupo_factura()
+            try:
+                with transaction.atomic():
+                    lineas_creadas, asientos_ok, pagos_ok = _crear_lineas_factura(
+                        header_form, linea_formset, grupo, forma_pago_cuenta,
+                        pagar_ahora, fecha_pago, cuenta_pago, pdf_file, request.user,
                     )
-                    if i == 0 and pdf_file:
-                        compra.documento_pdf = pdf_file
-                    compra.save()
-                    lineas_creadas += 1
-
-                    try:
-                        asiento = compra.crear_asiento_contable()
-                        if asiento.esta_cuadrado:
-                            asiento.estado = 'POSTEADO'
-                            asiento.save()
-                            asientos_ok += 1
-
-                        # "Pagar ahora" (solo crédito): asiento de pago
-                        # automático (DEBE 410 / HABER tesorería) + EGRESO si 572.
-                        if pagar_ahora:
-                            compra.pagado = True
-                            compra.fecha_pago = fecha_pago
-                            compra.cuenta_pago = cuenta_pago
-                            compra.crear_asiento_pago()
-                            compra.save(update_fields=['pagado', 'fecha_pago', 'cuenta_pago'])
-                            pagos_ok += 1
-                    except Exception as e:
-                        # La factura se procesa en una única transacción atómica:
-                        # cualquier error revierte todas las líneas (stock, asientos
-                        # y movimientos bancarios) y se informa al usuario.
-                        transaction.set_rollback(True)
-                        messages.error(
-                            request,
-                            f'Error al contabilizar la línea {lineas_creadas} '
-                            f'({compra.material.nombre}): {e}. '
-                            f'No se guardó ninguna línea de la factura.'
-                        )
-                        return render(
-                            request,
-                            'workshop/material_compra_form.html',
-                            _contexto_compra(header_form, linea_formset),
-                        )
+            except Exception as error:
+                # Toda la factura es una transacción: si una línea falla se
+                # revierten el stock, los asientos y los movimientos bancarios.
+                messages.error(
+                    request,
+                    f'Error al registrar la factura: {error}. '
+                    f'No se guardó ninguna línea.'
+                )
+                return render(
+                    request,
+                    'workshop/material_compra_form.html',
+                    _contexto_compra(header_form, linea_formset),
+                )
 
             descripcion_pago = {
                 '': 'Crédito (pendiente en 410)',
@@ -311,7 +345,7 @@ def compra_material_create(request):
                     'Crédito pagado (asiento de pago DEBE 410 / HABER tesorería'
                     ' generado por línea)'
                 )
-            if pagado and not pagar_ahora:
+            if header_form.cleaned_data.get('pagado') and not pagar_ahora:
                 descripcion_pago += ' — el checkbox "Pagar ahora" no aplica al contado'
             messages.success(
                 request,
@@ -320,7 +354,18 @@ def compra_material_create(request):
                 f'{" y " + str(pagos_ok) + " pago(s) registrado(s)" if pagos_ok else ""}. '
                 f'{descripcion_pago}.'
             )
-            return redirect('workshop:material_list')
+
+            # "Guardar y registrar otra": vuelve al formulario vacío para cargar
+            # la siguiente factura sin pasar por el menú.
+            if request.POST.get('guardar_y_otra'):
+                messages.info(
+                    request,
+                    'Puede cargar la siguiente factura. La anterior queda en '
+                    'Compras → Historial.',
+                )
+                return redirect('workshop:compra_material_create')
+
+            return redirect('workshop:compra_detail', grupo=grupo)
         else:
             messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
@@ -329,6 +374,212 @@ def compra_material_create(request):
 
     context = _contexto_compra(header_form, linea_formset)
     return render(request, 'workshop/material_compra_form.html', context)
+
+
+@login_required
+def compra_list(request):
+    """Historial de facturas de compra (agrupadas por factura)."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para ver las compras.')
+        return redirect('workshop:material_list')
+
+    busqueda = request.GET.get('busqueda', '').strip()
+    filas = CompraMaterial.objects.all()
+    if busqueda:
+        filas = filas.filter(
+            Q(proveedor__icontains=busqueda)
+            | Q(numero_factura__icontains=busqueda)
+            | Q(cif_nif__icontains=busqueda)
+        )
+
+    grupos = (
+        filas.values('factura_grupo')
+        .annotate(
+            proveedor=Max('proveedor'),
+            cif_nif=Max('cif_nif'),
+            numero_factura=Max('numero_factura'),
+            fecha_compra=Max('fecha_compra'),
+            lineas=Count('id'),
+            base=Sum('base_imponible'),
+            cuota=Sum('cuota_iva'),
+            forma_pago=Max('forma_pago__codigo'),
+            pagadas=Count('id', filter=Q(pagado=True)),
+            primera=Min('pk'),
+        )
+        .order_by('-fecha_compra', '-primera')
+    )
+
+    facturas = []
+    for grupo in grupos:
+        grupo['total'] = (grupo['base'] or Decimal('0')) + (grupo['cuota'] or Decimal('0'))
+        grupo['pagada'] = grupo['pagadas'] == grupo['lineas']
+        facturas.append(grupo)
+
+    return render(request, 'workshop/compra_list.html', {
+        'facturas': facturas,
+        'busqueda': busqueda,
+    })
+
+
+def _lineas_de_factura(grupo):
+    """Líneas de una factura, ordenadas."""
+    return list(
+        CompraMaterial.objects.filter(factura_grupo=grupo)
+        .select_related('material', 'forma_pago', 'cuenta_pago', 'asiento_contable')
+        .order_by('pk')
+    )
+
+
+@login_required
+def compra_detail(request, grupo):
+    """Hoja resumen de una factura de compra: datos, líneas y asientos."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para ver las compras.')
+        return redirect('workshop:material_list')
+
+    lineas = _lineas_de_factura(grupo)
+    if not lineas:
+        raise Http404('Factura de compra no encontrada')
+
+    cabecera = lineas[0]
+    total_base = sum((linea.base_imponible for linea in lineas), Decimal('0'))
+    total_iva = sum((linea.cuota_iva for linea in lineas), Decimal('0'))
+
+    asientos = []
+    for linea in lineas:
+        if linea.asiento_contable:
+            asientos.append(linea.asiento_contable)
+        asientos.extend(
+            AsientoContable.objects.filter(
+                tipo_documento='PagoCompraMaterial', documento_id=linea.pk,
+            ).exclude(estado='ANULADO')
+        )
+
+    return render(request, 'workshop/compra_detail.html', {
+        'lineas': lineas,
+        'cabecera': cabecera,
+        'grupo': grupo,
+        'total_base': total_base,
+        'total_iva': total_iva,
+        'total_factura': total_base + total_iva,
+        'asientos': asientos,
+        'pagada': all(linea.pagado for linea in lineas),
+    })
+
+
+@login_required
+def compra_edit(request, grupo):
+    """Corrige una factura de compra.
+
+    Revierte (stock, asientos y movimientos bancarios) y vuelve a registrar la
+    factura con los datos corregidos, conservando el mismo grupo: así el
+    historial y los informes muestran la factura buena y la traza de la
+    anulación.
+    """
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para editar compras.')
+        return redirect('workshop:material_list')
+
+    lineas = _lineas_de_factura(grupo)
+    if not lineas:
+        raise Http404('Factura de compra no encontrada')
+    cabecera = lineas[0]
+
+    LineaFormSet = formset_factory(
+        CompraMaterialLineaForm, extra=len(lineas), can_delete=True,
+        min_num=1, validate_min=True,
+    )
+
+    if request.method == 'POST':
+        header_form = CompraFacturaForm(request.POST, request.FILES)
+        linea_formset = LineaFormSet(request.POST, prefix='lineas')
+
+        if header_form.is_valid() and linea_formset.is_valid():
+            fecha_pago = header_form.cleaned_data.get('fecha_pago') or None
+            forma_pago_code = header_form.cleaned_data.get('forma_pago') or ''
+            cuenta_pago_code = header_form.cleaned_data.get('cuenta_pago') or ''
+
+            forma_pago_cuenta, cuenta_pago, pagar_ahora, error_cuenta = (
+                _resolver_forma_pago(header_form)
+            )
+            error_saldo = None
+            if not error_cuenta:
+                error_saldo = _error_saldo_banco(
+                    linea_formset, header_form.cleaned_data['tipo_iva'],
+                    forma_pago_code, pagar_ahora, cuenta_pago_code,
+                )
+
+            if error_cuenta or error_saldo:
+                messages.error(request, error_cuenta or error_saldo)
+            else:
+                try:
+                    with transaction.atomic():
+                        # El PDF se conserva antes de borrar las líneas antiguas
+                        pdf_contenido = None
+                        pdf_nombre = None
+                        for linea in lineas:
+                            if linea.documento_pdf:
+                                with linea.documento_pdf.open('rb') as archivo:
+                                    pdf_contenido = archivo.read()
+                                pdf_nombre = os.path.basename(linea.documento_pdf.name)
+                                break
+
+                        for linea in lineas:
+                            linea.revertir(request.user)
+                            linea.delete()
+
+                        pdf_file = header_form.cleaned_data.get('documento_pdf')
+                        if not pdf_file and pdf_contenido:
+                            pdf_file = ContentFile(pdf_contenido, name=pdf_nombre)
+
+                        _crear_lineas_factura(
+                            header_form, linea_formset, grupo, forma_pago_cuenta,
+                            pagar_ahora, fecha_pago, cuenta_pago, pdf_file,
+                            request.user,
+                        )
+                except Exception as error:
+                    messages.error(
+                        request,
+                        f'No se pudo corregir la factura: {error}. '
+                        f'No se cambió nada.'
+                    )
+                else:
+                    messages.success(
+                        request,
+                        'Factura corregida. Los asientos anteriores quedaron '
+                        'anulados con su contrapartida y se registraron los nuevos.'
+                    )
+                    return redirect('workshop:compra_detail', grupo=grupo)
+        else:
+            messages.error(request, 'Por favor, corrija los errores del formulario.')
+    else:
+        header_form = CompraFacturaForm(initial={
+            'proveedor': cabecera.proveedor,
+            'cif_nif': cabecera.cif_nif,
+            'fecha_compra': cabecera.fecha_compra,
+            'numero_factura': cabecera.numero_factura,
+            'tipo_inventario': cabecera.tipo_inventario,
+            'tipo_iva': cabecera.tipo_iva,
+            'forma_pago': cabecera.forma_pago.codigo if cabecera.forma_pago else '',
+            'cuenta_pago': cabecera.cuenta_pago.codigo if cabecera.cuenta_pago else '',
+        })
+        linea_formset = LineaFormSet(prefix='lineas', initial=[
+            {
+                'material': linea.material.nombre,
+                'unidad': linea.material.unidad,
+                'cantidad': linea.cantidad,
+                'precio_unitario': linea.precio_unitario,
+            }
+            for linea in lineas
+        ])
+
+    contexto = _contexto_compra(header_form, linea_formset)
+    contexto.update({
+        'modo_edicion': True,
+        'grupo': grupo,
+        'cabecera': cabecera,
+    })
+    return render(request, 'workshop/material_compra_form.html', contexto)
 
 
 @login_required
