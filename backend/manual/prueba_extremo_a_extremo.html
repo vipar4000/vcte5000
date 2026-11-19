@@ -356,39 +356,46 @@ El sistema no valida el dígito de control del IBAN, pero el del documento sí e
 </table>
 
 <!-- ===================== PASO 5 ===================== -->
-<div class="step">Paso 5 — Catálogo de materiales (5 fichas, sin asientos)</div>
+<div class="step">Paso 5 — Inventario: ya no se da de alta aquí</div>
 
-<p><strong>Dónde:</strong> Taller → Catálogo → <strong>Nuevo material</strong>.</p>
+<p><strong>Dónde:</strong> Taller → 📦 Inventario.</p>
 
-<table>
-  <tr><th>Nombre</th><th>Unidad</th><th>Stock inicial</th><th>Stock mínimo</th><th>Precio unitario</th></tr>
-  <tr><td><code>Aceite motor 5W30</code></td><td>litros</td><td>0</td><td>0</td><td><code>8,50</code></td></tr>
-  <tr><td><code>Pastillas de freno</code></td><td>juegos</td><td>0</td><td>0</td><td><code>35,00</code></td></tr>
-  <tr><td><code>Filtro de aire</code></td><td>unidades</td><td>0</td><td>0</td><td><code>12,00</code></td></tr>
-  <tr><td><code>Refrigerante G12</code></td><td>litros</td><td>0</td><td>0</td><td><code>6,50</code></td></tr>
-  <tr><td><code>Neumaticos 205/55R16</code></td><td>unidades</td><td>0</td><td>0</td><td><code>75,00</code></td></tr>
-</table>
+<p>Este paso comprueba el cambio de flujo: el inventario es solo <strong>consulta</strong>, y los
+materiales se crean al registrar la factura de compra (Paso 6).</p>
 
 <table>
   <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
-  <tr><td>Materiales en el catálogo</td><td><strong>5</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
-  <tr><td>Se genera algún asiento contable</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Botón «Nuevo Material»</td><td><strong>No existe</strong> (se retiró)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Botón «Registrar Compra»</td><td><strong>No existe</strong> (se retiró; Compras está en el menú)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Texto de la pantalla</td><td>Indica que el material se crea al registrar la factura en Compras</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Botones disponibles</td><td>Solo consultar detalle, editar y alertas de stock</td><td class="check">☐</td><td class="check">☐</td></tr>
 </table>
 
+<div class="box warn">
+  Si aparece cualquiera de esos dos botones, anótelo como <strong>FALLA</strong>: el flujo de
+  un solo paso no está aplicado en ese entorno.
+</div>
+
 <!-- ===================== PASO 6 ===================== -->
-<div class="step">Paso 6 — Compras de material (5 facturas de proveedor)</div>
+<div class="step">Paso 6 — Compras de material: el material se crea solo</div>
 
-<p><strong>Dónde:</strong> Taller → Compras → <strong>Registrar compra</strong>.</p>
+<p><strong>Dónde:</strong> Taller → 🛒 Compras → <strong>Registrar compra</strong>.</p>
 
-<p class="small">Las tres primeras a <strong>crédito</strong> (quedan pendientes en la cuenta 410). La cuarta al <strong>contado por banco</strong> (572). La quinta al <strong>contado por caja</strong> (570).</p>
+<p class="small">
+  En cada línea <strong>escriba el nombre del material</strong> (con autocompletado si ya existe).
+  La <strong>unidad</strong> solo hay que indicarla la primera vez, cuando el material todavía no
+  existe: se da de alta al guardar la factura. Las tres primeras son a <strong>crédito</strong>
+  (quedan pendientes en la cuenta 410), la cuarta al <strong>contado por banco</strong> (572) y la
+  quinta al <strong>contado por caja</strong> (570).
+</p>
 
 <table>
-  <tr><th>#</th><th>Proveedor / CIF</th><th>Factura</th><th>Material</th><th>Cantidad</th><th>Precio</th><th>Forma de pago</th></tr>
-  <tr><td>1</td><td>Distribuciones Auto S.L. / C12345678</td><td>CM-001</td><td>Aceite motor 5W30</td><td>20</td><td>8,50</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>2</td><td>Recambios Martinez S.L. / D12345678</td><td>CM-002</td><td>Pastillas de freno</td><td>3</td><td>35,00</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>3</td><td>Filtros Madrid S.L. / E12345678</td><td>CM-003</td><td>Filtro de aire</td><td>5</td><td>12,00</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>4</td><td>Auto Parts Europa S.L. / F12345678</td><td>CM-004</td><td>Refrigerante G12</td><td>10</td><td>6,50</td><td><strong>Contado banco</strong> (572)</td></tr>
-  <tr><td>5</td><td>Neumaticos Express S.L. / G12345678</td><td>CM-005</td><td>Neumaticos 205/55R16</td><td>2</td><td>75,00</td><td><strong>Contado caja</strong> (570)</td></tr>
+  <tr><th>#</th><th>Proveedor / CIF</th><th>Factura</th><th>Material (escríbalo)</th><th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Forma de pago</th></tr>
+  <tr><td>1</td><td>Distribuciones Auto S.L. / C12345678</td><td>CM-001</td><td><code>Aceite motor 5W30</code></td><td>litros</td><td>20</td><td>8,50</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>2</td><td>Recambios Martinez S.L. / D12345678</td><td>CM-002</td><td><code>Pastillas de freno</code></td><td>juegos</td><td>3</td><td>35,00</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>3</td><td>Filtros Madrid S.L. / E12345678</td><td>CM-003</td><td><code>Filtro de aire</code></td><td>unidades</td><td>5</td><td>12,00</td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>4</td><td>Auto Parts Europa S.L. / F12345678</td><td>CM-004</td><td><code>Refrigerante G12</code></td><td>litros</td><td>10</td><td>6,50</td><td><strong>Contado banco</strong> (572)</td></tr>
+  <tr><td>5</td><td>Neumaticos Express S.L. / G12345678</td><td>CM-005</td><td><code>Neumaticos 205/55R16</code></td><td>unidades</td><td>2</td><td>75,00</td><td><strong>Contado caja</strong> (570)</td></tr>
 </table>
 
 <p class="small">IVA de todas las líneas: <strong>21 %</strong>. Fecha de compra: <code>02/07/2026</code>.</p>
@@ -404,7 +411,9 @@ El sistema no valida el dígito de control del IBAN, pero el del documento sí e
   <tr><td>Movimiento bancario de la compra 4</td><td><strong>EGRESO 78,65 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>La compra 5 (caja) genera movimiento bancario</td><td><strong>No</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Saldo del banco</td><td><strong>39.154,35 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td><strong>Materiales dados de alta solos</strong></td><td><strong>5</strong> en Inventario, con su unidad (litros, juegos, unidades)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Stock: aceite / pastillas / filtro / refrigerante / neumáticos</td><td><strong>20 / 3 / 5 / 10 / 2</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Al repetir una compra del <strong>mismo</strong> material (misma factura o una segunda línea)</td><td>Suma al stock y <strong>no</strong> crea un material duplicado</td><td class="check">☐</td><td class="check">☐</td></tr>
 </table>
 
 <!-- ===================== PASO 7 ===================== -->

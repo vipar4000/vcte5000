@@ -125,11 +125,12 @@
                 <table id="lineas-table" class="w-full text-sm">
                     <thead>
                         <tr class="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-200">
-                            <th class="px-3 py-2.5 text-left" style="width:42%">Material</th>
-                            <th class="px-3 py-2.5 text-right" style="width:12%">Cantidad</th>
-                            <th class="px-3 py-2.5 text-right" style="width:16%">Precio Ud.</th>
-                            <th class="px-3 py-2.5 text-right" style="width:15%">Base</th>
-                            <th class="px-3 py-2.5 text-right" style="width:15%">Cuota IVA</th>
+                            <th class="px-3 py-2.5 text-left" style="width:34%">Material</th>
+                            <th class="px-3 py-2.5 text-left" style="width:11%">Unidad</th>
+                            <th class="px-3 py-2.5 text-right" style="width:10%">Cantidad</th>
+                            <th class="px-3 py-2.5 text-right" style="width:13%">Precio Ud.</th>
+                            <th class="px-3 py-2.5 text-right" style="width:12%">Base</th>
+                            <th class="px-3 py-2.5 text-right" style="width:12%">Cuota IVA</th>
                             <th class="px-2 py-2.5 w-10"></th>
                         </tr>
                     </thead>
@@ -137,6 +138,7 @@
                         {% for form in linea_formset %}
                         <tr class="linea-row hover:bg-blue-50/40 transition-colors">
                             <td class="px-3 py-2">{{ form.material }}</td>
+                            <td class="px-3 py-2">{{ form.unidad }}</td>
                             <td class="px-3 py-2">{{ form.cantidad }}</td>
                             <td class="px-3 py-2">{{ form.precio_unitario }}</td>
                             <td class="px-3 py-2 text-right base-imponible text-gray-700 tabular-nums whitespace-nowrap">0,00 €</td>
@@ -161,7 +163,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="bg-gray-50 border-t border-gray-200">
-                            <td colspan="3" class="px-3 py-2.5 text-right text-sm font-medium text-gray-500">Totales</td>
+                            <td colspan="4" class="px-3 py-2.5 text-right text-sm font-medium text-gray-500">Totales</td>
                             <td class="px-3 py-2.5 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
                                 <span id="total-base">0,00 €</span>
                             </td>
@@ -171,7 +173,7 @@
                             <td class="px-2 py-2.5"></td>
                         </tr>
                         <tr class="bg-blue-50 border-t border-blue-100">
-                            <td colspan="3" class="px-3 py-3 text-right font-semibold text-eurocar-blue">
+                            <td colspan="4" class="px-3 py-3 text-right font-semibold text-eurocar-blue">
                                 Total factura (IVA incluido)
                             </td>
                             <td colspan="2" class="px-3 py-3 text-right font-bold text-eurocar-blue text-lg tabular-nums whitespace-nowrap">
@@ -189,6 +191,20 @@
                            hover:bg-blue-50 transition">
                 <span class="text-lg leading-none font-bold">+</span> Añadir material
             </button>
+
+            <p class="text-xs text-gray-500 mt-3">
+                Escriba el nombre del producto. Si ya existe en inventario se sumará al stock
+                (con autocompletado); si es nuevo, se dará de alta al guardar la factura:
+                <strong>indique entonces la unidad de medida</strong>.
+            </p>
+
+            <!-- Sugerencias: materiales ya registrados y unidades habituales -->
+            <datalist id="materiales-disponibles">
+                {% for m in materiales %}<option value="{{ m.nombre }}">{% endfor %}
+            </datalist>
+            <datalist id="unidades-disponibles">
+                {% for u in unidades %}<option value="{{ u }}">{% endfor %}
+            </datalist>
         </fieldset>
 
         <!-- Submit -->
@@ -224,11 +240,15 @@
     var addBtn = document.getElementById('add-linea');
     var tipoIvaInput = document.getElementById('id_tipo_iva');
 
-    // Precios registrados de cada material (para auto-rellenar Precio Ud.)
+    // Precios de referencia por nombre (para auto-rellenar Precio Ud.)
     var preciosMateriales = {
-        {% for m in materiales %}{{ m.pk }}: "{{ m.precio_unitario }}"{% if not forloop.last %},{% endif %}
+        {% for m in materiales %}"{{ m.nombre|lower|escapejs }}": "{{ m.precio_unitario }}"{% if not forloop.last %},{% endif %}
         {% endfor %}
     };
+
+    function normalizar(texto) {
+        return String(texto || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
 
     function parseSpanishNumber(value) {
         if (!value) return 0;
@@ -250,13 +270,13 @@
             input.addEventListener('input', calcularLineas);
             input.addEventListener('change', calcularLineas);
         });
-        // Auto-rellenar precio al elegir material
-        var materialSelect = row.querySelector('select[name$="-material"]');
-        if (materialSelect) {
-            materialSelect.addEventListener('change', function() {
-                var precio = preciosMateriales[materialSelect.value];
+        // Auto-rellenar el precio si el material ya existe en inventario
+        var materialInput = row.querySelector('input[name$="-material"]');
+        if (materialInput) {
+            materialInput.addEventListener('change', function() {
+                var precio = preciosMateriales[normalizar(materialInput.value)];
                 var precioInput = row.querySelector('input[name$="-precio_unitario"]');
-                if (precio && precioInput) {
+                if (precio && precioInput && !precioInput.value) {
                     precioInput.value = precio;
                 }
                 calcularLineas();

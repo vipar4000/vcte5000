@@ -357,7 +357,7 @@ class CompraMaterialTests(TestCase):
             'lineas-INITIAL_FORMS': '0',
             'lineas-MIN_NUM_FORMS': '0',
             'lineas-MAX_NUM_FORMS': '1000',
-            'lineas-0-material': str(self.aceite.pk),
+            'lineas-0-material': self.aceite.nombre,
             'lineas-0-cantidad': '20',
             'lineas-0-precio_unitario': '8.50',
             'lineas-0-DELETE': '',
@@ -392,7 +392,7 @@ class CompraMaterialTests(TestCase):
             'lineas-INITIAL_FORMS': '0',
             'lineas-MIN_NUM_FORMS': '0',
             'lineas-MAX_NUM_FORMS': '1000',
-            'lineas-0-material': str(self.aceite.pk),
+            'lineas-0-material': self.aceite.nombre,
             'lineas-0-cantidad': cantidad,
             'lineas-0-precio_unitario': precio,
             'lineas-0-DELETE': '',
@@ -667,6 +667,74 @@ class CompraMaterialTests(TestCase):
         )
         # Solo el EGRESO del contado, no un segundo por el checkbox.
         self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
+
+    # ------------------------------------------ alta de material en 1 paso
+    def _datos_linea(self, material, unidad='', cantidad='4', precio='9.75'):
+        return {
+            'proveedor': 'Recambios Nuevos S.L.',
+            'cif_nif': 'B99887766',
+            'fecha_compra': '2026-07-01',
+            'numero_factura': 'FC-NUEVO-1',
+            'tipo_inventario': '300',
+            'tipo_iva': '21.00',
+            'lineas-TOTAL_FORMS': '1',
+            'lineas-INITIAL_FORMS': '0',
+            'lineas-MIN_NUM_FORMS': '0',
+            'lineas-MAX_NUM_FORMS': '1000',
+            'lineas-0-material': material,
+            'lineas-0-unidad': unidad,
+            'lineas-0-cantidad': cantidad,
+            'lineas-0-precio_unitario': precio,
+            'lineas-0-DELETE': '',
+        }
+
+    def test_material_nuevo_se_crea_al_registrar_la_compra(self):
+        """Un nombre desconocido crea el material en la misma pantalla."""
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos_linea('Filtro de habitáculo', unidad='unidades'),
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        material = Material.objects.get(nombre='Filtro de habitáculo')
+        self.assertEqual(material.unidad, 'unidades')
+        self.assertEqual(material.stock_actual, 4)
+        # El precio de referencia del catálogo se toma de la propia compra
+        self.assertEqual(material.precio_unitario, Decimal('9.75'))
+
+    def test_material_nuevo_sin_unidad_no_se_crea(self):
+        """Si el material no existe y no se indica unidad, se rechaza la línea."""
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos_linea('Material sin unidad', unidad=''),
+        )
+        self.assertEqual(respuesta.status_code, 200)  # vuelve al formulario
+        self.assertFalse(Material.objects.filter(nombre='Material sin unidad').exists())
+
+    def test_material_existente_por_nombre_no_duplica(self):
+        """El mismo material escrito con otras mayúsculas suma stock, no duplica."""
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos_linea('aceite MOTOR 5w30', cantidad='5', precio='8.50'),
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(
+            Material.objects.filter(nombre__iexact='Aceite motor 5W30').count(), 1
+        )
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 5)
+
+    def test_inventario_ya_no_ofrece_dar_de_alta(self):
+        """Inventario es consulta: sin botones de alta ni de compra."""
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(reverse('workshop:material_list'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(respuesta, 'Registrar Compra')
+        self.assertNotContains(respuesta, 'Nuevo Material')
+        self.assertContains(respuesta, 'se crea solo')
 
 
 class MaterialCreateTests(TestCase):

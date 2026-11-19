@@ -368,7 +368,7 @@
 <ul>
     <li><strong>Nuevo Vehiculo</strong> -> Formulario de creacion</li>
     <li><strong>Nueva OT</strong> -> Crear orden de trabajo</li>
-    <li><strong>Nuevo Material</strong> -> Agregar al inventario</li>
+    <li><strong>Registrar Compra</strong> -> Cargar la factura: el material se crea solo si es nuevo</li>
     <li><strong>Registrar Venta</strong> -> Formulario de venta</li>
 </ul>
 
@@ -733,13 +733,25 @@ Coste Total OT = Coste Mano de Obra + Coste Materiales</code></pre>
 
 <h2>4.2 Inventario de Materiales</h2>
 
-<h3>Crear un Material</h3>
+<h3>Dar de alta un material</h3>
+<p>El inventario es una pantalla de <strong>consulta</strong>: no se crean materiales a mano. Un material
+entra al catalogo al <strong>registrar la factura de compra</strong> en <strong>&#128722; Compras</strong>:
+basta con escribir su nombre en la linea. Si ya existe, se suma al stock; si es nuevo, se crea con la
+unidad que se indique y el precio de esa compra.</p>
+
+<div class="info-box">
+    <strong>Que hace el inventario:</strong> muestra las existencias, las alertas de stock minimo, la ficha
+    de cada material y permite <strong>editar</strong> sus datos (stock minimo, precio de referencia,
+    descripcion). Los botones <em>Nuevo Material</em> y <em>Registrar Compra</em> se retiraron de esta
+    pantalla: el alta es la factura, para no duplicar el modulo Compras.
+</div>
+
+<h3>Consultar y editar</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Inventario > Nuevo Material</strong></li>
-    <li>Ingrese nombre, descripcion y unidad (litros, kg, unidades)</li>
-    <li>Defina stock actual y stock minimo</li>
-    <li>Establezca el precio unitario</li>
-    <li>Haga clic en <strong>Crear Material</strong></li>
+    <li>Navegue a <strong>Taller &gt; &#128230; Inventario</strong></li>
+    <li>Busque el material y abra su ficha para ver stock, precio y movimientos</li>
+    <li>Pulse <strong>Editar</strong> para cambiar stock minimo, precio de referencia o descripcion</li>
+    <li>El panel de <strong>alertas</strong> avisa cuando el stock baja del minimo</li>
 </ol>
 
 <div class="info-box">
@@ -772,9 +784,9 @@ Material (stock: 100)
 <h3>Registrar Compra de Material (entrada a inventario)</h3>
 <p>Para que un material forme parte del inventario de taller y se contabilice correctamente, su <strong>alta debe hacerse mediante una compra con factura</strong>, no mediante el alta manual suelta. El sistema registra la entrada a inventario y genera el asiento contable automatico.</p>
 <ol class="steps">
-    <li>Acceda al registro desde el menu lateral <strong>"🛒 Compras"</strong> (solo admin) o desde <strong>Inventario</strong> &gt; boton verde <strong>"Registrar Compra"</strong>.</li>
-    <li>Seleccione el <strong>Material</strong> y la <strong>Cantidad</strong> adquirida.</li>
-    <li>Si el material no existe, despliegue <strong>"¿El material no existe? Crear uno nuevo"</strong> e indique nombre y unidad; se dara de alta al guardar con stock 0.</li>
+    <li>Acceda desde el menu lateral <strong>"🛒 Compras"</strong> (solo admin).</li>
+    <li>En la linea, <strong>escriba el nombre del material</strong>: el campo sugiere los que ya existen.</li>
+    <li>Si el material es <strong>nuevo</strong>, indique su <strong>unidad</strong> en la columna "Unidad" (litros, unidades, juegos...). Se dara de alta automaticamente al guardar la factura, con el precio de esa compra como precio de referencia.</li>
     <li>Indique <strong>Precio Unitario</strong>, <strong>Fecha de Compra</strong>, <strong>Proveedor</strong> y <strong>CIF/NIF</strong>.</li>
     <li>En "Datos de la Factura", adjunte el <strong>PDF de la factura</strong> del proveedor (opcional, maximo 20 MB).</li>
     <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos), el <strong>Tipo IVA</strong>% y la <strong>Forma de pago</strong>: <strong>Credito (acreedores 410)</strong> por defecto, <strong>Contado Banco (572)</strong> o <strong>Contado Caja (570)</strong>. <strong>Por defecto se usa 300 (Compras)</strong>, la cuenta recomendada para materiales de taller porque es la misma que se acredita cuando el material se consume en una OT (ver <a href="#capitulo-15-7">15.7</a>).</li>
@@ -2937,7 +2949,7 @@ Total: 6 vehiculos
 </div>
 
 <div class="warning-box">
-    <strong>Origen de estos materiales:</strong> En el ejemplo completo, los materiales listados arriba <strong>no</strong> se dan de alta manualmente sueltos. Se registran mediante <strong>compras con factura</strong> (Inventario &gt; "Registrar Compra"), lo que incrementa su stock y genera el asiento de entrada a inventario. Por ejemplo, la compra de "Aceite motor 5W30" (20 litros x 8,50 EUR, proveedor Distribuciones Auto S.L., IVA 21%) genera:
+    <strong>Origen de estos materiales:</strong> En el ejemplo completo, los materiales listados arriba <strong>no</strong> se dan de alta manualmente sueltos. Se registran mediante <strong>compras con factura</strong> (🛒 Compras &gt; "Registrar Compra": el material se escribe en la línea y se crea solo), lo que incrementa su stock y genera el asiento de entrada a inventario. Por ejemplo, la compra de "Aceite motor 5W30" (20 litros x 8,50 EUR, proveedor Distribuciones Auto S.L., IVA 21%) genera:
     <pre><code>Asiento de Compra de Inventario:
   DEBE  300 (Compras)          170,00 EUR
   DEBE  472 (IVA soportado)     35,70 EUR
@@ -4609,7 +4621,7 @@ USUARIO REGISTRA OPERACION
 </div>
 
 <h2 id="capitulo-18-5">18.5 Registrar Compra de Material</h2>
-<p><strong>Cuando:</strong> El usuario registra una compra con factura desde <strong>Inventario > Registrar Compra</strong> (seccion <a href="#capitulo-4">4.2</a>).</p>
+<p><strong>Cuando:</strong> El usuario registra una compra con factura desde <strong>🛒 Compras &gt; Registrar Compra</strong> (seccion <a href="#capitulo-4">4.2</a>).</p>
 
 <table>
     <tr><th>Efecto</th><th>Detalle</th></tr>

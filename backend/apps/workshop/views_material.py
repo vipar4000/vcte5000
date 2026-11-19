@@ -10,11 +10,29 @@ from .models import (
     Material, MaterialUsado, OrdenTrabajo, CompraMaterial,
     _anular_asiento_pago_compra,
 )
-from .forms import MaterialForm, CompraFacturaForm, CompraMaterialLineaFormSet
+from .forms import (
+    MaterialForm, CompraFacturaForm, CompraMaterialLineaFormSet, UNIDADES_SUGERIDAS,
+)
 from apps.accounting.models import CuentaContable
 from apps.bank.models import BancoCuenta
 from apps.bank.services import obtener_cuenta_banco_default
 from apps.core.formatting import format_euros
+
+
+def _contexto_compra(header_form, linea_formset):
+    """Contexto de la pantalla de compras.
+
+    Incluye la lista de materiales (para el autocompletado del campo Material)
+    y las unidades habituales más las ya usadas en el inventario.
+    """
+    unidades = {m.unidad for m in Material.objects.exclude(unidad='')}
+    unidades.update(UNIDADES_SUGERIDAS)
+    return {
+        'header_form': header_form,
+        'linea_formset': linea_formset,
+        'materiales': Material.objects.all().order_by('nombre'),
+        'unidades': sorted(unidades),
+    }
 
 
 @login_required
@@ -151,14 +169,14 @@ def compra_material_create(request):
                     messages.error(
                         request,
                         f'Falta la cuenta contable {forma_pago_code} en el plan '
-                        f'contable. Inicialice el plan en Contabilidad > Cuentas > '
-                        f'Inicializar.'
+                        f'contable. El plan se crea solo al desplegar; si falta, ejecute '
+                        f'"python manage.py migrate".'
                     )
-                    return render(request, 'workshop/material_compra_form.html', {
-                        'header_form': header_form,
-                        'linea_formset': linea_formset,
-                        'materiales': Material.objects.all().order_by('nombre'),
-                    })
+                    return render(
+                        request,
+                        'workshop/material_compra_form.html',
+                        _contexto_compra(header_form, linea_formset),
+                    )
 
             # El checkbox "Pagar ahora" solo aplica a crédito; en contado el
             # pago ya quedó registrado en el asiento de compra.
@@ -171,14 +189,14 @@ def compra_material_create(request):
                     messages.error(
                         request,
                         f'Falta la cuenta contable {cuenta_pago_code} en el plan '
-                        f'contable. Inicialice el plan en Contabilidad > Cuentas > '
-                        f'Inicializar.'
+                        f'contable. El plan se crea solo al desplegar; si falta, ejecute '
+                        f'"python manage.py migrate".'
                     )
-                    return render(request, 'workshop/material_compra_form.html', {
-                        'header_form': header_form,
-                        'linea_formset': linea_formset,
-                        'materiales': Material.objects.all().order_by('nombre'),
-                    })
+                    return render(
+                        request,
+                        'workshop/material_compra_form.html',
+                        _contexto_compra(header_form, linea_formset),
+                    )
 
             # Validar saldo disponible ANTES de crear nada (evita errores a
             # mitad de la transacción si el banco no cubre el total a pagar).
@@ -209,11 +227,11 @@ def compra_material_create(request):
                         f'de {format_euros(total_a_pagar)}. '
                         f'Disponible: {format_euros(banco_cuenta.saldo_pendiente)}.'
                     )
-                    return render(request, 'workshop/material_compra_form.html', {
-                        'header_form': header_form,
-                        'linea_formset': linea_formset,
-                        'materiales': Material.objects.all().order_by('nombre'),
-                    })
+                    return render(
+                        request,
+                        'workshop/material_compra_form.html',
+                        _contexto_compra(header_form, linea_formset),
+                    )
 
             lineas_creadas = 0
             asientos_ok = 0
@@ -224,7 +242,10 @@ def compra_material_create(request):
                     # Saltar formularios vacíos o marcados para borrar
                     if not linea_form.cleaned_data or linea_form.cleaned_data.get('DELETE'):
                         continue
-                    material = linea_form.cleaned_data.get('material')
+                    # Material existente o nuevo: se resuelve (y crea si hace
+                    # falta) dentro de la transacción, para que un error en
+                    # cualquier línea no deje materiales sueltos en inventario.
+                    material = linea_form.resolver_material()
                     cantidad = linea_form.cleaned_data.get('cantidad')
                     precio_unitario = linea_form.cleaned_data.get('precio_unitario')
                     if not material or cantidad is None or precio_unitario is None:
@@ -274,11 +295,11 @@ def compra_material_create(request):
                             f'({compra.material.nombre}): {e}. '
                             f'No se guardó ninguna línea de la factura.'
                         )
-                        return render(request, 'workshop/material_compra_form.html', {
-                            'header_form': header_form,
-                            'linea_formset': linea_formset,
-                            'materiales': Material.objects.all().order_by('nombre'),
-                        })
+                        return render(
+                            request,
+                            'workshop/material_compra_form.html',
+                            _contexto_compra(header_form, linea_formset),
+                        )
 
             descripcion_pago = {
                 '': 'Crédito (pendiente en 410)',
@@ -306,11 +327,7 @@ def compra_material_create(request):
         header_form = CompraFacturaForm()
         linea_formset = CompraMaterialLineaFormSet(prefix='lineas')
 
-    context = {
-        'header_form': header_form,
-        'linea_formset': linea_formset,
-        'materiales': Material.objects.all().order_by('nombre'),
-    }
+    context = _contexto_compra(header_form, linea_formset)
     return render(request, 'workshop/material_compra_form.html', context)
 
 
@@ -354,8 +371,8 @@ def compra_pagar(request, pk):
             messages.error(
                 request,
                 f'Falta la cuenta contable {cuenta_pago_code} en el plan '
-                f'contable. Inicialice el plan en Contabilidad > Cuentas > '
-                f'Inicializar.'
+                f'contable. El plan se crea solo al desplegar; si falta, ejecute '
+                f'"python manage.py migrate".'
             )
             return redirect('workshop:material_detail', pk=compra.material.pk)
 

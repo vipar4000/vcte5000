@@ -254,14 +254,36 @@ class CompraFacturaForm(forms.Form):
     )
 
 
-class CompraMaterialLineaForm(forms.Form):
-    """Una línea de material dentro de una factura de compra."""
+UNIDADES_SUGERIDAS = [
+    'unidades', 'litros', 'juegos', 'pares', 'kg', 'metros', 'botes', 'cajas',
+]
 
-    material = forms.ModelChoiceField(
-        queryset=Material.objects.all(),
-        required=True, label='Material *',
-        widget=forms.Select(attrs={
+
+class CompraMaterialLineaForm(forms.Form):
+    """Una línea de factura: el material se escribe por su nombre.
+
+    Si el nombre coincide con uno existente (sin distinguir mayúsculas) se usa
+    ese material y la compra suma al stock. Si es nuevo, se crea
+    automáticamente al guardar la factura; en ese caso hay que indicar la
+    unidad de medida.
+    """
+
+    material = forms.CharField(
+        max_length=150, label='Material *',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-2 py-1 text-sm border rounded-lg material-input',
+            'list': 'materiales-disponibles',
+            'autocomplete': 'off',
+            'placeholder': 'Escriba o elija…',
+        }),
+    )
+    unidad = forms.CharField(
+        required=False, max_length=20, label='Unidad',
+        widget=forms.TextInput(attrs={
             'class': 'w-full px-2 py-1 text-sm border rounded-lg',
+            'list': 'unidades-disponibles',
+            'autocomplete': 'off',
+            'placeholder': 'solo si es nuevo',
         }),
     )
     cantidad = forms.DecimalField(
@@ -279,10 +301,47 @@ class CompraMaterialLineaForm(forms.Form):
         }),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Mostrar solo el nombre del material, sin el stock entre paréntesis
-        self.fields['material'].label_from_instance = lambda obj: obj.nombre
+    def clean_material(self):
+        nombre = ' '.join((self.cleaned_data.get('material') or '').split())
+        if not nombre:
+            raise forms.ValidationError('Escriba el nombre del material.')
+        return nombre
+
+    def clean(self):
+        datos = super().clean()
+        nombre = datos.get('material')
+        if not nombre:
+            return datos
+
+        existente = Material.objects.filter(nombre__iexact=nombre).first()
+        datos['material_existente'] = existente
+        if existente is None:
+            unidad = (datos.get('unidad') or '').strip()
+            if not unidad:
+                self.add_error(
+                    'unidad',
+                    'Material nuevo: indique la unidad (litros, unidades, juegos…).',
+                )
+            else:
+                datos['unidad'] = unidad
+        return datos
+
+    def resolver_material(self):
+        """Devuelve el Material de la línea, creándolo si es nuevo.
+
+        Debe llamarse dentro de la transacción de la vista: así, si alguna línea
+        falla, no queda ningún material suelto en el inventario.
+        """
+        datos = self.cleaned_data
+        existente = datos.get('material_existente')
+        if existente is not None:
+            return existente
+        return Material.objects.create(
+            nombre=datos['material'],
+            unidad=datos['unidad'],
+            precio_unitario=datos.get('precio_unitario') or Decimal('0'),
+            stock_actual=Decimal('0'),
+        )
 
 
 CompraMaterialLineaFormSet = formset_factory(
