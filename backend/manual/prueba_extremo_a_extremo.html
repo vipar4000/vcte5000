@@ -390,15 +390,16 @@ materiales se crean al registrar la factura de compra (Paso 6).</p>
 </p>
 
 <table>
-  <tr><th>#</th><th>Proveedor / CIF</th><th>Factura</th><th>Material (escríbalo)</th><th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Forma de pago</th></tr>
-  <tr><td>1</td><td>Distribuciones Auto S.L. / C12345678</td><td>CM-001</td><td><code>Aceite motor 5W30</code></td><td>litros</td><td>20</td><td>8,50</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>2</td><td>Recambios Martinez S.L. / D12345678</td><td>CM-002</td><td><code>Pastillas de freno</code></td><td>juegos</td><td>3</td><td>35,00</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>3</td><td>Filtros Madrid S.L. / E12345678</td><td>CM-003</td><td><code>Filtro de aire</code></td><td>unidades</td><td>5</td><td>12,00</td><td><strong>Crédito</strong> (410)</td></tr>
-  <tr><td>4</td><td>Auto Parts Europa S.L. / F12345678</td><td>CM-004</td><td><code>Refrigerante G12</code></td><td>litros</td><td>10</td><td>6,50</td><td><strong>Contado banco</strong> (572)</td></tr>
-  <tr><td>5</td><td>Neumaticos Express S.L. / G12345678</td><td>CM-005</td><td><code>Neumaticos 205/55R16</code></td><td>unidades</td><td>2</td><td>75,00</td><td><strong>Contado caja</strong> (570)</td></tr>
+  <tr><th>#</th><th>Proveedor / CIF</th><th>Factura</th><th>Material (escríbalo)</th><th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Vencimiento</th><th>Forma de pago</th></tr>
+  <tr><td>1</td><td>Distribuciones Auto S.L. / C12345678</td><td>CM-001</td><td><code>Aceite motor 5W30</code></td><td>litros</td><td>20</td><td>8,50</td><td><code>02/08/2026</code></td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>2</td><td>Recambios Martinez S.L. / D12345678</td><td>CM-002</td><td><code>Pastillas de freno</code></td><td>juegos</td><td>3</td><td>35,00</td><td><code>02/08/2026</code></td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>3</td><td>Filtros Madrid S.L. / E12345678</td><td>CM-003</td><td><code>Filtro de aire</code></td><td>unidades</td><td>5</td><td>12,00</td><td><code>02/08/2026</code></td><td><strong>Crédito</strong> (410)</td></tr>
+  <tr><td>4</td><td>Auto Parts Europa S.L. / F12345678</td><td>CM-004</td><td><code>Refrigerante G12</code></td><td>litros</td><td>10</td><td>6,50</td><td><em>(vacío)</em></td><td><strong>Contado banco</strong> (572)</td></tr>
+  <tr><td>5</td><td>Neumaticos Express S.L. / G12345678</td><td>CM-005</td><td><code>Neumaticos 205/55R16</code></td><td>unidades</td><td>2</td><td>75,00</td><td><em>(vacío)</em></td><td><strong>Contado caja</strong> (570)</td></tr>
 </table>
 
-<p class="small">IVA de todas las líneas: <strong>21 %</strong>. Fecha de compra: <code>02/07/2026</code>.</p>
+<p class="small">IVA de todas las líneas: <strong>21 %</strong>. Fecha de compra: <code>02/07/2026</code>.
+La <strong>fecha de vencimiento es obligatoria en las compras a crédito</strong> cuando no se marcan como pagadas.</p>
 
 <h3>Qué debe ver</h3>
 <table>
@@ -417,6 +418,8 @@ materiales se crean al registrar la factura de compra (Paso 6).</p>
   <tr><td>Al guardar la factura, ¿se abre la <strong>hoja resumen</strong>?</td><td>Sí: datos, líneas, asiento(s) contable(s) y enlace <strong>📎 Ver PDF</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Botón <strong>«Guardar y registrar otra compra»</strong></td><td>Existe junto a «Registrar Compra» y, al usarlo, vuelve al formulario vacío</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Historial <strong>🛒 Compras</strong></td><td>Las 5 facturas aparecen agrupadas, con total y acciones Ver / Editar</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Columna <strong>Vencimiento</strong> del historial</td><td>Las 3 a crédito muestran <code>02/08/2026</code>; las de contado, «—»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td><strong>Alerta de vencida</strong> (si la prueba se hace después del 02/08/2026)</td><td>Banda roja «N facturas vencidas» y etiqueta <strong>Vencida</strong> en cada una; el resumen muestra «⚠️ Factura vencida»</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td><strong>Corrección</strong>: en la factura 1 pulse Editar y cámbiela a «Contado banco»</td><td>El asiento anterior queda <strong>ANULADO</strong> (con su contrapartida) y aparece uno nuevo con <strong>572</strong>; el banco descuenta 205,70 €. El <strong>stock no cambia</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
 </table>
 

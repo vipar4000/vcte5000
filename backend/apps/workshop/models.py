@@ -284,6 +284,10 @@ class CompraMaterial(models.Model):
         max_digits=8, decimal_places=2, verbose_name='precio unitario'
     )
     fecha_compra = models.DateField(verbose_name='fecha de compra')
+    fecha_vencimiento = models.DateField(
+        null=True, blank=True, verbose_name='fecha de vencimiento',
+        help_text='Solo para compras a crédito: día en que vence la factura.',
+    )
     proveedor = models.CharField(max_length=150, verbose_name='proveedor')
     cif_nif = models.CharField(max_length=15, verbose_name='CIF/NIF')
     numero_factura = models.CharField(

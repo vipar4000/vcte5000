@@ -350,6 +350,7 @@ class CompraMaterialTests(TestCase):
             'proveedor': 'Distribuciones Auto S.L.',
             'cif_nif': 'B12345678',
             'fecha_compra': '2026-07-01',
+            'fecha_vencimiento': '2026-08-15',
             'numero_factura': 'FC-AUTO-2026-001',
             'tipo_inventario': '300',
             'tipo_iva': '21.00',
@@ -381,6 +382,7 @@ class CompraMaterialTests(TestCase):
             'proveedor': 'Distribuciones Auto S.L.',
             'cif_nif': 'B12345678',
             'fecha_compra': '2026-07-01',
+            'fecha_vencimiento': '2026-08-15',
             'numero_factura': 'FC-AUTO-2026-001',
             'tipo_inventario': '300',
             'tipo_iva': tipo_iva,
@@ -674,6 +676,7 @@ class CompraMaterialTests(TestCase):
             'proveedor': 'Recambios Nuevos S.L.',
             'cif_nif': 'B99887766',
             'fecha_compra': '2026-07-01',
+            'fecha_vencimiento': '2026-08-15',
             'numero_factura': 'FC-NUEVO-1',
             'tipo_inventario': '300',
             'tipo_iva': '21.00',
@@ -796,6 +799,7 @@ class CompraFacturaFlujoTest(TestCase):
             'proveedor': 'Distribuciones Auto S.L.',
             'cif_nif': 'C12345678',
             'fecha_compra': '2026-07-02',
+            'fecha_vencimiento': '2026-12-31',
             'numero_factura': 'CM-001',
             'tipo_inventario': '300',
             'tipo_iva': '21.00',
@@ -909,3 +913,46 @@ class CompraFacturaFlujoTest(TestCase):
         self.aceite.refresh_from_db()
         self.assertEqual(self.aceite.stock_actual, Decimal('30'))
         self.assertEqual(CompraMaterial.objects.get().cantidad, Decimal('30'))
+
+    # ------------------------------------------- fecha de vencimiento
+    def test_compra_a_credito_exige_fecha_de_vencimiento(self):
+        datos = self._datos()
+        datos.pop('fecha_vencimiento')
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'), datos
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(CompraMaterial.objects.count(), 0)
+        self.assertContains(respuesta, 'Indique la fecha de vencimiento')
+
+    def test_vencimiento_anterior_a_la_compra_es_error(self):
+        respuesta = self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos(**{'fecha_vencimiento': '2026-06-01'}),
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(CompraMaterial.objects.count(), 0)
+        self.assertContains(respuesta, 'no puede ser anterior')
+
+    def test_historial_y_resumen_marcan_la_factura_vencida(self):
+        from datetime import timedelta
+
+        compra_fecha = date.today() - timedelta(days=40)
+        vencimiento = date.today() - timedelta(days=5)
+        self.client.post(
+            reverse('workshop:compra_material_create'),
+            self._datos(**{
+                'fecha_compra': compra_fecha.isoformat(),
+                'fecha_vencimiento': vencimiento.isoformat(),
+            }),
+        )
+        compra = CompraMaterial.objects.get()
+        self.assertEqual(compra.fecha_vencimiento, vencimiento)
+
+        historial = self.client.get(reverse('workshop:compra_list'))
+        self.assertContains(historial, 'Vencida')
+
+        resumen = self.client.get(
+            reverse('workshop:compra_detail', args=[compra.factura_grupo])
+        )
+        self.assertContains(resumen, 'Factura vencida')

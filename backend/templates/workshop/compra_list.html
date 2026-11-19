@@ -20,6 +20,15 @@
         {% endif %}
     </div>
 
+    <!-- Aviso de facturas vencidas -->
+    {% if vencidas %}
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+        <strong>⚠️ {{ vencidas }} factura{{ vencidas|pluralize:"s" }} vencida{{ vencidas|pluralize:"s" }}</strong>
+        pendiente{{ vencidas|pluralize:"s" }} de pago. Aparecen marcadas en la columna
+        <strong>Vencimiento</strong>.
+    </div>
+    {% endif %}
+
     <!-- Buscador -->
     <div class="bg-white rounded-lg shadow p-4">
         <form method="get" class="flex flex-wrap gap-4">
@@ -43,6 +52,7 @@
             <thead class="bg-gray-100 text-gray-700">
                 <tr>
                     <th class="px-4 py-3 text-left">Fecha</th>
+                    <th class="px-4 py-3 text-left">Vencimiento</th>
                     <th class="px-4 py-3 text-left">Proveedor</th>
                     <th class="px-4 py-3 text-left">Factura</th>
                     <th class="px-4 py-3 text-center">Líneas</th>
@@ -57,6 +67,19 @@
                 {% for factura in facturas %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 whitespace-nowrap">{{ factura.fecha_compra|date:"d/m/Y" }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        {% if factura.vencimiento %}
+                            {% if factura.vencida %}
+                            <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 font-medium">
+                                Vencida {{ factura.vencimiento|date:"d/m/Y" }}
+                            </span>
+                            {% else %}
+                            <span class="text-gray-700">{{ factura.vencimiento|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3">
                         <div class="font-medium">{{ factura.proveedor }}</div>
                         <div class="text-xs text-gray-500">{{ factura.cif_nif }}</div>
@@ -92,7 +115,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="px-4 py-10 text-center text-gray-500">
+                    <td colspan="10" class="px-4 py-10 text-center text-gray-500">
                         Todavía no hay compras registradas.
                         <a href="{% url 'workshop:compra_material_create' %}"
                            class="text-eurocar-light hover:underline">Registrar la primera →</a>

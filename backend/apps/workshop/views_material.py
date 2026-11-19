@@ -138,6 +138,7 @@ def _crear_lineas_factura(header_form, formset, grupo, forma_pago_cuenta,
             proveedor=datos['proveedor'],
             cif_nif=datos['cif_nif'],
             fecha_compra=datos['fecha_compra'],
+            fecha_vencimiento=datos.get('fecha_vencimiento'),
             numero_factura=datos.get('numero_factura', ''),
             factura_grupo=grupo,
             tipo_inventario=datos['tipo_inventario'],
@@ -399,6 +400,7 @@ def compra_list(request):
             cif_nif=Max('cif_nif'),
             numero_factura=Max('numero_factura'),
             fecha_compra=Max('fecha_compra'),
+            vencimiento=Max('fecha_vencimiento'),
             lineas=Count('id'),
             base=Sum('base_imponible'),
             cuota=Sum('cuota_iva'),
@@ -410,14 +412,24 @@ def compra_list(request):
     )
 
     facturas = []
+    hoy = date.today()
     for grupo in grupos:
         grupo['total'] = (grupo['base'] or Decimal('0')) + (grupo['cuota'] or Decimal('0'))
         grupo['pagada'] = grupo['pagadas'] == grupo['lineas']
+        grupo['vencida'] = bool(
+            grupo['vencimiento']
+            and grupo['vencimiento'] < hoy
+            and not grupo['pagada']
+        )
+        grupo['dias_para_vencer'] = (
+            (grupo['vencimiento'] - hoy).days if grupo['vencimiento'] else None
+        )
         facturas.append(grupo)
 
     return render(request, 'workshop/compra_list.html', {
         'facturas': facturas,
         'busqueda': busqueda,
+        'vencidas': sum(1 for factura in facturas if factura['vencida']),
     })
 
 
@@ -455,6 +467,14 @@ def compra_detail(request, grupo):
             ).exclude(estado='ANULADO')
         )
 
+    pagada = all(linea.pagado for linea in lineas)
+    hoy = date.today()
+    vencida = bool(
+        cabecera.fecha_vencimiento
+        and cabecera.fecha_vencimiento < hoy
+        and not pagada
+    )
+
     return render(request, 'workshop/compra_detail.html', {
         'lineas': lineas,
         'cabecera': cabecera,
@@ -463,7 +483,9 @@ def compra_detail(request, grupo):
         'total_iva': total_iva,
         'total_factura': total_base + total_iva,
         'asientos': asientos,
-        'pagada': all(linea.pagado for linea in lineas),
+        'pagada': pagada,
+        'vencida': vencida,
+        'hoy': hoy,
     })
 
 
@@ -557,6 +579,7 @@ def compra_edit(request, grupo):
             'proveedor': cabecera.proveedor,
             'cif_nif': cabecera.cif_nif,
             'fecha_compra': cabecera.fecha_compra,
+            'fecha_vencimiento': cabecera.fecha_vencimiento,
             'numero_factura': cabecera.numero_factura,
             'tipo_inventario': cabecera.tipo_inventario,
             'tipo_iva': cabecera.tipo_iva,

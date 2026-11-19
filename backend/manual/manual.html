@@ -788,6 +788,7 @@ Material (stock: 100)
     <li>En la linea, <strong>escriba el nombre del material</strong>: el campo sugiere los que ya existen.</li>
     <li>Si el material es <strong>nuevo</strong>, indique su <strong>unidad</strong> en la columna "Unidad" (litros, unidades, juegos...). Se dara de alta automaticamente al guardar la factura, con el precio de esa compra como precio de referencia.</li>
     <li>Indique <strong>Precio Unitario</strong>, <strong>Fecha de Compra</strong>, <strong>Proveedor</strong> y <strong>CIF/NIF</strong>.</li>
+    <li>Si la compra es a <strong>crédito</strong>, indique la <strong>Fecha de vencimiento</strong> de la factura: es obligatoria cuando queda pendiente de pago y es lo que permite avisar de las vencidas.</li>
     <li>En "Datos de la Factura", adjunte el <strong>PDF de la factura</strong> del proveedor (opcional, maximo 20 MB).</li>
     <li>En "Tratamiento Contable", elija la <strong>Cuenta de Inventario</strong> (300 Compras, 310 Mercaderias, 320 Materias primas o 330 Otros aprovisionamientos), el <strong>Tipo IVA</strong>% y la <strong>Forma de pago</strong>: <strong>Credito (acreedores 410)</strong> por defecto, <strong>Contado Banco (572)</strong> o <strong>Contado Caja (570)</strong>. <strong>Por defecto se usa 300 (Compras)</strong>, la cuenta recomendada para materiales de taller porque es la misma que se acredita cuando el material se consume en una OT (ver <a href="#capitulo-15-7">15.7</a>).</li>
     <li>Haga clic en <strong>"Registrar Compra"</strong>.</li>
@@ -827,6 +828,7 @@ factura, con sus lineas agrupadas.</p>
     <tr><td>Cargar varias facturas seguidas</td><td>Boton <strong>"Guardar y registrar otra compra"</strong>: guarda y deja el formulario listo para la siguiente.</td></tr>
     <tr><td>Ver la factura completa</td><td>Al guardar se abre la <strong>hoja resumen</strong> (datos, lineas, asientos contables y enlace al PDF). Tambien desde <strong>Historial &gt; Ver</strong>.</td></tr>
     <tr><td>Corregir un error</td><td><strong>Editar</strong> en el historial o en el resumen: permite cambiar proveedor, importe, material o forma de pago.</td></tr>
+    <tr><td>Controlar facturas vencidas</td><td>El historial marca en rojo cada factura vencida (y resume cuantas hay); el resumen avisa con «⚠️ Factura vencida» y recuerda marcarla como pagada.</td></tr>
 </table>
 
 <div class="info-box">

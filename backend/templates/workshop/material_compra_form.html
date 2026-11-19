@@ -64,6 +64,17 @@
                     {{ header_form.fecha_compra }}
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de vencimiento</label>
+                    {{ header_form.fecha_vencimiento }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        Solo compras a <strong>crédito</strong>. Obligatoria si queda pendiente de pago;
+                        alimenta el aviso de facturas vencidas.
+                    </p>
+                    {% for error in header_form.fecha_vencimiento.errors %}
+                    <p class="text-red-600 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nº factura</label>
                     {{ header_form.numero_factura }}
                     <p class="text-xs text-gray-500 mt-1">Opcional. Úselo para agrupar líneas de una misma factura.</p>

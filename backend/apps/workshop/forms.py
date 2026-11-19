@@ -186,6 +186,13 @@ class CompraFacturaForm(forms.Form):
             'type': 'date',
         }),
     )
+    fecha_vencimiento = forms.DateField(
+        required=False, label='Fecha de vencimiento',
+        widget=forms.DateInput(attrs={
+            'class': 'w-full px-3 py-2 border rounded-lg',
+            'type': 'date',
+        }),
+    )
     numero_factura = forms.CharField(
         max_length=50, required=False, label='Número de factura',
         widget=forms.TextInput(attrs={
@@ -252,6 +259,29 @@ class CompraFacturaForm(forms.Form):
             'class': 'w-full px-3 py-2 border rounded-lg',
         }),
     )
+
+    def clean(self):
+        datos = super().clean()
+        forma_pago = datos.get('forma_pago') or ''
+        pagado = datos.get('pagado', False)
+        vencimiento = datos.get('fecha_vencimiento')
+        fecha_compra = datos.get('fecha_compra')
+
+        # La fecha de vencimiento es el dato de tesorería de las compras a
+        # crédito: sin ella no se puede avisar de una factura vencida.
+        a_credito = not forma_pago or forma_pago == '410'
+        if a_credito and not pagado and not vencimiento:
+            self.add_error(
+                'fecha_vencimiento',
+                'Indique la fecha de vencimiento: es una compra a crédito '
+                'pendiente de pago.',
+            )
+        if vencimiento and fecha_compra and vencimiento < fecha_compra:
+            self.add_error(
+                'fecha_vencimiento',
+                'La fecha de vencimiento no puede ser anterior a la fecha de compra.',
+            )
+        return datos
 
 
 UNIDADES_SUGERIDAS = [
