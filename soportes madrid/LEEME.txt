@@ -24,6 +24,7 @@ CONTENIDO
   06_ALQ-2026-07_factura_alquiler_galpon.pdf    -->  Paso 8.6 (Gasto)
   10_EN-2026-456_factura_suministros_endesa.pdf -->  Paso 8.6 (Gasto)
   11_IBI-2026-01_recibo_impuestos_municipales.pdf --> Paso 8.6 (Gasto)
+  12_certificado_apertura_cuenta.pdf            -->  Paso 1.1 (Cuenta bancaria)
   07_extracto_bancario_santander.csv            -->  Paso 1.3 / Conciliacion
   LEEME.txt                                     -->  Este archivo
 
@@ -101,8 +102,20 @@ CIFRAS QUE DEBE MOSTRAR CADA SOPORTE
      (Categoria IMPUESTOS_ESTR, cuenta PGC 631)
 
 
-CONCILIACION BANCARIA (07_extracto_bancario_santander.csv)
-----------------------------------------------------------
+12 - Certificado de apertura y titularidad de cuenta
+     (Banco Santander, S.A., oficina 0049, 01/07/2026)
+     Titular ............................ R CAR ROGIL, S.L. (CIF B26729731)
+     IBAN ............................... ES14 0049 1234 5678 9012 3456
+     BIC / SWIFT ........................ BSCHESMMXXX
+     Divisa ............................. EUR
+     Fecha de apertura .................. 01/07/2026
+     Ingreso inicial .................... 50.000,00 EUR
+     La entidad certifica que la cuenta esta abierta a nombre del titular.
+     En la operacion real el administrativo copia el IBAN y el SWIFT de este
+     documento, no del guion: por eso el certificado los muestra destacados.
+
+
+CONCILIACION BANCARIA (07_extracto_bancario_santander.csv)----------------------------------------------------------
 
 Cuando terminen el Paso 5.1 (venta), el banco del ERP tendra 5 movimientos.
 Tras el Paso 8.6e (pago de las compras a credito con "Marcar pagado"), tendra

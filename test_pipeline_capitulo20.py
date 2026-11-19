@@ -89,7 +89,7 @@ def ejecutar(c, admin):
     print('\n--- PASO 1.1: Cuenta bancaria + deposito 50.000 ---')
     resp = c.post('/erp/banco/cuentas/nueva/', {
         'nombre': 'Banco Santander',
-        'iban': 'ES78 0049 1234 5678 9012 3456',
+        'iban': 'ES14 0049 1234 5678 9012 3456',
         'swift': '',
         'cuenta_contable': cuenta_572.pk,
         'activa': 'on',

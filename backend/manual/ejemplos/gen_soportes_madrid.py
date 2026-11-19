@@ -380,6 +380,45 @@ def generar_recibo_ibi(path):
     _escribir_pdf(path, objects)
 
 
+def generar_certificado_apertura(path):
+    """Paso 1.1: certificado bancario con IBAN y BIC/SWIFT de la cuenta.
+
+    En la operacion real el administrativo copia el IBAN y el SWIFT del
+    documento bancario, no del guion de la prueba. Este certificado cubre esa
+    necesidad: el operador abre el PDF y transcribe los datos.
+    """
+    generar_pdf(
+        path,
+        'CERTIFICADO DE APERTURA Y TITULARIDAD DE CUENTA',
+        [
+            'BANCO SANTANDER, S.A. - Oficina 0049, Alcalá de Henares (Madrid)',
+            'Entidad: 0049      País: ES      Divisa: EUR',
+            '',
+            'TITULAR',
+            'R CAR ROGIL, S.L.',
+            'CIF: B26729731',
+            'Calle Brasil 9 - 28806 Alcalá de Henares (Madrid)',
+            '',
+            'DATOS DE LA CUENTA',
+            '**IBAN: ES14 0049 1234 5678 9012 3456',
+            '**BIC / SWIFT: BSCHESMMXXX',
+            'Número de cuenta: 0049 1234 56 7890123456',
+            'Fecha de apertura: 01/07/2026',
+            'Ingreso inicial: 50.000,00 EUR',
+            '',
+            'La entidad certifica que la cuenta indicada está abierta a nombre del',
+            'titular arriba señalado y que los datos de identificación son correctos,',
+            'a los efectos de acreditación que procedan.',
+            '',
+            'Expedido en Alcalá de Henares, a 1 de julio de 2026.',
+            '',
+            'Fdo.: Dirección de la Oficina            [Sello de la entidad]',
+            '',
+            'Documento de ejemplo para la prueba del sistema - R Car Rogil ERP',
+        ],
+    )
+
+
 def main():
     os.makedirs(BASE, exist_ok=True)
 
@@ -537,6 +576,11 @@ def main():
     # --- Paso 8.6: Recibo IBI y tasas municipales ---
     generar_recibo_ibi(
         os.path.join(BASE, '11_IBI-2026-01_recibo_impuestos_municipales.pdf')
+    )
+
+    # --- Paso 1.1: Certificado de apertura de la cuenta bancaria (IBAN + SWIFT) ---
+    generar_certificado_apertura(
+        os.path.join(BASE, '12_certificado_apertura_cuenta.pdf')
     )
 
     # --- Paso 1.3 / 9.5.5 / 8.6e: Extracto bancario para la conciliacion ---

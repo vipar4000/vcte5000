@@ -143,7 +143,7 @@ cada archivo coinciden exactamente con los datos de los pasos.</p>
   <tr><td><code>1234ABC-04-interior.jpg</code></td></tr>
   <tr><td><code>1234ABC-05-cuadro.jpg</code></td></tr>
   <tr>
-    <td rowspan="8"><code>documentos/</code></td>
+    <td rowspan="9"><code>documentos/</code></td>
     <td><code>02_FC-2026-001_factura_compra_vehiculo.pdf</code></td>
     <td>Paso 4 (alta del vehículo)</td>
     <td><strong>Factura de compra (PDF)</strong></td>
@@ -162,6 +162,11 @@ cada archivo coinciden exactamente con los datos de los pasos.</p>
     <td><code>deposito_bancario.pdf</code></td>
     <td>Paso 2 (depósito inicial)</td>
     <td><strong>Soporte del depósito inicial</strong></td>
+  </tr>
+  <tr>
+    <td><code>12_certificado_apertura_cuenta.pdf</code></td>
+    <td>Paso 2 (cuenta bancaria)</td>
+    <td><strong>IBAN y BIC/SWIFT</strong> (se copian de aquí)</td>
   </tr>
   <tr>
     <td><code>03_CM-001_factura_aceite.pdf</code><br>
@@ -250,8 +255,8 @@ cada archivo coinciden exactamente con los datos de los pasos.</p>
 <table>
   <tr><th>Campo</th><th>Valor</th></tr>
   <tr><td>Nombre</td><td><code>Banco Santander</code></td></tr>
-  <tr><td>IBAN</td><td><code>ES78 0049 1234 5678 9012 3456</code></td></tr>
-  <tr><td>SWIFT</td><td><em>(vacío)</em></td></tr>
+  <tr><td>IBAN</td><td><code>ES14 0049 1234 5678 9012 3456</code></td></tr>
+  <tr><td>SWIFT/BIC</td><td><code>BSCHESMMXXX</code></td></tr>
   <tr><td>Cuenta contable</td><td><code>572</code> Banco</td></tr>
   <tr><td>Activa</td><td>Marcada</td></tr>
   <tr><td>Depósito inicial</td><td><code>50000,00</code></td></tr>
@@ -259,10 +264,15 @@ cada archivo coinciden exactamente con los datos de los pasos.</p>
   <tr><td>Soporte del depósito inicial</td><td><code>documentos/deposito_bancario.pdf</code></td></tr>
 </table>
 
+<p class="small">El <strong>IBAN</strong> y el <strong>BIC/SWIFT</strong> no se inventan: se copian del
+<code>documentos/12_certificado_apertura_cuenta.pdf</code>, igual que en la operación real.
+El sistema no valida el dígito de control del IBAN, pero el del documento sí es válido.</p>
+
 <h3>Qué debe ver</h3>
 <table>
   <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
   <tr><td>El desplegable <strong>Cuenta contable</strong> ya trae opciones</td><td>Sí, sin haber entrado antes a Contabilidad (el PGC se crea solo)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>IBAN y BIC/SWIFT introducidos</td><td>Los mismos que muestra el certificado de apertura</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Saldo de la cuenta</td><td><strong>50.000,00 €</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Movimiento bancario creado</td><td><strong>INGRESO</strong> de 50.000,00 €</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Asiento generado automáticamente</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>
