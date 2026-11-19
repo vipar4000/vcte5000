@@ -999,3 +999,84 @@ class CompraFacturaFlujoTest(TestCase):
             self.assertEqual(respuesta.status_code, 302)
             self.assertEqual(CompraMaterial.objects.count(), 1)
             self.assertFalse(CompraMaterial.objects.get().documento_pdf)
+
+    # ------------------- PDF nuevo al corregir (incluye mismo nombre)
+    def _media_temporal(self):
+        import shutil
+        import tempfile
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        return media
+
+    def _crear_con_pdf(self, nombre='05_CM-003.pdf'):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        datos = self._datos()
+        datos['documento_pdf'] = SimpleUploadedFile(
+            nombre, b'%PDF-1.4 viejo\n', content_type='application/pdf'
+        )
+        self.client.post(reverse('workshop:compra_material_create'), datos)
+        return CompraMaterial.objects.get()
+
+    def test_editar_con_pdf_nuevo_lo_guarda(self):
+        """Al subir un PDF nuevo en la corrección, se guarda ese archivo."""
+        from django.core.files.storage import default_storage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        media = self._media_temporal()
+        with override_settings(MEDIA_ROOT=media):
+            compra = self._crear_con_pdf('viejo.pdf')
+            default_storage.delete(compra.documento_pdf.name)
+
+            datos = self._datos()
+            datos['documento_pdf'] = SimpleUploadedFile(
+                'nuevo.pdf', b'%PDF-1.4 nuevo\n', content_type='application/pdf'
+            )
+            respuesta = self.client.post(
+                reverse('workshop:compra_edit', args=[compra.factura_grupo]),
+                datos, follow=True,
+            )
+
+            nueva = CompraMaterial.objects.get()
+            self.assertIn('nuevo', nueva.documento_pdf.name)
+            self.assertTrue(default_storage.exists(nueva.documento_pdf.name))
+            self.assertNotContains(respuesta, 'PDF no disponible')
+            # No debe avisar de PDF perdido: se subió uno nuevo
+            self.assertNotContains(respuesta, 'ya no estaba en el servidor')
+
+    def test_editar_reutilizando_el_mismo_nombre_de_pdf(self):
+        """Regresión: django-cleanup no debe borrar el PDF recién subido.
+
+        Antes, al reutilizar el nombre del archivo antiguo, la limpieza
+        diferida de la línea borrada eliminaba también el PDF nuevo y la
+        factura quedaba con «PDF no disponible».
+        """
+        from django.core.files.storage import default_storage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        media = self._media_temporal()
+        with override_settings(MEDIA_ROOT=media):
+            compra = self._crear_con_pdf('05_CM-003.pdf')
+            default_storage.delete(compra.documento_pdf.name)
+
+            datos = self._datos()
+            datos['documento_pdf'] = SimpleUploadedFile(
+                '05_CM-003.pdf', b'%PDF-1.4 nuevo\n',
+                content_type='application/pdf',
+            )
+            respuesta = self.client.post(
+                reverse('workshop:compra_edit', args=[compra.factura_grupo]),
+                datos, follow=True,
+            )
+
+            nueva = CompraMaterial.objects.get()
+            self.assertTrue(nueva.documento_pdf)
+            self.assertTrue(
+                default_storage.exists(nueva.documento_pdf.name),
+                'El PDF recién subido no debe borrarse con la limpieza del antiguo',
+            )
+            self.assertIn('corregida', nueva.documento_pdf.name)
+            self.assertNotContains(respuesta, 'PDF no disponible')

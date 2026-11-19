@@ -14,6 +14,7 @@ from django.forms import formset_factory
 from django.http import Http404
 from datetime import date
 from decimal import Decimal
+from uuid import uuid4
 from .models import (
     Material, MaterialUsado, OrdenTrabajo, CompraMaterial,
     _anular_asiento_pago_compra, nuevo_grupo_factura,
@@ -111,6 +112,22 @@ def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_p
             f'{format_euros(banco_cuenta.saldo_pendiente)}.'
         )
     return None
+
+
+def _nombre_pdf_sin_colision(pdf_file, nombres_antiguos):
+    """Evita reutilizar el nombre de un PDF que se va a borrar.
+
+    `django-cleanup` borra los archivos de las líneas eliminadas al confirmar
+    la transacción. Si el PDF nuevo se guardara con el mismo nombre (caso
+    típico: el operador vuelve a subir el mismo archivo), esa limpieza
+    borraría también el recién subido y la factura quedaría sin adjunto. Por
+    eso se renombra cuando choca con un nombre que está pendiente de borrar.
+    """
+    nombre = os.path.basename(getattr(pdf_file, 'name', '') or '')
+    if nombre and nombre in nombres_antiguos:
+        base, extension = os.path.splitext(nombre)
+        pdf_file.name = f'{base}_corregida_{uuid4().hex[:6]}{extension}'
+    return pdf_file
 
 
 def _crear_lineas_factura(header_form, formset, grupo, forma_pago_cuenta,
@@ -547,33 +564,47 @@ def compra_edit(request, grupo):
             else:
                 try:
                     with transaction.atomic():
-                        # El PDF se conserva antes de borrar las líneas antiguas.
-                        # Puede que el archivo ya no exista (el disco de Render se
-                        # borra en cada despliegue): en ese caso la corrección
-                        # sigue adelante, simplemente sin adjunto.
+                        pdf_nuevo = header_form.cleaned_data.get('documento_pdf')
                         pdf_contenido = None
                         pdf_nombre = None
                         pdf_perdido = False
-                        for linea in lineas:
-                            if not linea.documento_pdf:
-                                continue
-                            try:
-                                with linea.documento_pdf.open('rb') as archivo:
-                                    pdf_contenido = archivo.read()
-                                pdf_nombre = os.path.basename(linea.documento_pdf.name)
-                            except (FileNotFoundError, OSError):
-                                pdf_contenido = None
-                                pdf_nombre = None
-                                pdf_perdido = True
-                            break
+
+                        # Si el usuario ya sube un PDF nuevo no se toca el
+                        # anterior: se usa el nuevo directamente.
+                        if not pdf_nuevo:
+                            for linea in lineas:
+                                if not linea.documento_pdf:
+                                    continue
+                                try:
+                                    with linea.documento_pdf.open('rb') as archivo:
+                                        pdf_contenido = archivo.read()
+                                    pdf_nombre = os.path.basename(linea.documento_pdf.name)
+                                except (FileNotFoundError, OSError):
+                                    # El disco de Render se borra en cada
+                                    # despliegue: la corrección sigue sin adjunto.
+                                    pdf_contenido = None
+                                    pdf_nombre = None
+                                    pdf_perdido = True
+                                break
+
+                        # Nombres que django-cleanup borrará al confirmar.
+                        nombres_antiguos = {
+                            os.path.basename(linea.documento_pdf.name)
+                            for linea in lineas
+                            if linea.documento_pdf
+                        }
 
                         for linea in lineas:
                             linea.revertir(request.user)
                             linea.delete()
 
-                        pdf_file = header_form.cleaned_data.get('documento_pdf')
+                        pdf_file = pdf_nuevo
                         if not pdf_file and pdf_contenido:
                             pdf_file = ContentFile(pdf_contenido, name=pdf_nombre)
+                        if pdf_file:
+                            pdf_file = _nombre_pdf_sin_colision(
+                                pdf_file, nombres_antiguos
+                            )
 
                         _crear_lineas_factura(
                             header_form, linea_formset, grupo, forma_pago_cuenta,
