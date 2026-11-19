@@ -15,13 +15,6 @@
                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                 📒 Cuentas
             </a>
-            {% if is_admin %}
-            <a href="{% url 'accounting:inicializar_plan' %}" 
-               class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
-               onclick="return confirm('¿Inicializar plan contable base del PGC?')">
-                🔄 Inicializar PGC
-            </a>
-            {% endif %}
             <a href="{% url 'accounting:informes' %}" 
                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
                 📊 Informes

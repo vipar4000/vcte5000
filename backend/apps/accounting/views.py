@@ -246,7 +246,13 @@ def cuenta_contable_create(request):
 
 @login_required
 def inicializar_plan_contable(request):
-    """Inicializa el plan contable base del PGC."""
+    """Recrea el plan contable base del PGC.
+
+    Ya no hay boton en la interfaz: el plan se crea solo en cada `migrate`
+    (post_migrate de apps/accounting/apps.py). Este endpoint se mantiene para
+    mantenimiento y para los scripts de prueba (test_modules.py y
+    test_pipeline_capitulo20.py), que lo llaman por URL.
+    """
     if not request.user.is_admin:
         messages.error(request, 'Solo los administradores pueden inicializar el plan contable')
         return redirect('accounting:cuentas')

@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.test import TestCase, Client
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from apps.accounting.models import (
@@ -413,3 +414,27 @@ class ReportViewsTests(BaseReportesTestCase):
         resp = self.client.get('/erp/contabilidad/informes/facturas-compras/')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['n_facturas'], 0)
+
+
+class BotonInicializarEliminadoTest(TestCase):
+    """La pantalla de Contabilidad ya no ofrece el boton «Inicializar PGC»."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+
+    def test_pantallas_de_contabilidad_sin_boton(self):
+        for nombre in ('accounting:asientos', 'accounting:cuentas'):
+            respuesta = self.client.get(reverse(nombre))
+            self.assertEqual(respuesta.status_code, 200, nombre)
+            self.assertNotContains(
+                respuesta, 'Inicializar',
+                msg_prefix=f'{nombre} no debe ofrecer el boton de inicializar',
+            )
+
+    def test_el_endpoint_sigue_disponible_para_mantenimiento(self):
+        respuesta = self.client.get(reverse('accounting:inicializar_plan'))
+        self.assertEqual(respuesta.status_code, 302)

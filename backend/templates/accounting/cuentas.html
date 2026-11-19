@@ -85,12 +85,11 @@
                     {% empty %}
                     <tr>
                         <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                            No se encontraron cuentas contables
-                            <br>
-                            <a href="{% url 'accounting:inicializar_plan' %}" 
-                               class="text-eurocar-light hover:underline">
-                                Inicializar Plan Contable Base
-                            </a>
+                            No hay cuentas contables.<br>
+                            <span class="text-sm">
+                                El plan se crea automáticamente al desplegar.
+                                Si no aparece, avise al administrador.
+                            </span>
                         </td>
                     </tr>
                     {% endfor %}

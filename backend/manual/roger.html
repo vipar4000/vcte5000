@@ -953,13 +953,14 @@ vencimiento  reparacion
     <tr><td><code>700</code></td><td>Ventas mercancias</td><td>Ingresos por venta (margen REBU)</td></tr>
 </table>
 
-<h3>Inicializar el Plan Contable</h3>
-<ol class="steps">
-    <li>Navegue a <strong>Contabilidad > Cuentas</strong></li>
-    <li>Haga clic en <strong>"Inicializar PGC"</strong></li>
-    <li>Confirme la accion</li>
-    <li>El sistema crea todas las cuentas base usando <code>get_or_create</code> (idempotente)</li>
-</ol>
+<h3>Plan Contable: se crea solo</h3>
+<div class="info-box">
+    <strong>No hay boton que pulsar.</strong> El plan contable (56 cuentas) se crea
+    automaticamente cada vez que se despliega el sistema o se ejecuta
+    <code>migrate</code>. Compruebe en <strong>Contabilidad &gt; Cuentas</strong>
+    que aparecen las cuentas. Si faltara alguna, se recrean ejecutando
+    <code>python manage.py migrate</code> (la operacion es idempotente).
+</div>
 
 <h2 id="capitulo-8-2">8.2 Asientos Contables</h2>
 
