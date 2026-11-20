@@ -513,7 +513,7 @@ forma_pago=Caja Chica</code></pre>
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
 <div class="warning-box">
-    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. Use para ello la pantalla <strong>&#128226; Publicar</strong>. Si el vehiculo deja de estar EN_VENTA, sus imagenes <strong>se conservan</strong> (ocultas) y vuelven a mostrarse al regresar a ese estado.
+    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>: el formulario de <strong>Editar Vehiculo</strong> muestra entonces los campos de imagen, y la pantalla <strong>&#128226; Publicar</strong> permite lo mismo de forma mas directa. Si el vehiculo deja de estar EN_VENTA, sus imagenes <strong>se conservan</strong> (ocultas) y vuelven a mostrarse al regresar a ese estado.
 </div>
 
 <h4>Publicar el vehiculo (procedimiento)</h4>
@@ -531,11 +531,12 @@ forma_pago=Caja Chica</code></pre>
     ventas trabaja sin ver margenes y una edicion comercial no puede descuadrar la contabilidad.
 </div>
 
-<div class="warning-box">
-    <strong>Datos economicos bloqueados:</strong> si la compra del vehiculo ya esta contabilizada
-    (asiento en estado POSTEADO), el formulario de edicion tecnica muestra los importes, la factura
-    y la forma de pago <strong>en gris y sin poder cambiarlos</strong>. Para corregirlos hay que
-    anular antes el asiento en <strong>Contabilidad &gt; Asientos</strong>.
+<div class="info-box">
+    <strong>Contabilidad automatica al corregir importes:</strong> si cambia el precio de subasta,
+    las tasas, la grua, el IVA, la forma de pago o la fecha de adquisicion y guarda, el sistema
+    <strong>anula el asiento anterior con su contrapartida</strong> y <strong>genera y postea el
+    nuevo</strong> automaticamente (y actualiza el movimiento bancario). No hay que entrar a
+    Contabilidad. Si solo cambia datos tecnicos (kilometraje, matricula...), el asiento se mantiene.
 </div>
 
 <h4>Formato de los importes y la fecha</h4>

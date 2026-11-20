@@ -28,15 +28,6 @@
         </div>
         {% endif %}
         
-        {% if form.datos_bloqueados %}
-        <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 text-sm">
-            <strong>Compra ya contabilizada:</strong> los importes, la factura y la forma de pago
-            se muestran como <strong>solo lectura</strong> (no se envían al guardar). Para
-            corregirlos hay que anular antes el asiento en
-            <strong>Contabilidad → Asientos</strong>.
-        </div>
-        {% endif %}
-
         <fieldset>
             <legend class="text-lg font-semibold mb-4">Datos Tecnicos</legend>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -103,7 +94,6 @@
             </div>
         </fieldset>
         
-        {% if not form.datos_bloqueados %}
         <fieldset>
             <legend class="text-lg font-semibold mb-4">Costes de Adquisicion</legend>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -170,29 +160,119 @@
             </div>
         </fieldset>
         
-        {% if form.datos_bloqueados %}
         <fieldset>
-            <legend class="text-lg font-semibold mb-4">Datos de compra (solo lectura)</legend>
+            <legend class="text-lg font-semibold mb-4">Precio de Venta</legend>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% for dato in form.datos_bloqueados %}
-                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p class="text-xs text-gray-500">{{ dato.etiqueta }}</p>
-                    <p class="font-medium text-gray-800">{{ dato.valor }}</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Venta (&euro;)</label>
+                    {{ form.precio_venta }}
+                    <p class="text-xs text-gray-500 mt-1">Establecer precio para mostrar en la web publica</p>
+                </div>
+            </div>
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Descripcion del Dano</legend>
+            {{ form.descripcion_dano }}
+        </fieldset>
+        
+        <div id="imagenes-aviso" {% if mostrar_imagenes %}hidden{% endif %}>
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+                Las imágenes solo se pueden subir cuando el vehículo está en estado <strong>EN_VENTA</strong>.
+                Seleccione <strong>En Venta</strong> en el campo Estado para mostrar los campos de imágenes.
+            </div>
+        </div>
+
+        <div id="imagenes-section" {% if not mostrar_imagenes %}hidden{% endif %}>
+        <div class="p-4 mb-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm space-y-1">
+            <p><strong>Hasta {{ imagenes_formset.max_num }} fotos adicionales</strong> por vehículo. Se reducen y optimizan automáticamente al guardar.</p>
+            <p>Use fotos <strong>horizontales</strong> de al menos 2000 px de ancho. La que se ve primero en el catálogo es la <strong>Imagen Principal</strong>.</p>
+            <p>El campo <strong>Orden</strong> decide la posición de cada foto (1, 2, 3… sin repetir).</p>
+        </div>
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Imagen Principal</legend>
+            {{ form.imagen_principal }}
+            {% if vehiculo.imagen_principal %}
+            <div class="mt-2">
+                <img src="{{ vehiculo.imagen_principal.url }}" class="h-20 rounded">
+            </div>
+            {% endif %}
+        </fieldset>
+        
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Imágenes Adicionales</legend>
+            {% if imagenes_formset.errors or imagenes_formset.non_form_errors %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <p class="text-red-800 font-medium mb-2">Errores en las imágenes:</p>
+                <ul class="text-red-600 text-sm list-disc list-inside">
+                    {% for error in imagenes_formset.non_form_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                    {% for img_form in imagenes_formset %}
+                    {% for field, errors in img_form.errors.items %}
+                    {% for error in errors %}
+                    <li>Imagen {{ forloop.parentloop.counter }}: {{ field }} - {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {{ imagenes_formset.management_form }}
+
+            {% with empty_form=imagenes_formset.empty_form %}
+            <div id="empty-form-template" style="display:none">
+                <div class="flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg imagen-row">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs text-gray-500 mb-1">Imagen</label>
+                        {{ empty_form.imagen }}
+                    </div>
+                    <div class="w-20">
+                        <label class="block text-xs text-gray-500 mb-1">Orden</label>
+                        {{ empty_form.orden }}
+                    </div>
+                    <button type="button" class="btn-quitar-imagen px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50">Quitar</button>
+                    {{ empty_form.id }}
+                </div>
+            </div>
+            {% endwith %}
+
+            <div id="imagenes-formset-rows" class="space-y-3">
+                {% for img_form in imagenes_formset %}
+                <div class="flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg imagen-row">
+                    {% if img_form.instance.pk and img_form.instance.imagen %}
+                    <img src="{{ img_form.instance.imagen.url }}" class="h-16 rounded">
+                    {% endif %}
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs text-gray-500 mb-1">Imagen</label>
+                        {{ img_form.imagen }}
+                    </div>
+                    <div class="w-20">
+                        <label class="block text-xs text-gray-500 mb-1">Orden</label>
+                        {{ img_form.orden }}
+                    </div>
+                    {% if img_form.instance.pk %}
+                    <div class="w-20">
+                        <label class="block text-xs text-gray-500 mb-1">Eliminar</label>
+                        {{ img_form.DELETE }}
+                    </div>
+                    {% endif %}
+                    <button type="button" class="btn-quitar-imagen px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50">Quitar</button>
+                    {{ img_form.id }}
                 </div>
                 {% endfor %}
             </div>
+
+            <div class="flex items-center gap-4 mt-3">
+                <span id="imagenes-counter" class="text-sm text-gray-600"></span>
+                <button type="button" id="add-imagen-btn"
+                        class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    + Añadir imagen
+                </button>
+            </div>
         </fieldset>
-        {% endif %}
-
-        {% endif %}
-
-        <div class="bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-4 text-sm">
-            El <strong>precio de venta</strong>, la <strong>descripción comercial</strong> y las
-            <strong>fotos</strong> se editan en la pantalla
-            {% if vehiculo %}<a href="{% url 'vehicles:publicar' vehiculo.pk %}" class="text-eurocar-light hover:underline">📢 Publicar</a>{% else %}<strong>📢 Publicar</strong>{% endif %},
-            no aquí.
         </div>
-
+        
         <div class="flex justify-end gap-4 pt-4 border-t">
             <a href="{% if vehiculo %}{% url 'vehicles:detail' vehiculo.pk %}{% else %}{% url 'vehicles:list' %}{% endif %}" 
                class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
@@ -210,4 +290,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/vehiculo-costes.js' %}?v=5"></script>
+<script src="{% static 'js/vehiculo-imagenes.js' %}?v=2"></script>
 {% endblock %}

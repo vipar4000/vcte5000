@@ -124,18 +124,17 @@ class VehiculoImagenesPublicacionTests(TestCase):
             ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 1
         )
 
-    def test_editar_tecnico_no_expone_campos_comerciales(self):
+    def test_editar_muestra_el_formulario_completo(self):
+        """Un solo formulario: técnicos, compra, precio de venta y fotos."""
         respuesta = self.client.get(
             reverse('vehicles:update', args=[self.vehiculo.pk])
         )
         self.assertEqual(respuesta.status_code, 200)
-        # Ni precio de venta, ni descripción comercial, ni fotos
-        self.assertNotContains(respuesta, 'name="precio_venta"')
-        self.assertNotContains(respuesta, 'name="descripcion_dano"')
-        self.assertNotContains(respuesta, 'name="imagen_principal"')
-        self.assertNotContains(respuesta, 'imagenes-TOTAL_FORMS')
-        # Pero sí un acceso claro a Publicar
-        self.assertContains(respuesta, 'Publicar')
+        self.assertContains(respuesta, 'name="precio_subasta"')
+        self.assertContains(respuesta, 'name="precio_venta"')
+        self.assertContains(respuesta, 'name="descripcion_dano"')
+        self.assertContains(respuesta, 'name="imagen_principal"')
+        self.assertContains(respuesta, 'imagenes-TOTAL_FORMS')
 
 
 class VehiculoFormatoYPublicacionTest(TestCase):
@@ -260,36 +259,55 @@ class VehiculoFormatoYPublicacionTest(TestCase):
         )
         self.assertEqual(respuesta.status_code, 302)
 
-    def test_campos_financieros_bloqueados_con_asiento_posteado(self):
-        """Con la compra contabilizada, los importes se muestran y no se envían."""
+    def test_editar_importe_regenera_el_asiento_con_contrapartida(self):
+        """Al cambiar un importe se anula el asiento y se crea el nuevo."""
         from decimal import Decimal
 
-        from apps.vehicles.forms import VehiculoForm
+        from apps.accounting.models import AsientoContable
 
+        self.client.force_login(self.admin)
+        asiento_viejo = self.vehiculo.crear_asiento_contable()
+        self.assertEqual(asiento_viejo.estado, 'POSTEADO')
+
+        respuesta = self.client.post(
+            reverse('vehicles:update', args=[self.vehiculo.pk]),
+            self._datos_tecnicos(precio_subasta='8.500,00'),
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        asiento_viejo.refresh_from_db()
+        self.assertEqual(asiento_viejo.estado, 'ANULADO')
+        self.assertTrue(
+            AsientoContable.objects.filter(tipo_documento='AnulacionVehiculo').exists()
+        )
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.precio_subasta, Decimal('8500.00'))
+        self.assertEqual(self.vehiculo.coste_inicial, Decimal('9150.00'))
+
+        nuevo = self.vehiculo.asiento_contable
+        self.assertIsNotNone(nuevo)
+        self.assertNotEqual(nuevo.pk, asiento_viejo.pk)
+        self.assertEqual(nuevo.estado, 'POSTEADO')
+        self.assertEqual(nuevo.total_debe, Decimal('9286.50'))
+
+    def test_editar_sin_cambiar_importes_conserva_el_asiento(self):
+        """Guardar un dato técnico no rehace la contabilidad."""
+        self.client.force_login(self.admin)
         asiento = self.vehiculo.crear_asiento_contable()
-        asiento.estado = 'POSTEADO'
-        asiento.save(update_fields=['estado'])
 
-        form = VehiculoForm(instance=self.vehiculo)
-        # Los campos económicos salen del formulario y se muestran como texto
-        self.assertNotIn('precio_subasta', form.fields)
-        self.assertNotIn('tasas_sala', form.fields)
-        self.assertNotIn('forma_pago', form.fields)
-        etiquetas = [d['etiqueta'] for d in form.datos_bloqueados]
-        self.assertTrue(any('adjudicación' in etiqueta.lower() for etiqueta in etiquetas))
-        valores = ' '.join(d['valor'] for d in form.datos_bloqueados)
-        self.assertIn('7.500,00', valores)
-
-        # Guardar un dato técnico funciona y no toca los costes
         datos = self._datos_tecnicos()
-        for bloqueado in VehiculoForm.CAMPOS_FINANCIEROS:
-            datos.pop(bloqueado, None)
-        datos['kilometraje'] = '123456'
-        form_post = VehiculoForm(datos, instance=self.vehiculo)
-        self.assertTrue(form_post.is_valid(), form_post.errors)
-        guardado = form_post.save()
-        self.assertEqual(guardado.kilometraje, 123456)
-        self.assertEqual(guardado.precio_subasta, Decimal('7500.00'))
+        datos['kilometraje'] = '150000'
+        respuesta = self.client.post(
+            reverse('vehicles:update', args=[self.vehiculo.pk]), datos
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        asiento.refresh_from_db()
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.kilometraje, 150000)
+        self.assertEqual(self.vehiculo.asiento_contable_id, asiento.pk)
 
     def test_publicar_no_devuelve_500_si_falla_el_guardado(self):
         """La vista informa del error en vez de romper con un 500."""

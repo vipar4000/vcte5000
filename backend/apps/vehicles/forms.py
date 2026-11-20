@@ -67,6 +67,7 @@ class VehiculoForm(forms.ModelForm):
     precio_subasta = ImporteField(label='Precio de adjudicación (€)')
     tasas_sala = ImporteField(label='Tasas de la sala (€)')
     logistica_grua = ImporteField(label='Logística/grúa (€)')
+    precio_venta = ImporteField(label='Precio de venta (€)', required=False)
 
     # El input type="date" del navegador exige YYYY-MM-DD
     fecha_adquisicion = forms.DateField(
@@ -78,11 +79,10 @@ class VehiculoForm(forms.ModelForm):
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
     )
 
-    # Campos que no se tocan si la compra ya está contabilizada
-    CAMPOS_FINANCIEROS = (
-        'precio_subasta', 'tasas_sala', 'logistica_grua', 'tipo_iva',
-        'forma_pago', 'plataforma_subasta', 'proveedor', 'cif_nif',
-        'numero_factura', 'factura_compra_pdf',
+    # Campos cuya modificación obliga a rehacer el asiento de compra
+    CAMPOS_ECONOMICOS = (
+        'precio_subasta', 'tasas_sala', 'logistica_grua', 'tipo_iva', 'forma_pago',
+        'fecha_adquisicion',
     )
 
     tipo_iva = forms.CharField(
@@ -103,6 +103,7 @@ class VehiculoForm(forms.ModelForm):
             'precio_subasta', 'tasas_sala', 'logistica_grua',
             'proveedor', 'cif_nif', 'numero_factura', 'factura_compra_pdf',
             'tipo_iva', 'forma_pago',
+            'precio_venta', 'descripcion_dano', 'imagen_principal',
         ]
         widgets = {
             'matricula': forms.TextInput(attrs={
@@ -191,45 +192,31 @@ class VehiculoForm(forms.ModelForm):
             'forma_pago': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
             }),
+            'precio_venta': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
+            }),
+            'descripcion_dano': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'rows': '4',
+                'placeholder': 'Descripción del estado del vehículo...',
+            }),
+            'imagen_principal': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'accept': 'image/*',
+            }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Si la compra ya está contabilizada, los datos económicos se sacan del
-        # formulario y se muestran como texto de solo lectura: un campo
-        # deshabilitado no se envía y no debe poder descuadrar el asiento.
-        self.datos_bloqueados = []
-        asiento = getattr(self.instance, 'asiento_contable', None)
-        if self.instance.pk and asiento and asiento.estado == 'POSTEADO':
-            for nombre in self.CAMPOS_FINANCIEROS:
-                campo = self.fields.pop(nombre, None)
-                if campo is None:
-                    continue
-                self.datos_bloqueados.append({
-                    'etiqueta': campo.label,
-                    'valor': self._valor_legible(nombre),
-                })
-
-    def _valor_legible(self, nombre):
-        """Texto para mostrar un dato bloqueado (importes en formato español)."""
-        valor = getattr(self.instance, nombre, None)
-        if valor in (None, ''):
-            return '—'
-        if nombre == 'factura_compra_pdf':
-            return os.path.basename(valor.name) if getattr(valor, 'name', '') else '—'
-        if hasattr(valor, 'codigo'):  # FK a CuentaContable
-            return f'{valor.codigo} {valor.nombre}'
-        if isinstance(valor, Decimal):
-            return number_format(valor, decimal_pos=2, use_l10n=True)
-        return str(valor)
 
     def clean(self):
         datos = super().clean()
         # Solo se rellenan los que realmente están en el formulario: si la
         # compra está contabilizada se han quitado y no deben reaparecer en
         # cleaned_data (Django los buscaría luego en self.fields).
-        for nombre in ('precio_subasta', 'tasas_sala', 'logistica_grua'):
+        for nombre in ('precio_subasta', 'tasas_sala', 'logistica_grua', 'precio_venta'):
             if nombre in self.fields and datos.get(nombre) is None:
                 datos[nombre] = Decimal('0')
         return datos
@@ -257,6 +244,24 @@ class VehiculoForm(forms.ModelForm):
         if not val:
             return Decimal('0')
         return parsear_importe(val)
+
+    def clean_precio_venta(self):
+        # Vacio -> 0 (el campo del modelo no admite NULL, tiene default=0)
+        return self.cleaned_data.get('precio_venta') or Decimal('0')
+
+    def clean_imagen_principal(self):
+        """Reduce y optimiza la portada en la carpeta de la matrícula."""
+        archivo = self.cleaned_data.get('imagen_principal')
+        if not isinstance(archivo, UploadedFile):
+            return archivo
+        matricula = self.cleaned_data.get('matricula') or self.instance.matricula or ''
+        etiqueta = (
+            archivo.name.rsplit('.', 1)[0] if getattr(archivo, 'name', '') else 'portada'
+        )
+        try:
+            return procesar_imagen(archivo, nombre_para(matricula, etiqueta))
+        except ImagenInvalida as exc:
+            raise forms.ValidationError(str(exc))
 
 
 class VehiculoBusquedaForm(forms.Form):

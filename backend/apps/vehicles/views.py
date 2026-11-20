@@ -16,6 +16,50 @@ from .forms import (
 logger = logging.getLogger(__name__)
 
 
+def _regenerar_asiento_compra(vehiculo, user):
+    """Anula el asiento de compra con contrapartida y crea el nuevo.
+
+    Se usa cuando cambian los importes: el asiento anterior no se borra (Ley
+    Antifraude), se contrarresta y queda ANULADO; después se genera y postea el
+    nuevo asiento con el coste corregido y su movimiento bancario.
+    """
+    from datetime import date
+
+    from apps.accounting.models import AsientoContable, MovimientoContable
+    from apps.accounting.views import generar_numero_asiento
+
+    with transaction.atomic():
+        viejo = vehiculo.asiento_contable
+        if viejo:
+            BancoMovimiento.objects.filter(asiento_asociado=viejo).delete()
+            reversion = AsientoContable.objects.create(
+                numero=generar_numero_asiento(),
+                fecha=date.today(),
+                concepto=f'ANULACIÓN: {viejo.concepto}',
+                estado='BORRADOR',
+                tipo_documento='AnulacionVehiculo',
+                documento_id=viejo.documento_id,
+                created_by=user,
+            )
+            for movimiento in viejo.movimientos.all():
+                MovimientoContable.objects.create(
+                    asiento=reversion,
+                    cuenta=movimiento.cuenta,
+                    debe=movimiento.haber,
+                    haber=movimiento.debe,
+                    descripcion=f'Reversión: {movimiento.descripcion}',
+                )
+            viejo.estado = 'ANULADO'
+            viejo.save(update_fields=['estado'])
+            vehiculo.asiento_contable = None
+            vehiculo.save(update_fields=['asiento_contable'])
+
+        BancoMovimiento.objects.filter(vehiculo_asociado=vehiculo).delete()
+        asiento = vehiculo.crear_asiento_contable()
+        vehiculo.registrar_movimiento_banco(asiento=asiento)
+        return asiento
+
+
 @login_required
 def vehiculo_list(request):
     """Lista de vehículos con filtros."""
@@ -77,17 +121,39 @@ def vehiculo_detail(request, pk):
 
 @login_required
 def vehiculo_create(request):
-    """Crear un vehículo (solo datos técnicos y de compra)."""
+    """Crear un vehículo con todos sus datos (técnicos, compra y comerciales)."""
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para crear vehículos.')
         return redirect('vehicles:list')
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
-        if form.is_valid():
+        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
+
+        if procesar_imagenes:
+            imagenes_formset = ImagenVehiculoFormSet(
+                request.POST, request.FILES, prefix='imagenes'
+            )
+        else:
+            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
+
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
+            if procesar_imagenes:
+                imagenes_formset.instance = vehiculo
+                imagenes_formset.save()
+            elif request.FILES.get('imagen_principal') or any(
+                f'imagenes-{i}-imagen' in request.FILES for i in range(0, 20)
+            ):
+                messages.error(
+                    request,
+                    'Las imágenes solo se pueden subir cuando el vehículo está '
+                    'en estado EN_VENTA.',
+                )
+                return redirect('vehicles:detail', pk=vehiculo.pk)
 
             try:
                 asiento = vehiculo.crear_asiento_contable()
@@ -101,19 +167,18 @@ def vehiculo_create(request):
                     request,
                     f'Vehículo creado, pero no se pudo crear el asiento contable: {e}',
                 )
-
-            messages.info(
-                request,
-                'El precio de venta, la descripción comercial y las fotos se '
-                'añaden con el botón 📢 Publicar.',
-            )
             return redirect('vehicles:detail', pk=vehiculo.pk)
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
+        procesar_imagenes = False
+        mostrar_imagenes = False
+        imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
 
     return render(request, 'vehicles/form.html', {
         'form': form,
+        'imagenes_formset': imagenes_formset,
+        'mostrar_imagenes': mostrar_imagenes,
         'action': 'crear',
     })
 
@@ -182,7 +247,7 @@ def vehiculo_publicar(request, pk):
 
 @login_required
 def vehiculo_update(request, pk):
-    """Actualizar los datos técnicos y de compra de un vehículo."""
+    """Actualizar un vehículo. Si cambian los importes, rehace el asiento."""
     vehiculo = get_object_or_404(Vehiculo, pk=pk)
 
     if not request.user.is_admin:
@@ -190,30 +255,72 @@ def vehiculo_update(request, pk):
         return redirect('vehicles:detail', pk=pk)
 
     if request.method == 'POST':
+        # Valor previo de la portada: si el vehículo sale de EN_VENTA hay que
+        # restaurarlo, porque validar el formulario ya vuelca el archivo nuevo
+        # sobre la instancia del modelo.
+        imagen_principal_previa = vehiculo.imagen_principal
+        economicos_previos = {
+            campo: getattr(vehiculo, campo)
+            for campo in VehiculoForm.CAMPOS_ECONOMICOS
+        }
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
-        if form.is_valid():
-            asiento_previo = vehiculo.asiento_contable
-            estado_previo = asiento_previo.estado if asiento_previo else None
-            vehiculo = form.save()
+        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
+        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
 
-            if estado_previo == 'POSTEADO':
-                # Compra ya contabilizada: no se toca la contabilidad.
-                messages.info(
+        if procesar_imagenes:
+            imagenes_formset = ImagenVehiculoFormSet(
+                request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
+            )
+        else:
+            imagenes_formset = ImagenVehiculoFormSet(
+                instance=vehiculo, prefix='imagenes'
+            )
+
+        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
+            nuevo_estado = form.cleaned_data.get('estado')
+            # Las fotos NO se borran al salir de EN_VENTA: se conservan ocultas.
+            tenia_fotos = bool(vehiculo.imagen_principal) or vehiculo.imagenes.exists()
+            if nuevo_estado != 'EN_VENTA':
+                form.cleaned_data.pop('imagen_principal', None)
+                form.instance.imagen_principal = imagen_principal_previa
+                if tenia_fotos:
+                    messages.info(
+                        request,
+                        'El vehículo ya no está EN VENTA: sus fotos se conservan '
+                        'ocultas y reaparecerán si vuelve a ese estado.',
+                    )
+
+            vehiculo = form.save()
+            if procesar_imagenes:
+                imagenes_formset.instance = vehiculo
+                imagenes_formset.save()
+            elif request.FILES.get('imagen_principal') or any(
+                f'imagenes-{i}-imagen' in request.FILES for i in range(0, 20)
+            ):
+                messages.error(
                     request,
-                    'Datos técnicos guardados. La compra ya estaba contabilizada, '
-                    'así que el asiento no se ha modificado.',
+                    'Las imágenes solo se pueden subir cuando el vehículo está '
+                    'en estado EN_VENTA.',
+                )
+
+            economicos_nuevos = {
+                campo: getattr(vehiculo, campo)
+                for campo in VehiculoForm.CAMPOS_ECONOMICOS
+            }
+            if economicos_previos == economicos_nuevos:
+                messages.success(
+                    request,
+                    'Vehículo actualizado. Los importes de compra no han '
+                    'cambiado: el asiento se mantiene.',
                 )
             else:
                 try:
-                    if vehiculo.asiento_contable:
-                        vehiculo.asiento_contable.delete()
-                        vehiculo.asiento_contable = None
-                    asiento = vehiculo.crear_asiento_contable()
-                    BancoMovimiento.objects.filter(vehiculo_asociado=vehiculo).delete()
-                    vehiculo.registrar_movimiento_banco(asiento=asiento)
+                    asiento = _regenerar_asiento_compra(vehiculo, request.user)
                     messages.success(
                         request,
-                        f'Vehículo actualizado. Asiento #{asiento.numero} regenerado.',
+                        f'Vehículo actualizado. Asiento #{asiento.numero} '
+                        f'regenerado con los nuevos importes (el anterior queda '
+                        f'anulado con su contrapartida).',
                     )
                 except Exception as e:
                     messages.warning(
@@ -225,10 +332,14 @@ def vehiculo_update(request, pk):
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm(instance=vehiculo)
+        mostrar_imagenes = vehiculo.estado == 'EN_VENTA'
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
 
     return render(request, 'vehicles/form.html', {
         'form': form,
         'vehiculo': vehiculo,
+        'imagenes_formset': imagenes_formset,
+        'mostrar_imagenes': mostrar_imagenes,
         'action': 'editar',
     })
 
