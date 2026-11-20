@@ -340,6 +340,52 @@ class VehiculoHojaComercialTests(TestCase):
         foto.refresh_from_db()
         self.assertEqual(foto.imagen.name, nombre_original)
 
+    def test_publicar_fija_la_fecha_de_publicacion(self):
+        """Al pasar a En Venta sin fecha, se registra el día de hoy."""
+        from django.utils import timezone
+
+        self.assertIsNone(self.vehiculo.fecha_publicacion)
+        self._publicar()
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.fecha_publicacion, timezone.localdate())
+        self.assertEqual(self.vehiculo.dias_en_venta, 0)
+
+    def test_la_fecha_de_publicacion_se_puede_corregir(self):
+        from datetime import date
+
+        self._publicar(fecha_publicacion='2026-07-15')
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.fecha_publicacion, date(2026, 7, 15))
+
+    def test_publicar_no_pisa_una_fecha_ya_registrada(self):
+        from datetime import date
+
+        self.vehiculo.estado = 'EN_VENTA'
+        self.vehiculo.fecha_publicacion = date(2026, 7, 1)
+        self.vehiculo.save()
+
+        self._publicar(precio_venta='12.500,00')
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.fecha_publicacion, date(2026, 7, 1))
+
+    def test_la_ficha_muestra_la_fecha_y_el_boton_editar(self):
+        from datetime import date
+
+        self.vehiculo.fecha_publicacion = date(2026, 7, 1)
+        self.vehiculo.save(update_fields=['fecha_publicacion'])
+
+        respuesta = self.client.get(
+            reverse('vehicles:detail', args=[self.vehiculo.pk])
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, '01/07/2026')
+        self.assertContains(respuesta, 'Datos comerciales')
+        self.assertContains(
+            respuesta,
+            reverse('vehicles:publicar', args=[self.vehiculo.pk]),
+        )
+
     def test_la_hoja_comercial_no_tiene_campos_de_compra(self):
         respuesta = self.client.get(
             reverse('vehicles:publicar', args=[self.vehiculo.pk])

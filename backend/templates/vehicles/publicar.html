@@ -11,6 +11,14 @@
         <p class="text-gray-500">
             {{ vehiculo.matricula }} · {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.anio }})
         </p>
+        {% if vehiculo.fecha_publicacion %}
+        <p class="text-sm text-green-700 mt-1">
+            Publicado desde el {{ vehiculo.fecha_publicacion|date:"d/m/Y" }}
+            ({{ vehiculo.dias_en_venta }} día{{ vehiculo.dias_en_venta|pluralize:"s" }})
+        </p>
+        {% else %}
+        <p class="text-sm text-gray-500 mt-1">Todavía no está publicado a la venta.</p>
+        {% endif %}
     </div>
 
     <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 text-sm">
@@ -50,6 +58,13 @@
                     {{ form.precio_venta }}
                     <p class="text-xs text-gray-500 mt-1">
                         Es el precio que verá el cliente en la web. Sin precio no aparece en el catálogo.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de publicación</label>
+                    {{ form.fecha_publicacion }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        Día desde el que está expuesto a la venta. Se rellena solo al pasar a «En Venta».
                     </p>
                 </div>
             </div>

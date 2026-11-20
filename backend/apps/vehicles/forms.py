@@ -364,7 +364,8 @@ class VehiculoComercialForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ['estado', 'precio_venta', 'descripcion_dano', 'imagen_principal']
+        fields = ['estado', 'precio_venta', 'fecha_publicacion',
+                  'descripcion_dano', 'imagen_principal']
         widgets = {
             'estado': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
@@ -374,14 +375,36 @@ class VehiculoComercialForm(forms.ModelForm):
                 'rows': '5',
                 'placeholder': 'Descripción comercial: equipamiento, estado, extras...',
             }),
+            'fecha_publicacion': forms.DateInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'type': 'date',
+            }, format='%Y-%m-%d'),
             'imagen_principal': forms.FileInput(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
                 'accept': 'image/*',
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fecha_publicacion'].input_formats = ['%Y-%m-%d', '%d/%m/%Y']
+        self.fields['estado'].help_text = (
+            'Al pasar a «En Venta» se registra la fecha de publicación.'
+        )
+
     def clean_precio_venta(self):
         return self.cleaned_data.get('precio_venta') or Decimal('0')
+
+    def clean_fecha_publicacion(self):
+        """Si el campo llega vacío se conserva la fecha ya registrada.
+
+        Evita que un guardado sin la fecha borre el día de publicación y el
+        `save()` lo vuelva a fijar a hoy.
+        """
+        valor = self.cleaned_data.get('fecha_publicacion')
+        if valor is None and self.instance.pk and self.instance.fecha_publicacion:
+            return self.instance.fecha_publicacion
+        return valor
 
     def clean_imagen_principal(self):
         """Reduce y optimiza la portada en la carpeta de la matrícula."""

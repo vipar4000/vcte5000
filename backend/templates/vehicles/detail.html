@@ -211,6 +211,41 @@
             </div>
             {% endif %}
             
+            <!-- Datos comerciales -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-semibold">🏷️ Datos comerciales</h3>
+                    {% if is_admin or is_vendedor %}
+                    <a href="{% url 'vehicles:publicar' vehiculo.pk %}"
+                       class="text-sm px-3 py-1 border border-eurocar-light text-eurocar-blue rounded hover:bg-blue-50 transition">
+                        ✏️ Editar
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Precio de venta</span>
+                        <span class="font-medium">
+                            {% if vehiculo.precio_venta %}{{ vehiculo.precio_venta|floatformat:2 }} €{% else %}—{% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Fecha de publicación</span>
+                        <span>
+                            {% if vehiculo.fecha_publicacion %}
+                                {{ vehiculo.fecha_publicacion|date:"d/m/Y" }}
+                                <span class="text-gray-500">({{ vehiculo.dias_en_venta }} d.)</span>
+                            {% else %}—{% endif %}
+                        </span>
+                    </div>
+                    {% if vehiculo.descripcion_dano %}
+                    <div class="pt-2 border-t text-gray-600">
+                        {{ vehiculo.descripcion_dano|truncatewords:25 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Información rápida -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-semibold mb-3">Información Rápida</h3>

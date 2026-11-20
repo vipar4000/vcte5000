@@ -180,6 +180,13 @@ class Vehiculo(models.Model):
         default=0,
         verbose_name='precio de venta'
     )
+
+    # Día desde el que está expuesto a la venta (se fija al pasar a EN_VENTA)
+    fecha_publicacion = models.DateField(
+        null=True, blank=True,
+        verbose_name='fecha de publicación',
+        help_text='Día desde el que el vehículo está expuesto a la venta.',
+    )
     
     # Descripción del daño
     descripcion_dano = models.TextField(
@@ -213,6 +220,9 @@ class Vehiculo(models.Model):
         return f"{self.marca} {self.modelo} ({self.matricula})"
     
     def save(self, *args, **kwargs):
+        # Al pasar a EN_VENTA sin fecha, se registra el día de publicación
+        if self.estado == 'EN_VENTA' and not self.fecha_publicacion:
+            self.fecha_publicacion = timezone.localdate()
         # Tolerante a valores vacíos (filas antiguas o importaciones): un None
         # aquí reventaba cualquier guardado con un TypeError.
         precio_subasta = self.precio_subasta or Decimal('0')
@@ -352,6 +362,13 @@ class Vehiculo(models.Model):
         """Días desde la adquisición."""
         return (timezone.now().date() - self.fecha_adquisicion).days
     
+    @property
+    def dias_en_venta(self):
+        """Días desde que se publicó a la venta (0 si no está publicado)."""
+        if not self.fecha_publicacion:
+            return 0
+        return max((timezone.localdate() - self.fecha_publicacion).days, 0)
+
     @property
     def disponible_para_venta(self):
         """Verifica si el vehículo está listo para la venta."""
