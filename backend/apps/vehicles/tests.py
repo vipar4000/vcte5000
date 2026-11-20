@@ -262,3 +262,148 @@ class VehiculoImagenesFormTests(TestCase):
             self.vehiculo.imagen_principal,
             'Las fotos deben conservarse al salir de EN_VENTA',
         )
+
+
+class VehiculoFormatoYPublicacionTest(TestCase):
+    """Formato de importes/fecha, publicación comercial y bloqueo contable."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vendedor = User.objects.create_user(
+            username='vendedor1', email='v1@eurocar.local',
+            password='vendedor123!', rol='VENDEDOR',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=100000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='ACONDICIONADO',
+            fecha_adquisicion=date(2026, 7, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), tipo_iva=Decimal('136.50'),
+            precio_venta=Decimal('11900.00'),
+            created_by=self.admin,
+        )
+
+    def _datos_tecnicos(self, **extra):
+        datos = {
+            'matricula': '1234ABC', 'bastidor': 'WVWZZZ3CZWE123456',
+            'marca': 'Volkswagen', 'modelo': 'Golf', 'anio': '2020',
+            'combustible': 'DIESEL', 'kilometraje': '100000',
+            'tipo_dano': 'ACCIDENTAL', 'etiqueta_ambiental': 'C',
+            'estado': 'ACONDICIONADO', 'fecha_adquisicion': '2026-07-01',
+            'plataforma_subasta': '', 'precio_subasta': '7.500,00',
+            'tasas_sala': '400,00', 'logistica_grua': '250,00',
+            'proveedor': 'Subastas Online', 'cif_nif': 'B12345678',
+            'numero_factura': 'FC-1', 'tipo_iva': '136,50',
+            'forma_pago': '', 'precio_venta': '11.900,00',
+            'descripcion_dano': '',
+        }
+        datos.update(extra)
+        return datos
+
+    def test_el_formulario_muestra_importes_y_fecha_correctos(self):
+        from apps.vehicles.forms import VehiculoForm
+
+        form = VehiculoForm(instance=self.vehiculo)
+        self.assertIn('value="7.500,00"', str(form['precio_subasta']))
+        self.assertIn('value="11.900,00"', str(form['precio_venta']))
+        self.assertIn('value="2026-07-01"', str(form['fecha_adquisicion']))
+
+    def test_acepta_formato_espanol_y_estandar(self):
+        from decimal import Decimal
+
+        from apps.vehicles.forms import VehiculoForm
+
+        espanol = VehiculoForm(self._datos_tecnicos(), instance=self.vehiculo)
+        self.assertTrue(espanol.is_valid(), espanol.errors)
+        self.assertEqual(espanol.cleaned_data['precio_subasta'], Decimal('7500.00'))
+        self.assertEqual(espanol.cleaned_data['logistica_grua'], Decimal('250.00'))
+
+        estandar = VehiculoForm(self._datos_tecnicos(
+            precio_subasta='7500.00', tasas_sala='400.00',
+            logistica_grua='250.00', precio_venta='11900.00',
+        ), instance=self.vehiculo)
+        self.assertTrue(estandar.is_valid(), estandar.errors)
+        self.assertEqual(estandar.cleaned_data['precio_subasta'], Decimal('7500.00'))
+
+    def test_guardar_dos_veces_no_multiplica_el_importe(self):
+        """Regresión del ×10.000: repetir el guardado no altera los costes."""
+        from decimal import Decimal
+
+        self.client.force_login(self.admin)
+        url = reverse('vehicles:update', args=[self.vehiculo.pk])
+
+        for _ in range(2):
+            respuesta = self.client.post(url, self._datos_tecnicos())
+            self.assertEqual(respuesta.status_code, 302)
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.precio_subasta, Decimal('7500.00'))
+        self.assertEqual(self.vehiculo.coste_inicial, Decimal('8150.00'))
+
+    def test_publicar_solo_cambia_datos_comerciales(self):
+        from decimal import Decimal
+
+        self.client.force_login(self.vendedor)
+        datos = {
+            'estado': 'EN_VENTA',
+            'precio_venta': '11.900,00',
+            'descripcion_dano': 'Buen estado, un solo dueño.',
+            'imagenes-TOTAL_FORMS': '0',
+            'imagenes-INITIAL_FORMS': '0',
+            'imagenes-MIN_NUM_FORMS': '0',
+            'imagenes-MAX_NUM_FORMS': '15',
+        }
+        respuesta = self.client.post(
+            reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+        self.assertEqual(self.vehiculo.precio_venta, Decimal('11900.00'))
+        # Los costes de compra no se tocan desde la pantalla comercial
+        self.assertEqual(self.vehiculo.precio_subasta, Decimal('7500.00'))
+        self.assertEqual(self.vehiculo.coste_inicial, Decimal('8150.00'))
+
+    def test_operario_no_puede_publicar(self):
+        operario = User.objects.create_user(
+            username='mecanico1', email='m1@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+        )
+        self.client.force_login(operario)
+        respuesta = self.client.get(
+            reverse('vehicles:publicar', args=[self.vehiculo.pk])
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+    def test_campos_financieros_bloqueados_con_asiento_posteado(self):
+        from decimal import Decimal
+
+        from apps.vehicles.forms import VehiculoForm
+
+        asiento = self.vehiculo.crear_asiento_contable()
+        asiento.estado = 'POSTEADO'
+        asiento.save(update_fields=['estado'])
+
+        form = VehiculoForm(instance=self.vehiculo)
+        self.assertIn('precio_subasta', form.campos_bloqueados)
+        self.assertIn('tasas_sala', form.campos_bloqueados)
+        self.assertTrue(form.fields['precio_subasta'].disabled)
+
+        # Aunque lleguen otros importes, el campo deshabilitado conserva el suyo
+        form_post = VehiculoForm(
+            self._datos_tecnicos(precio_subasta='99.999,00'), instance=self.vehiculo
+        )
+        self.assertTrue(form_post.is_valid(), form_post.errors)
+        self.assertEqual(form_post.cleaned_data['precio_subasta'], Decimal('7500.00'))

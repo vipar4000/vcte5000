@@ -513,17 +513,34 @@ forma_pago=Caja Chica</code></pre>
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
 <div class="warning-box">
-    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. En cualquier otro estado (ADQUIRIDO, TALLER, ACONDICIONADO, VENDIDO) los campos de imagen permanecen ocultos en el formulario y aparecen al seleccionar <strong>EN_VENTA</strong> en el campo Estado. Si un vehiculo deja de estar EN_VENTA, sus imagenes se eliminan automaticamente.
+    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. Use para ello la pantalla <strong>&#128226; Publicar</strong>. Si el vehiculo deja de estar EN_VENTA, sus imagenes <strong>se conservan</strong> (ocultas) y vuelven a mostrarse al regresar a ese estado.
 </div>
 
-<h4>Subir Imagenes (procedimiento)</h4>
+<h4>Publicar el vehiculo (procedimiento)</h4>
 <ol class="steps">
-    <li>Registre el vehiculo (estado inicial ADQUIRIDO u otro).</li>
-    <li>En el formulario de <strong>Editar</strong> del vehiculo, seleccione el estado <strong>EN_VENTA</strong> y fije el <strong>precio de venta</strong>: los campos <strong>"Imagen Principal"</strong> y <strong>"Imagenes Adicionales"</strong> aparecen inmediatamente en el mismo formulario.</li>
-    <li>En "Imagen Principal", haga clic en <strong>"Seleccionar archivo"</strong> y elija la imagen (JPG/PNG).</li>
-    <li>En "Imagenes Adicionales" puede anadir mas fotos, marcar la principal y ordenarlas.</li>
-    <li>Haga clic en <strong>"Guardar Cambios"</strong>.</li>
+    <li>Abra la ficha del vehiculo y pulse <strong>&#128226; Publicar</strong> (tambien esta el enlace en el listado).</li>
+    <li>Fije el <strong>Estado</strong> (En Venta), el <strong>Precio de venta</strong> y la <strong>descripcion comercial</strong>.</li>
+    <li>Adjunte la <strong>Imagen Principal</strong> y las <strong>fotos adicionales</strong>, indicando su <strong>Orden</strong>.</li>
+    <li>Pulse <strong>"Guardar datos comerciales"</strong>.</li>
 </ol>
+
+<div class="info-box">
+    <strong>Por que una pantalla aparte:</strong> esta pantalla no muestra ni permite tocar los
+    costes de compra (subasta, tasas, grua, IVA) ni los datos de la factura. Asi el equipo de
+    ventas trabaja sin ver margenes y una edicion comercial no puede descuadrar la contabilidad.
+</div>
+
+<div class="warning-box">
+    <strong>Datos economicos bloqueados:</strong> si la compra del vehiculo ya esta contabilizada
+    (asiento en estado POSTEADO), el formulario de edicion tecnica muestra los importes, la factura
+    y la forma de pago <strong>en gris y sin poder cambiarlos</strong>. Para corregirlos hay que
+    anular antes el asiento en <strong>Contabilidad &gt; Asientos</strong>.
+</div>
+
+<h4>Formato de los importes y la fecha</h4>
+<p>Los importes se muestran en formato espanol (<code>7.500,00</code>) y se pueden escribir con
+puntos de miles y coma decimal o con el formato estandar (<code>7500.00</code>): el sistema
+interpreta ambos igual. La fecha de adquisicion usa el selector del navegador (AAAA-MM-DD).</p>
 
 <div class="info-box">
     <strong>Como funciona el selector:</strong> El boton "Seleccionar archivo" es un control nativo del navegador. Por seguridad, el ERP <strong>no puede controlar</strong> que carpeta abre el explorador de Windows: este muestra la ultima carpeta usada o su ubicacion por defecto (puede aparecer, por ejemplo, <code>C:\eurocar\backend\manual</code>). Solo debe <strong>navegar</strong> hasta la imagen que desee; el archivo NO se guarda en esa carpeta de origen, sino en <code>media/vehiculos/</code> (o en R2 en produccion). Para probar, puede usar la imagen de ejemplo en <code>backend/manual/ejemplos/vehiculo_ejemplo.jpg</code>.

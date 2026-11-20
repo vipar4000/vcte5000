@@ -28,6 +28,16 @@
         </div>
         {% endif %}
         
+        {% if form.campos_bloqueados %}
+        <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 text-sm">
+            <strong>Datos económicos bloqueados:</strong> la compra de este vehículo ya está
+            contabilizada (asiento posteado), así que no se pueden cambiar los importes, el
+            proveedor, la factura ni la forma de pago. Para corregirlos, anule antes el asiento
+            en <strong>Contabilidad → Asientos</strong>. Para precio de venta, descripción y
+            fotos use <strong>📢 Publicar</strong>.
+        </div>
+        {% endif %}
+
         <fieldset>
             <legend class="text-lg font-semibold mb-4">Datos Tecnicos</legend>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -289,6 +299,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/vehiculo-costes.js' %}?v=4"></script>
+<script src="{% static 'js/vehiculo-costes.js' %}?v=5"></script>
 <script src="{% static 'js/vehiculo-imagenes.js' %}?v=2"></script>
 {% endblock %}

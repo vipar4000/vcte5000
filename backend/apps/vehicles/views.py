@@ -5,7 +5,10 @@ from django.http import JsonResponse
 from django.db.models import Q
 from decimal import Decimal
 from .models import Vehiculo, ImagenVehiculo
-from .forms import VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet
+from .forms import (
+    VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet,
+    VehiculoComercialForm,
+)
 
 
 @login_required
@@ -130,6 +133,52 @@ def vehiculo_create(request):
         'action': 'crear',
     }
     return render(request, 'vehicles/form.html', context)
+
+
+@login_required
+def vehiculo_publicar(request, pk):
+    """Publicar el vehículo: estado, precio de venta, descripción y fotos.
+
+    Es una acción separada de la edición técnica a propósito: aquí no se tocan
+    los costes de compra ni la contabilidad, así que el equipo de ventas puede
+    trabajar sin ver márgenes y sin riesgo de descuadrar el asiento.
+    """
+    if not (request.user.is_admin or request.user.is_vendedor):
+        messages.error(request, 'No tiene permisos para publicar vehículos.')
+        return redirect('vehicles:detail', pk=pk)
+
+    vehiculo = get_object_or_404(Vehiculo, pk=pk)
+
+    if request.method == 'POST':
+        form = VehiculoComercialForm(request.POST, request.FILES, instance=vehiculo)
+        procesar_imagenes = 'imagenes-TOTAL_FORMS' in request.POST
+        if procesar_imagenes:
+            imagenes_formset = ImagenVehiculoFormSet(
+                request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
+            )
+        else:
+            imagenes_formset = ImagenVehiculoFormSet(
+                instance=vehiculo, prefix='imagenes'
+            )
+
+        if form.is_valid() and (
+            not procesar_imagenes or imagenes_formset.is_valid()
+        ):
+            form.save()
+            if procesar_imagenes:
+                imagenes_formset.save()
+            messages.success(request, 'Datos comerciales y fotos actualizados.')
+            return redirect('vehicles:detail', pk=vehiculo.pk)
+        messages.error(request, 'Por favor, corrija los errores del formulario.')
+    else:
+        form = VehiculoComercialForm(instance=vehiculo)
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
+
+    return render(request, 'vehicles/publicar.html', {
+        'form': form,
+        'vehiculo': vehiculo,
+        'imagenes_formset': imagenes_formset,
+    })
 
 
 @login_required

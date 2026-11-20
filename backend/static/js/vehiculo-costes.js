@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vehiculo costes: formateo numerico espanol + calculo automatico.
  *
  * Formato visual:  1.234.567,89  (punto miles, coma decimal)
@@ -10,6 +10,8 @@
     'use strict';
 
     var FIELD_IDS = ['id_precio_subasta', 'id_tasas_sala', 'id_logistica_grua'];
+    // Campos que se formatean aunque no sumen al coste de compra
+    var MONETARY_FIELD_IDS = FIELD_IDS.concat(['id_precio_venta']);
     var PERCENTAGE_FIELD_IDS = ['id_tipo_iva'];
     var IVA_RATE_ID = 'id_tipo_iva_rate';
     var display;
@@ -39,10 +41,22 @@
         return negative ? '-' + result : result;
     }
 
-    /** "1.234.567,89" → "1234567.89"  (para envio a Django) */
+    /** "1.234.567,89" → "1234567.89"  (para envio a Django)
+     *
+     * Si el valor ya viene en formato estándar ("7500.00") se devuelve tal
+     * cual: antes se eliminaban todos los puntos y el importe se multiplicaba
+     * por 100 en cada formateo (7.500 → 750.000 → 75.000.000).
+     */
     function parseSpanish(str) {
-        if (!str || str === '') return '';
-        return str.replace(/%/g, '').replace(/\./g, '').replace(',', '.');
+        if (str === null || str === undefined) return '';
+        var s = String(str).replace(/%/g, '').replace(/\s/g, '').trim();
+        if (!s) return '';
+        if (s.indexOf(',') !== -1) {
+            // Formato español: los puntos son miles y la coma es decimal
+            return s.replace(/\./g, '').replace(',', '.');
+        }
+        // Formato estándar: el punto ya es el decimal
+        return s;
     }
 
     /** Extrae solo digitos, un punto y hasta 2 decimales del valor crudo */
@@ -119,14 +133,12 @@
     /* ── Pre-cargar formato al iniciar ────────────────────────────── */
 
     function precacheFormat() {
-        var allIds = FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
+        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
         for (var i = 0; i < allIds.length; i++) {
             var el = document.getElementById(allIds[i]);
             if (el && el.value) {
-                var raw = el.value;
-                if (raw.indexOf('.') !== -1 && raw.indexOf(',') === -1) {
-                    el.value = formatSpanish(raw);
-                }
+                // Idempotente: da igual si llega "7500.00" o "7.500,00"
+                el.value = formatSpanish(parseSpanish(el.value));
             }
         }
         calculateTotal();
@@ -136,7 +148,7 @@
     /* ── Limpiar formato antes de enviar ──────────────────────────── */
 
     function cleanBeforeSubmit() {
-        var allIds = FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
+        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
         for (var i = 0; i < allIds.length; i++) {
             var el = document.getElementById(allIds[i]);
             if (el) {
@@ -150,7 +162,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         display = document.getElementById('coste-inicial-display');
 
-        var allIds = FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
+        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
         for (var i = 0; i < allIds.length; i++) {
             var el = document.getElementById(allIds[i]);
             if (el) {

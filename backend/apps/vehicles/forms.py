@@ -10,8 +10,78 @@ from .models import Vehiculo, ImagenVehiculo
 MAX_IMAGENES = 15
 
 
+def parsear_importe(valor):
+    """Convierte un importe escrito por el usuario a ``Decimal``.
+
+    Acepta ``7500.00``, ``7500,00``, ``7.500,00`` y ``7.500`` sin ambigüedad:
+    si hay coma, los puntos son separadores de miles; si solo hay puntos, el
+    último es decimal (formato estándar).
+
+    Antes bastaba un punto de miles para que ``7.500,00`` se leyera como 7,5, y
+    al reformatear un valor estándar (``7500.00``) se multiplicaba por 100.
+    """
+    if valor is None:
+        return None
+    texto = str(valor).strip().replace(' ', '').replace('€', '').replace('%', '')
+    if not texto:
+        return None
+    if ',' in texto:
+        # Formato español: 1.234,56
+        texto = texto.replace('.', '').replace(',', '.')
+    try:
+        return Decimal(texto)
+    except (InvalidOperation, ValueError):
+        raise ValidationError('Introduzca un número válido, por ejemplo 1.234,56.')
+
+
+class ImporteField(forms.DecimalField):
+    """DecimalField que entiende el formato español (1.234,56)."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('max_digits', 12)
+        kwargs.setdefault('decimal_places', 2)
+        # Renderiza en formato español (7.500,00). El parseo lo hace
+        # parsear_importe(), así que no depende de esta opción.
+        kwargs.setdefault('localize', True)
+        if 'widget' not in kwargs:
+            kwargs['widget'] = forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
+                'placeholder': '0,00',
+                'inputmode': 'decimal',
+            })
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return None
+        return parsear_importe(value)
+
+
 class VehiculoForm(forms.ModelForm):
     """Formulario para crear/editar vehículos."""
+
+    # Importes: aceptan coma decimal y puntos de miles (ver parsear_importe)
+    precio_subasta = ImporteField(label='Precio de adjudicación (€)')
+    tasas_sala = ImporteField(label='Tasas de la sala (€)')
+    logistica_grua = ImporteField(label='Logística/grúa (€)')
+    precio_venta = ImporteField(label='Precio de venta (€)', required=False)
+
+    # El input type="date" del navegador exige YYYY-MM-DD
+    fecha_adquisicion = forms.DateField(
+        label='Fecha de adquisición',
+        widget=forms.DateInput(
+            format='%Y-%m-%d',
+            attrs={'class': 'w-full px-3 py-2 border rounded-lg', 'type': 'date'},
+        ),
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+    )
+
+    # Campos que no se tocan si la compra ya está contabilizada
+    CAMPOS_FINANCIEROS = (
+        'precio_subasta', 'tasas_sala', 'logistica_grua', 'tipo_iva',
+        'forma_pago', 'plataforma_subasta', 'proveedor', 'cif_nif',
+        'numero_factura', 'factura_compra_pdf',
+    )
 
     tipo_iva = forms.CharField(
         required=False,
@@ -141,6 +211,23 @@ class VehiculoForm(forms.ModelForm):
         # precio_venta no se exige al crear: se fija al pasar a EN_VENTA (default 0)
         self.fields['precio_venta'].required = False
 
+        # Si la compra ya está contabilizada, los datos económicos se bloquean:
+        # cualquier cambio descuadraría el asiento y el coste del vehículo.
+        self.campos_bloqueados = []
+        asiento = getattr(self.instance, 'asiento_contable', None)
+        if self.instance.pk and asiento and asiento.estado == 'POSTEADO':
+            for nombre in self.CAMPOS_FINANCIEROS:
+                if nombre in self.fields:
+                    self.fields[nombre].disabled = True
+                    self.campos_bloqueados.append(nombre)
+
+    def clean(self):
+        datos = super().clean()
+        for nombre in ('precio_subasta', 'tasas_sala', 'logistica_grua', 'precio_venta'):
+            if datos.get(nombre) is None:
+                datos[nombre] = Decimal('0')
+        return datos
+
     def clean_precio_venta(self):
         # Vacio -> 0 (el campo del modelo no admite NULL, tiene default=0)
         return self.cleaned_data.get('precio_venta') or Decimal('0')
@@ -164,14 +251,10 @@ class VehiculoForm(forms.ModelForm):
         return anio
 
     def clean_tipo_iva(self):
-        val = self.cleaned_data.get('tipo_iva', '').strip()
+        val = (self.cleaned_data.get('tipo_iva') or '').strip()
         if not val:
             return Decimal('0')
-        val = val.replace('%', '').replace(',', '.').strip()
-        try:
-            return Decimal(val)
-        except InvalidOperation:
-            raise forms.ValidationError('Introduzca un número válido.')
+        return parsear_importe(val)
 
     def clean_imagen_principal(self):
         """Reduce la foto y la guarda en la carpeta de la matrícula."""
@@ -278,3 +361,35 @@ ImagenVehiculoFormSet = inlineformset_factory(
     max_num=MAX_IMAGENES,
     can_delete=True,
 )
+
+
+class VehiculoComercialForm(forms.ModelForm):
+    """Publicación comercial del vehículo.
+
+    Solo estado, precio de venta, descripción e imagen de portada. No incluye
+    ningún dato de compra ni coste: así una edición comercial no puede alterar
+    la contabilidad ya registrada ni expone márgenes al equipo de ventas.
+    """
+
+    precio_venta = ImporteField(label='Precio de venta (€)', required=False)
+
+    class Meta:
+        model = Vehiculo
+        fields = ['estado', 'precio_venta', 'descripcion_dano', 'imagen_principal']
+        widgets = {
+            'estado': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'descripcion_dano': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'rows': '5',
+                'placeholder': 'Descripción comercial: equipamiento, estado, extras...',
+            }),
+            'imagen_principal': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'accept': 'image/*',
+            }),
+        }
+
+    def clean_precio_venta(self):
+        return self.cleaned_data.get('precio_venta') or Decimal('0')

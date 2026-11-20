@@ -14,6 +14,12 @@
             <p class="text-gray-500">{{ vehiculo.matricula }} | {{ vehiculo.bastidor }}</p>
         </div>
         <div class="flex gap-2">
+            {% if is_admin or is_vendedor %}
+            <a href="{% url 'vehicles:publicar' vehiculo.pk %}" 
+               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                📢 Publicar
+            </a>
+            {% endif %}
             {% if is_admin %}
             <a href="{% url 'vehicles:update' vehiculo.pk %}" 
                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
