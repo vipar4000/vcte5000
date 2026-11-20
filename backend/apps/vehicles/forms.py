@@ -31,6 +31,15 @@ def parsear_importe(valor):
     if ',' in texto:
         # Formato español: 1.234,56
         texto = texto.replace('.', '').replace(',', '.')
+    else:
+        partes = texto.split('.')
+        if len(partes) > 2:
+            # 1.234.567 -> 1234567 (puntos de miles)
+            texto = ''.join(partes)
+        elif len(partes) == 2 and len(partes[1]) == 3:
+            # 7.500 -> 7500 (un solo punto con 3 cifras es separador de miles).
+            # Sin esto se leía como 7,5 y los importes se dividían por 1000.
+            texto = ''.join(partes)
     try:
         return Decimal(texto)
     except (InvalidOperation, ValueError):

@@ -264,17 +264,38 @@ class VehiculoFormEdicionTests(TestCase):
         self.assertNotEqual(nuevo.pk, asiento_viejo.pk)
         self.assertEqual(nuevo.estado, 'POSTEADO')
 
-    def test_editar_sin_cambiar_importes_conserva_el_asiento(self):
+    def test_editar_siempre_regenera_el_asiento(self):
+        """Guardar el vehículo rehace la contabilidad (sin mensajes de "no cambió")."""
+        from apps.accounting.models import AsientoContable
+
         asiento = self.vehiculo.crear_asiento_contable()
 
         respuesta = self._editar(kilometraje='150000')
         self.assertEqual(respuesta.status_code, 302)
 
         asiento.refresh_from_db()
-        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.assertEqual(asiento.estado, 'ANULADO')
+        self.assertTrue(
+            AsientoContable.objects.filter(tipo_documento='AnulacionVehiculo').exists()
+        )
         self.vehiculo.refresh_from_db()
         self.assertEqual(self.vehiculo.kilometraje, 150000)
-        self.assertEqual(self.vehiculo.asiento_contable_id, asiento.pk)
+        self.assertNotEqual(self.vehiculo.asiento_contable_id, asiento.pk)
+        self.assertEqual(self.vehiculo.asiento_contable.estado, 'POSTEADO')
+
+    def test_parseo_de_importes_sin_ambiguedad(self):
+        """7.500 son siete mil quinientos; 7.500,50 son 7500,50."""
+        from decimal import Decimal
+
+        from apps.vehicles.forms import parsear_importe
+
+        self.assertEqual(parsear_importe('7500'), Decimal('7500'))
+        self.assertEqual(parsear_importe('7500.00'), Decimal('7500.00'))
+        self.assertEqual(parsear_importe('7500,00'), Decimal('7500.00'))
+        self.assertEqual(parsear_importe('7.500'), Decimal('7500'))
+        self.assertEqual(parsear_importe('7.500,00'), Decimal('7500.00'))
+        self.assertEqual(parsear_importe('7.500,50'), Decimal('7500.50'))
+        self.assertEqual(parsear_importe('1.234.567,89'), Decimal('1234567.89'))
 
 
 class CorregirCosteVehiculoCommandTests(TestCase):

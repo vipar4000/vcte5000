@@ -196,10 +196,6 @@ def vehiculo_update(request, pk):
         # restaurarlo, porque validar el formulario ya vuelca el archivo nuevo
         # sobre la instancia del modelo.
         imagen_principal_previa = vehiculo.imagen_principal
-        economicos_previos = {
-            campo: getattr(vehiculo, campo)
-            for campo in VehiculoForm.CAMPOS_ECONOMICOS
-        }
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
         mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
         procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
@@ -240,31 +236,21 @@ def vehiculo_update(request, pk):
                     'en estado EN_VENTA.',
                 )
 
-            economicos_nuevos = {
-                campo: getattr(vehiculo, campo)
-                for campo in VehiculoForm.CAMPOS_ECONOMICOS
-            }
-            if economicos_previos == economicos_nuevos:
+            # La contabilidad se rehace siempre: si había asiento se anula con
+            # contrapartida y se crea el nuevo con los importes guardados.
+            try:
+                asiento = _regenerar_asiento_compra(vehiculo, request.user)
                 messages.success(
                     request,
-                    'Vehículo actualizado. Los importes de compra no han '
-                    'cambiado: el asiento se mantiene.',
+                    f'Vehículo actualizado. Asiento #{asiento.numero} regenerado '
+                    f'(el anterior queda anulado con su contrapartida).',
                 )
-            else:
-                try:
-                    asiento = _regenerar_asiento_compra(vehiculo, request.user)
-                    messages.success(
-                        request,
-                        f'Vehículo actualizado. Asiento #{asiento.numero} '
-                        f'regenerado con los nuevos importes (el anterior queda '
-                        f'anulado con su contrapartida).',
-                    )
-                except Exception as e:
-                    messages.warning(
-                        request,
-                        f'Vehículo actualizado, pero no se pudo regenerar el '
-                        f'asiento: {e}',
-                    )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Vehículo actualizado, pero no se pudo regenerar el '
+                    f'asiento: {e}',
+                )
             return redirect('vehicles:detail', pk=vehiculo.pk)
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
