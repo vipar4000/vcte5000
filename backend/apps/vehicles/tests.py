@@ -407,3 +407,78 @@ class VehiculoFormatoYPublicacionTest(TestCase):
         )
         self.assertTrue(form_post.is_valid(), form_post.errors)
         self.assertEqual(form_post.cleaned_data['precio_subasta'], Decimal('7500.00'))
+
+    def test_publicar_no_devuelve_500_si_falla_el_guardado(self):
+        """La vista informa del error en vez de romper con un 500."""
+        from unittest.mock import patch
+
+        from apps.vehicles.forms import VehiculoComercialForm
+
+        self.client.force_login(self.admin)
+        datos = {
+            'estado': 'EN_VENTA', 'precio_venta': '11.900,00',
+            'descripcion_dano': 'x',
+            'imagenes-TOTAL_FORMS': '0', 'imagenes-INITIAL_FORMS': '0',
+            'imagenes-MIN_NUM_FORMS': '0', 'imagenes-MAX_NUM_FORMS': '15',
+        }
+        with patch.object(
+            VehiculoComercialForm, 'save', side_effect=RuntimeError('fallo simulado')
+        ):
+            respuesta = self.client.post(
+                reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+            )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'No se pudieron guardar los datos comerciales')
+        self.assertContains(respuesta, 'fallo simulado')
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'ACONDICIONADO')
+
+    def test_publicar_con_foto_reemplazada_y_error_no_rompe(self):
+        """Regresión: re-renderizar con una foto nueva sin guardar no debe fallar."""
+        from io import BytesIO
+
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.vehicles.forms import ImagenVehiculoForm
+        from django.test import override_settings
+        import tempfile
+        import shutil
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+
+        def png(color):
+            buf = BytesIO()
+            Image.new('RGB', (400, 300), color=color).save(buf, 'PNG')
+            return buf.getvalue()
+
+        with override_settings(MEDIA_ROOT=media):
+            from apps.vehicles.models import ImagenVehiculo
+
+            foto = ImagenVehiculo.objects.create(
+                vehiculo=self.vehiculo, orden=1,
+                imagen=SimpleUploadedFile('v.png', png('blue'), content_type='image/png'),
+            )
+            self.client.force_login(self.admin)
+            datos = {
+                'estado': 'ESTADO_QUE_NO_EXISTE',  # fuerza re-render con errores
+                'precio_venta': '11.900,00', 'descripcion_dano': 'x',
+                'imagenes-TOTAL_FORMS': '2', 'imagenes-INITIAL_FORMS': '1',
+                'imagenes-MIN_NUM_FORMS': '0', 'imagenes-MAX_NUM_FORMS': '15',
+                'imagenes-0-id': str(foto.pk), 'imagenes-0-orden': '1',
+                'imagenes-1-orden': '',
+                'imagenes-0-imagen': SimpleUploadedFile(
+                    'nueva.png', png('green'), content_type='image/png'
+                ),
+            }
+            respuesta = self.client.post(
+                reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+            )
+            self.assertEqual(respuesta.status_code, 200)
+
+            # El formulario vuelve a mostrar la miniatura de la foto guardada
+            form = respuesta.context['imagenes_formset'].forms[0]
+            self.assertIsInstance(form, ImagenVehiculoForm)
+            self.assertTrue(form.url_actual().startswith('/media/'))

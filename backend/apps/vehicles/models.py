@@ -213,13 +213,17 @@ class Vehiculo(models.Model):
         return f"{self.marca} {self.modelo} ({self.matricula})"
     
     def save(self, *args, **kwargs):
-        self.coste_inicial = (
-            self.precio_subasta + 
-            self.tasas_sala + 
-            self.logistica_grua
-        )
-        self.coste_total_adquisicion = self.precio_subasta + self.tasas_sala + self.logistica_grua
-        self.cuota_iva = self.tipo_iva
+        # Tolerante a valores vacíos (filas antiguas o importaciones): un None
+        # aquí reventaba cualquier guardado con un TypeError.
+        precio_subasta = self.precio_subasta or Decimal('0')
+        tasas_sala = self.tasas_sala or Decimal('0')
+        logistica_grua = self.logistica_grua or Decimal('0')
+        self.precio_subasta = precio_subasta
+        self.tasas_sala = tasas_sala
+        self.logistica_grua = logistica_grua
+        self.coste_inicial = precio_subasta + tasas_sala + logistica_grua
+        self.coste_total_adquisicion = self.coste_inicial
+        self.cuota_iva = self.tipo_iva or Decimal('0')
         super().save(*args, **kwargs)
     
     def crear_asiento_contable(self):

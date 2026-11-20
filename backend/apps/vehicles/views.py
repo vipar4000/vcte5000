@@ -2,13 +2,17 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db import transaction
 from django.db.models import Q
+import logging
 from decimal import Decimal
 from .models import Vehiculo, ImagenVehiculo
 from .forms import (
     VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet,
     VehiculoComercialForm,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -164,12 +168,28 @@ def vehiculo_publicar(request, pk):
         if form.is_valid() and (
             not procesar_imagenes or imagenes_formset.is_valid()
         ):
-            form.save()
-            if procesar_imagenes:
-                imagenes_formset.save()
-            messages.success(request, 'Datos comerciales y fotos actualizados.')
-            return redirect('vehicles:detail', pk=vehiculo.pk)
-        messages.error(request, 'Por favor, corrija los errores del formulario.')
+            try:
+                with transaction.atomic():
+                    form.save()
+                    if procesar_imagenes:
+                        imagenes_formset.save()
+            except Exception as error:
+                # Nunca devolver un 500 por aquí: se informa del motivo real y,
+                # si algo se guardó a medias, la transacción lo revierte.
+                logger.exception(
+                    'Error al guardar los datos comerciales del vehículo %s',
+                    vehiculo.pk,
+                )
+                messages.error(
+                    request,
+                    f'No se pudieron guardar los datos comerciales: {error}. '
+                    f'No se cambió nada.',
+                )
+            else:
+                messages.success(request, 'Datos comerciales y fotos actualizados.')
+                return redirect('vehicles:detail', pk=vehiculo.pk)
+        else:
+            messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoComercialForm(instance=vehiculo)
         imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')

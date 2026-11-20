@@ -307,6 +307,21 @@ class ImagenVehiculoForm(forms.ModelForm):
         # Las filas vacías (sin archivo) no bloquean el envío del formulario
         self.fields['imagen'].required = False
 
+    def url_actual(self):
+        """URL de la foto ya guardada (no la recién subida, que aún no tiene).
+
+        La plantilla la usa para la miniatura: `instance.imagen` puede contener
+        el archivo recién subido cuando el formulario se vuelve a mostrar por un
+        error de validación, y en ese caso `.url` no existe.
+        """
+        nombre = (self.initial or {}).get('imagen') or ''
+        if not nombre:
+            return ''
+        try:
+            return self.instance.imagen.storage.url(nombre)
+        except Exception:
+            return ''
+
     def clean_imagen(self):
         """Reduce la foto y la guarda en la carpeta de la matrícula."""
         archivo = self.cleaned_data.get('imagen')

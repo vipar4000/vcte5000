@@ -87,8 +87,8 @@
                 {% for img_form in imagenes_formset %}
                 <div class="imagen-row flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg">
                     {{ img_form.id }}
-                    {% if img_form.instance.pk and img_form.instance.imagen %}
-                    <img src="{{ img_form.instance.imagen.url }}" alt="Foto" class="h-14 w-20 object-cover rounded">
+                    {% if img_form.url_actual %}
+                    <img src="{{ img_form.url_actual }}" alt="Foto" class="h-14 w-20 object-cover rounded">
                     {% endif %}
                     <div class="flex-1 min-w-[200px]">
                         {{ img_form.imagen }}
