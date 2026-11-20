@@ -2575,7 +2575,8 @@ PyG: 611 refleja la variacion de existencias
     <li>Haga clic en la reserva que desea convertir</li>
     <li>Haga clic en <strong>"Convertir en Venta"</strong></li>
     <li>Se abre el formulario de venta con el vehiculo pre-seleccionado</li>
-    <li>Registra la venta normalmente (precio completo, metodo de pago, etc.)</li>
+    <li>Registra la venta normalmente: escriba el <strong>precio completo</strong> (por ejemplo 18.000). El sistema descuenta solo la senal ya cobrada.</li>
+    <li>Guarde: la reserva queda como <strong>CONVERTIDA</strong> y enlazada con la venta.</li>
 </ol>
 
 <h3>Ejemplo completo</h3>
@@ -2588,14 +2589,23 @@ PyG: 611 refleja la variacion de existencias
 <h3>Efecto contable al convertir</h3>
 <table class="mt-4">
     <tr><th>Operacion</th><th>DEBE</th><th>HABER</th><th>Importe</th></tr>
-    <tr><td>Asiento REBU (venta precio completo)</td><td>572 Banco</td><td>700 + 471 + 310</td><td>18.000 EUR</td></tr>
-    <tr><td>Cobro del resto (17.500)</td><td>572 Banco</td><td>430 Clientes</td><td>17.500 EUR</td></tr>
+    <tr><td>Asiento de la venta (senal aplicada)</td><td>572 Banco (resto) + 438 + 477</td><td>700 + 471 + 310</td><td>18.000 EUR</td></tr>
+    <tr><td>Ingreso bancario de la venta</td><td>572 Banco</td><td>&mdash;</td><td>17.500 EUR</td></tr>
+    <tr><td>Ingreso de la senal (ya registrado)</td><td>572 Banco</td><td>&mdash;</td><td>500 EUR</td></tr>
 </table>
 
 <div class="warning-box">
-    <strong>Nota:</strong> El anticipo de 500 EUR queda registrado en cuenta 438.
-    Se compensa automaticamente cuando el cliente paga el resto.
-    El asiento de venta REBU se genera por el precio completo (18.000 EUR).
+    <strong>Importante:</strong> la senal no se cobra dos veces. El banco suma la senal (500) mas el resto
+    (17.500) = 18.000 EUR, que es el precio. En el asiento de la venta se cancelan el anticipo
+    (438) y su IVA (477) de la reserva, de modo que no queda ningun saldo pendiente en esas cuentas.
+</div>
+
+<div class="info-box">
+    <strong>Ventas antiguas:</strong> si alguna venta ya registrada tiene <strong>dos ingresos</strong>
+    (la senal y otra vez el precio completo) y la reserva sigue activa, corrijala con
+    <code>python manage.py reparar_venta_con_reserva --matricula 1234ABC</code>
+    (o <code>--todas --dry-run</code> para verlo antes). Anula el asiento anterior con contrapartida,
+    deja un solo cobro por el resto y convierte la reserva.
 </div>
 
 <h2 id="capitulo-10-3">10.3 Cancelar Reserva</h2>

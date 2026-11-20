@@ -168,8 +168,8 @@ class VentaVehiculo(models.Model):
             self.pagada = True
         self.save(update_fields=['total_cobrado', 'pagada'])
     
-    def crear_asiento_contable(self):
-        """Genera asiento contable automático para esta venta REBU."""
+    def crear_asiento_contable(self, anticipo=None):
+        """Genera el asiento de la venta, aplicando la señal ya cobrada."""
         from django.db import transaction
         from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
         from apps.accounting.views import generar_numero_asiento
@@ -191,24 +191,38 @@ class VentaVehiculo(models.Model):
                 created_by=self.created_by,
             )
 
-            # Debe: según método de pago
-            if self.metodo_pago in ('EFECTIVO', 'TRANSFERENCIA'):
-                MovimientoContable.objects.create(
-                    asiento=asiento, cuenta=cuenta_banco,
-                    debe=self.precio_venta, haber=Decimal('0'),
-                    descripcion=f"Cobro cliente {self.cliente_nombre}",
-                )
-            elif self.metodo_pago == 'FINANCIADO':
-                MovimientoContable.objects.create(
-                    asiento=asiento, cuenta=cuenta_clientes,
-                    debe=self.precio_venta, haber=Decimal('0'),
-                    descripcion=f"Cliente {self.cliente_nombre} (crédito)",
-                )
+            # La señal de la reserva ya entró en el banco: solo se cobra el resto
+            anticipo = Decimal(str(anticipo or 0)).quantize(Decimal('0.01'))
+            pendiente = self.precio_venta - anticipo
+
+            if self.metodo_pago == 'FINANCIADO':
+                cuenta_cobro = cuenta_clientes
+                detalle_cobro = f"Cliente {self.cliente_nombre} (crédito)"
             else:
+                cuenta_cobro = cuenta_banco
+                detalle_cobro = f"Cobro cliente {self.cliente_nombre}"
+
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=cuenta_cobro,
+                debe=pendiente, haber=Decimal('0'),
+                descripcion=detalle_cobro,
+            )
+
+            if anticipo:
+                # Se cancela el anticipo de la reserva (438) y su IVA (477)
+                cuenta_anticipos = CuentaContable.objects.get(codigo='438')
+                cuenta_iva_anticipo = CuentaContable.objects.get(codigo='477')
+                base_anticipo = (anticipo / Decimal('1.21')).quantize(Decimal('0.01'))
+                iva_anticipo = (anticipo - base_anticipo).quantize(Decimal('0.01'))
                 MovimientoContable.objects.create(
-                    asiento=asiento, cuenta=cuenta_banco,
-                    debe=self.precio_venta, haber=Decimal('0'),
-                    descripcion=f"Cobro cliente {self.cliente_nombre}",
+                    asiento=asiento, cuenta=cuenta_anticipos,
+                    debe=base_anticipo, haber=Decimal('0'),
+                    descripcion="Aplicación del anticipo de la reserva",
+                )
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_iva_anticipo,
+                    debe=iva_anticipo, haber=Decimal('0'),
+                    descripcion="IVA del anticipo aplicado a la venta",
                 )
 
             MovimientoContable.objects.create(
@@ -239,19 +253,29 @@ class VentaVehiculo(models.Model):
 
             return asiento
 
-    def registrar_movimiento_banco(self, asiento=None):
-        """Registra el ingreso bancario del cobro de la venta."""
+    def registrar_movimiento_banco(self, asiento=None, anticipo=None):
+        """Ingreso del cobro. Si hubo señal, solo entra el importe pendiente."""
         from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
 
         cuenta = obtener_cuenta_banco_default()
         if not cuenta:
             return None
+
+        anticipo = Decimal(str(anticipo or 0)).quantize(Decimal('0.01'))
+        importe = self.precio_venta - anticipo
+        if importe <= 0:
+            return None
+
+        concepto = f"Cobro venta {self.vehiculo} - {self.cliente_nombre}"
+        if anticipo:
+            concepto += f" (señal {anticipo} ya cobrada)"
+
         return crear_movimiento_banco(
             banco_cuenta=cuenta,
             fecha=self.fecha_venta,
-            concepto=f"Cobro venta {self.vehiculo} - {self.cliente_nombre}",
+            concepto=concepto,
             tipo='INGRESO',
-            importe=self.precio_venta,
+            importe=importe,
             vehiculo=self.vehiculo,
             asiento=asiento or self.asiento_contable,
         )

@@ -511,6 +511,19 @@ def reserva_create(request):
             reserva = form.save(commit=False)
             reserva.created_by = request.user
 
+            # Un vehículo no puede tener dos señales activas a la vez
+            if Reserva.objects.filter(
+                vehiculo=reserva.vehiculo, estado='ACTIVA'
+            ).exists():
+                messages.error(
+                    request,
+                    f'{reserva.vehiculo} ya tiene una reserva activa. '
+                    f'Conviértala en venta o cancélela antes de crear otra.',
+                )
+                return render(request, 'bank/reserva_form.html', {
+                    'form': form, 'action': 'crear',
+                })
+
             # La cuenta bancaria por defecto
             banco_cuenta = obtener_cuenta_banco_default()
             if not banco_cuenta:

@@ -7,6 +7,7 @@ from decimal import Decimal
 from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from .forms import VentaVehiculoForm, CostoAcondicionamientoForm
 from apps.vehicles.models import Vehiculo
+from apps.bank.models import Reserva
 from apps.warranty.models import GarantiaVehiculo
 from apps.core.formatting import format_euros
 
@@ -73,6 +74,11 @@ def venta_create(request):
     
     # Pre-seleccionar vehículo si viene de la página de detail
     vehiculo_inicial = request.GET.get('vehiculo', '')
+    # Reserva de la que viene la venta (se descuenta su señal)
+    reserva_id = request.GET.get('reserva', '') or request.POST.get('reserva', '')
+    reserva_inicial = None
+    if reserva_id:
+        reserva_inicial = Reserva.objects.filter(pk=reserva_id).first()
     
     if request.method == 'POST':
         form = VentaVehiculoForm(request.POST)
@@ -103,14 +109,39 @@ def venta_create(request):
                 fecha_inicio=venta.fecha_venta,
             )
             
+            # Señal de la reserva: se descuenta y la reserva queda convertida
+            reserva = None
+            if reserva_inicial and reserva_inicial.estado == 'ACTIVA':
+                reserva = reserva_inicial
+            if reserva is None:
+                reserva = Reserva.objects.filter(
+                    vehiculo=venta.vehiculo, estado='ACTIVA'
+                ).first()
+
+            anticipo = reserva.importe_reserva if reserva else 0
+
             # Crear asiento contable automáticamente
             try:
-                venta.crear_asiento_contable()
-                venta.registrar_movimiento_banco(asiento=venta.asiento_contable)
+                venta.crear_asiento_contable(anticipo=anticipo)
+                venta.registrar_movimiento_banco(
+                    asiento=venta.asiento_contable, anticipo=anticipo
+                )
             except Exception as e:
                 messages.warning(
                     request,
                     f'Venta registrada, pero no se pudo crear el asiento contable: {str(e)}'
+                )
+
+            if reserva:
+                reserva.estado = 'CONVERTIDA'
+                reserva.venta = venta
+                reserva.save(update_fields=['estado', 'venta'])
+                messages.info(
+                    request,
+                    f'Se aplicó la señal de {format_euros(reserva.importe_reserva)} '
+                    f'de la reserva de {reserva.cliente_nombre}: quedan '
+                    f'{format_euros(venta.precio_venta - reserva.importe_reserva)} '
+                    f'por cobrar.'
                 )
             
             messages.success(
@@ -129,6 +160,8 @@ def venta_create(request):
     context = {
         'form': form,
         'action': 'crear',
+        'reserva_id': reserva_inicial.pk if reserva_inicial else '',
+        'reserva': reserva_inicial,
     }
     return render(request, 'sales/form.html', context)
 

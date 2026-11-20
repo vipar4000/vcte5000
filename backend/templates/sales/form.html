@@ -14,6 +14,16 @@
     
     <form method="post" class="space-y-6">
         {% csrf_token %}
+        {% if reserva_id %}
+        <input type="hidden" name="reserva" value="{{ reserva_id }}">
+        {% endif %}
+        {% if reserva %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+            <strong>Venta desde reserva:</strong> {{ reserva.cliente_nombre }} dejó una señal de
+            <strong>{{ reserva.importe_reserva }} €</strong> el {{ reserva.fecha_reserva|date:"d/m/Y" }}.
+            Se descontará del precio y la reserva quedará como convertida.
+        </div>
+        {% endif %}
         
         <!-- Errores generales -->
         {% if form.errors %}

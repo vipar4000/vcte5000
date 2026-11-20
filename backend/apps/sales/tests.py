@@ -1,0 +1,222 @@
+"""Venta de un vehículo que tenía una reserva (señal) activa.
+
+Regresión detectada en Madrid: precio 11.500 €, señal de 1.000 €. Al registrar la
+venta, el ERP apuntaba dos ingresos (1.000 de la señal y 11.500 del cobro) y la
+reserva seguía «Activa», con los 1.000 en el anticipo (438) sin cancelar.
+"""
+from datetime import date
+from decimal import Decimal
+
+from django.core.management import call_command
+from django.test import TestCase
+from django.urls import reverse
+
+from apps.accounts.models import User
+from apps.accounting.models import CuentaContable, PlanContableDefault
+from apps.bank.models import BancoCuenta, BancoMovimiento, Reserva
+from apps.sales.models import VentaVehiculo
+from apps.vehicles.models import Vehiculo
+
+
+class VentaConReservaTests(TestCase):
+    def setUp(self):
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf 1.6 TDI', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), tipo_iva=Decimal('136.50'),
+            precio_venta=Decimal('11500.00'),
+            created_by=self.admin,
+        )
+
+    def _crear_reserva(self, importe='1000.00'):
+        respuesta = self.client.post(reverse('bank:reserva_create'), {
+            'vehiculo': self.vehiculo.pk,
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'fecha_reserva': '2026-11-20',
+            'importe_reserva': importe,
+            'notas': '',
+        })
+        self.assertEqual(respuesta.status_code, 302, 'no se creó la reserva')
+        return Reserva.objects.get(vehiculo=self.vehiculo)
+
+    def _vender(self, precio='11500.00', reserva=None):
+        datos = {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'TRANSFERENCIA',
+            'precio_venta': precio,
+        }
+        if reserva is not None:
+            datos['reserva'] = reserva.pk
+        return self.client.post(reverse('sales:create'), datos)
+
+    def test_la_venta_descuenta_la_senal_y_convierte_la_reserva(self):
+        reserva = self._crear_reserva()
+
+        respuesta = self._vender(reserva=reserva)
+        self.assertEqual(respuesta.status_code, 302)
+
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        self.assertEqual(venta.precio_venta, Decimal('11500.00'))
+
+        # El banco suma exactamente el precio, no los 1.000 de más
+        ingresos = BancoMovimiento.objects.filter(tipo='INGRESO')
+        importes = sorted(m.importe for m in ingresos)
+        self.assertEqual(importes, [Decimal('1000.00'), Decimal('10500.00')])
+        self.assertEqual(sum(importes), Decimal('11500.00'))
+
+        # La reserva queda convertida y enlazada
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'CONVERTIDA')
+        self.assertEqual(reserva.venta_id, venta.pk)
+
+        # El asiento de la venta aplica el anticipo y cuadra
+        asiento = venta.asiento_contable
+        self.assertIsNotNone(asiento)
+        self.assertTrue(asiento.esta_cuadrado)
+        self.assertEqual(asiento.estado, 'POSTEADO')
+
+        def saldo(codigo):
+            total = Decimal('0')
+            for mov in asiento.movimientos.filter(cuenta__codigo=codigo):
+                total += mov.debe - mov.haber
+            return total
+
+        # 438 y 477 del anticipo quedan cancelados por el debe
+        base_anticipo = (Decimal('1000.00') / Decimal('1.21')).quantize(Decimal('0.01'))
+        self.assertEqual(saldo('438'), base_anticipo)
+        self.assertEqual(saldo('477'), Decimal('1000.00') - base_anticipo)
+        # El banco solo recibe el resto
+        self.assertEqual(saldo('572'), Decimal('10500.00'))
+
+    def test_la_venta_sin_reserva_cobra_el_precio_completo(self):
+        respuesta = self._vender()
+        self.assertEqual(respuesta.status_code, 302)
+
+        ingresos = BancoMovimiento.objects.filter(tipo='INGRESO')
+        self.assertEqual([m.importe for m in ingresos], [Decimal('11500.00')])
+
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        self.assertTrue(venta.asiento_contable.esta_cuadrado)
+
+    def test_la_reserva_activa_se_aplica_aunque_no_se_indique(self):
+        """Si el vendedor olvida pasar la reserva, se detecta y se descuenta."""
+        reserva = self._crear_reserva()
+
+        self._vender()  # sin el campo reserva
+
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'CONVERTIDA')
+        ingresos = BancoMovimiento.objects.filter(tipo='INGRESO')
+        self.assertEqual(
+            sorted(m.importe for m in ingresos),
+            [Decimal('1000.00'), Decimal('10500.00')],
+        )
+
+    def test_no_se_aplica_una_reserva_ya_convertida(self):
+        reserva = self._crear_reserva()
+        self._vender(reserva=reserva)
+
+        otro_vehiculo = Vehiculo.objects.create(
+            matricula='5678DEF', bastidor='WVWZZZ1KZAW123456',
+            marca='Seat', modelo='León', anio=2019, combustible='GASOLINA',
+            kilometraje=120000, tipo_dano='ACCIDENTAL', etiqueta_ambiental='B',
+            estado='EN_VENTA', fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('6000.00'), tasas_sala=Decimal('300.00'),
+            logistica_grua=Decimal('200.00'), precio_venta=Decimal('9000.00'),
+            created_by=self.admin,
+        )
+        self.vehiculo = otro_vehiculo
+        self._vender(precio='9000.00')
+
+        ingresos = BancoMovimiento.objects.filter(tipo='INGRESO')
+        self.assertEqual(
+            sorted(m.importe for m in ingresos),
+            [Decimal('1000.00'), Decimal('9000.00'), Decimal('10500.00')],
+        )
+
+    def test_el_comando_repara_una_venta_registrada_a_la_antigua(self):
+        """Venta vieja (cobró el total sin descontar la señal) + reserva activa."""
+        reserva = self._crear_reserva()
+
+        # Se reproduce el comportamiento anterior al arreglo
+        venta = VentaVehiculo.objects.create(
+            vehiculo=self.vehiculo, tipo_cliente='PARTICULAR',
+            cliente_nombre='Carlos Ruiz', cliente_dni='12345678A',
+            cliente_direccion='Calle Mayor 1', cliente_poblacion='Madrid',
+            cliente_provincia='Madrid', cliente_cp='28001',
+            cliente_telefono='612345678', cliente_email='carlos@example.com',
+            fecha_venta=date(2026, 11, 25), metodo_pago='TRANSFERENCIA',
+            precio_venta=Decimal('11500.00'),
+            coste_total=self.vehiculo.coste_total,
+            created_by=self.admin,
+        )
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save()
+        venta.crear_asiento_contable()
+        venta.registrar_movimiento_banco(asiento=venta.asiento_contable)
+
+        self.assertEqual(
+            sum(m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')),
+            Decimal('12500.00'),
+        )
+
+        call_command('reparar_venta_con_reserva', venta=venta.pk)
+
+        self.assertEqual(
+            sum(m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')),
+            Decimal('11500.00'),
+        )
+
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'CONVERTIDA')
+
+        venta.refresh_from_db()
+        self.assertTrue(venta.asiento_contable.esta_cuadrado)
+        self.assertEqual(venta.asiento_contable.estado, 'POSTEADO')
+
+    def test_no_se_pueden_crear_dos_reservas_activas_del_mismo_coche(self):
+        self._crear_reserva()
+
+        respuesta = self.client.post(reverse('bank:reserva_create'), {
+            'vehiculo': self.vehiculo.pk,
+            'cliente_nombre': 'Otro Cliente',
+            'cliente_dni': '87654321B',
+            'fecha_reserva': '2026-11-21',
+            'importe_reserva': '500.00',
+            'notas': '',
+        })
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            Reserva.objects.filter(vehiculo=self.vehiculo, estado='ACTIVA').count(), 1
+        )
+        self.assertEqual(
+            sum(m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')),
+            Decimal('1000.00'),
+        )
