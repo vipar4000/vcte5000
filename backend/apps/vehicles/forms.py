@@ -76,7 +76,6 @@ class VehiculoForm(forms.ModelForm):
     precio_subasta = ImporteField(label='Precio de adjudicación (€)')
     tasas_sala = ImporteField(label='Tasas de la sala (€)')
     logistica_grua = ImporteField(label='Logística/grúa (€)')
-    precio_venta = ImporteField(label='Precio de venta (€)', required=False)
 
     # El input type="date" del navegador exige YYYY-MM-DD
     fecha_adquisicion = forms.DateField(
@@ -112,7 +111,6 @@ class VehiculoForm(forms.ModelForm):
             'precio_subasta', 'tasas_sala', 'logistica_grua',
             'proveedor', 'cif_nif', 'numero_factura', 'factura_compra_pdf',
             'tipo_iva', 'forma_pago',
-            'precio_venta', 'descripcion_dano', 'imagen_principal',
         ]
         widgets = {
             'matricula': forms.TextInput(attrs={
@@ -201,20 +199,6 @@ class VehiculoForm(forms.ModelForm):
             'forma_pago': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border rounded-lg',
             }),
-            'precio_venta': forms.TextInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg input-monetario',
-                'placeholder': '0,00',
-                'inputmode': 'decimal',
-            }),
-            'descripcion_dano': forms.Textarea(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'rows': '4',
-                'placeholder': 'Descripción del estado del vehículo...',
-            }),
-            'imagen_principal': forms.FileInput(attrs={
-                'class': 'w-full px-3 py-2 border rounded-lg',
-                'accept': 'image/*',
-            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -225,7 +209,7 @@ class VehiculoForm(forms.ModelForm):
         # Solo se rellenan los que realmente están en el formulario: si la
         # compra está contabilizada se han quitado y no deben reaparecer en
         # cleaned_data (Django los buscaría luego en self.fields).
-        for nombre in ('precio_subasta', 'tasas_sala', 'logistica_grua', 'precio_venta'):
+        for nombre in ('precio_subasta', 'tasas_sala', 'logistica_grua'):
             if nombre in self.fields and datos.get(nombre) is None:
                 datos[nombre] = Decimal('0')
         return datos
@@ -253,25 +237,6 @@ class VehiculoForm(forms.ModelForm):
         if not val:
             return Decimal('0')
         return parsear_importe(val)
-
-    def clean_precio_venta(self):
-        # Vacio -> 0 (el campo del modelo no admite NULL, tiene default=0)
-        return self.cleaned_data.get('precio_venta') or Decimal('0')
-
-    def clean_imagen_principal(self):
-        """Reduce y optimiza la portada en la carpeta de la matrícula."""
-        archivo = self.cleaned_data.get('imagen_principal')
-        if not isinstance(archivo, UploadedFile):
-            return archivo
-        matricula = self.cleaned_data.get('matricula') or self.instance.matricula or ''
-        etiqueta = (
-            archivo.name.rsplit('.', 1)[0] if getattr(archivo, 'name', '') else 'portada'
-        )
-        try:
-            return procesar_imagen(archivo, nombre_para(matricula, etiqueta))
-        except ImagenInvalida as exc:
-            raise forms.ValidationError(str(exc))
-
 
 class VehiculoBusquedaForm(forms.Form):
     """Formulario de búsqueda de vehículos."""
@@ -386,3 +351,48 @@ ImagenVehiculoFormSet = inlineformset_factory(
     max_num=MAX_IMAGENES,
     can_delete=True,
 )
+
+
+class VehiculoComercialForm(forms.ModelForm):
+    """Hoja comercial: estado, precio de venta, descripción y galería.
+
+    No incluye ningún dato de compra ni coste: así una edición comercial no
+    puede alterar la contabilidad ya registrada.
+    """
+
+    precio_venta = ImporteField(label='Precio de venta (€)', required=False)
+
+    class Meta:
+        model = Vehiculo
+        fields = ['estado', 'precio_venta', 'descripcion_dano', 'imagen_principal']
+        widgets = {
+            'estado': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+            }),
+            'descripcion_dano': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'rows': '5',
+                'placeholder': 'Descripción comercial: equipamiento, estado, extras...',
+            }),
+            'imagen_principal': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border rounded-lg',
+                'accept': 'image/*',
+            }),
+        }
+
+    def clean_precio_venta(self):
+        return self.cleaned_data.get('precio_venta') or Decimal('0')
+
+    def clean_imagen_principal(self):
+        """Reduce y optimiza la portada en la carpeta de la matrícula."""
+        archivo = self.cleaned_data.get('imagen_principal')
+        if not isinstance(archivo, UploadedFile):
+            return archivo
+        matricula = self.instance.matricula or ''
+        etiqueta = (
+            archivo.name.rsplit('.', 1)[0] if getattr(archivo, 'name', '') else 'portada'
+        )
+        try:
+            return procesar_imagen(archivo, nombre_para(matricula, etiqueta))
+        except ImagenInvalida as exc:
+            raise forms.ValidationError(str(exc))

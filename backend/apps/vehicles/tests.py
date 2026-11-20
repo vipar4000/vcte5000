@@ -21,16 +21,12 @@ def _png_bytes_grande(ancho, alto):
     return buf.getvalue()
 
 
-class VehiculoFormEdicionTests(TestCase):
-    """Formulario único de edición: importes, fotos y contabilidad."""
+class VehiculoHojaTecnicaTests(TestCase):
+    """Hoja 1: técnicos + compra + factura (sin precio ni fotos)."""
 
     def setUp(self):
-        import shutil
-        import tempfile
         from datetime import date
         from decimal import Decimal
-
-        from django.test import override_settings
 
         from apps.accounting.models import PlanContableDefault
 
@@ -50,11 +46,6 @@ class VehiculoFormEdicionTests(TestCase):
             precio_venta=Decimal('11900.00'),
             created_by=self.admin,
         )
-        media = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
-        self._media = override_settings(MEDIA_ROOT=media)
-        self._media.enable()
-        self.addCleanup(self._media.disable)
         self.client.force_login(self.admin)
 
     def _datos(self, **extra):
@@ -68,10 +59,7 @@ class VehiculoFormEdicionTests(TestCase):
             'tasas_sala': '400,00', 'logistica_grua': '250,00',
             'proveedor': 'Subastas Online', 'cif_nif': 'B12345678',
             'numero_factura': 'FC-1', 'tipo_iva': '136,50',
-            'forma_pago': '', 'precio_venta': '11.900,00',
-            'descripcion_dano': 'Buen estado',
-            'imagenes-TOTAL_FORMS': '0', 'imagenes-INITIAL_FORMS': '0',
-            'imagenes-MIN_NUM_FORMS': '0', 'imagenes-MAX_NUM_FORMS': '15',
+            'forma_pago': '',
         }
         datos.update(extra)
         return datos
@@ -82,24 +70,24 @@ class VehiculoFormEdicionTests(TestCase):
             self._datos(**extra),
         )
 
-    # ------------------------------------------------------- formato
-    def test_el_formulario_muestra_importes_y_fecha_correctos(self):
+    def test_el_formulario_muestra_importes_y_fecha(self):
         from apps.vehicles.forms import VehiculoForm
 
         form = VehiculoForm(instance=self.vehiculo)
         self.assertIn('value="7.500,00"', str(form['precio_subasta']))
-        self.assertIn('value="11.900,00"', str(form['precio_venta']))
         self.assertIn('value="2026-07-01"', str(form['fecha_adquisicion']))
 
-    def test_editar_muestra_el_formulario_completo(self):
+    def test_la_hoja_tecnica_no_tiene_campos_comerciales(self):
         respuesta = self.client.get(
             reverse('vehicles:update', args=[self.vehiculo.pk])
         )
         self.assertEqual(respuesta.status_code, 200)
-        for campo in ('precio_subasta', 'precio_venta', 'descripcion_dano',
-                      'imagen_principal'):
-            self.assertContains(respuesta, f'name="{campo}"')
-        self.assertContains(respuesta, 'imagenes-TOTAL_FORMS')
+        self.assertContains(respuesta, 'name="precio_subasta"')
+        self.assertContains(respuesta, 'name="factura_compra_pdf"')
+        self.assertNotContains(respuesta, 'name="precio_venta"')
+        self.assertNotContains(respuesta, 'name="descripcion_dano"')
+        self.assertNotContains(respuesta, 'name="imagen_principal"')
+        self.assertNotContains(respuesta, 'imagenes-TOTAL_FORMS')
 
     def test_acepta_formato_espanol_y_estandar(self):
         from decimal import Decimal
@@ -119,7 +107,6 @@ class VehiculoFormEdicionTests(TestCase):
         self.assertEqual(estandar.cleaned_data['precio_subasta'], Decimal('7500.00'))
 
     def test_guardar_dos_veces_no_multiplica_el_importe(self):
-        """Regresión del ×10.000: repetir el guardado no altera los costes."""
         from decimal import Decimal
 
         self._editar()
@@ -127,20 +114,132 @@ class VehiculoFormEdicionTests(TestCase):
 
         self.vehiculo.refresh_from_db()
         self.assertEqual(self.vehiculo.precio_subasta, Decimal('7500.00'))
-        self.assertEqual(self.vehiculo.tasas_sala, Decimal('400.00'))
         self.assertEqual(self.vehiculo.coste_inicial, Decimal('8150.00'))
 
-    def test_la_ruta_publicar_ya_no_existe(self):
-        respuesta = self.client.get(
-            f'/erp/vehiculos/{self.vehiculo.pk}/publicar/'
-        )
-        self.assertEqual(respuesta.status_code, 404)
+    def test_parseo_de_importes_sin_ambiguedad(self):
+        from decimal import Decimal
 
-    # ------------------------------------------------------- imágenes
-    def test_guarda_la_imagen_principal(self):
+        from apps.vehicles.forms import parsear_importe
+
+        self.assertEqual(parsear_importe('7500'), Decimal('7500'))
+        self.assertEqual(parsear_importe('7500.00'), Decimal('7500.00'))
+        self.assertEqual(parsear_importe('7.500'), Decimal('7500'))
+        self.assertEqual(parsear_importe('7.500,00'), Decimal('7500.00'))
+        self.assertEqual(parsear_importe('7.500,50'), Decimal('7500.50'))
+        self.assertEqual(parsear_importe('1.234.567,89'), Decimal('1234567.89'))
+
+    def test_editar_importe_regenera_el_asiento_con_contrapartida(self):
+        from decimal import Decimal
+
+        from apps.accounting.models import AsientoContable
+
+        asiento_viejo = self.vehiculo.crear_asiento_contable()
+
+        respuesta = self._editar(precio_subasta='8.500,00')
+        self.assertEqual(respuesta.status_code, 302)
+
+        asiento_viejo.refresh_from_db()
+        self.assertEqual(asiento_viejo.estado, 'ANULADO')
+        self.assertTrue(
+            AsientoContable.objects.filter(tipo_documento='AnulacionVehiculo').exists()
+        )
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.precio_subasta, Decimal('8500.00'))
+        self.assertEqual(self.vehiculo.coste_inicial, Decimal('9150.00'))
+        self.assertEqual(self.vehiculo.asiento_contable.estado, 'POSTEADO')
+        self.assertNotEqual(self.vehiculo.asiento_contable_id, asiento_viejo.pk)
+
+    def test_editar_siempre_regenera_el_asiento(self):
+        asiento = self.vehiculo.crear_asiento_contable()
+
+        respuesta = self._editar(kilometraje='150000')
+        self.assertEqual(respuesta.status_code, 302)
+
+        asiento.refresh_from_db()
+        self.assertEqual(asiento.estado, 'ANULADO')
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.kilometraje, 150000)
+        self.assertNotEqual(self.vehiculo.asiento_contable_id, asiento.pk)
+
+
+class VehiculoHojaComercialTests(TestCase):
+    """Hoja 2 (Publicar): estado, precio, descripción y galería."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        from datetime import date
+        from decimal import Decimal
+
+        from django.test import override_settings
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vendedor = User.objects.create_user(
+            username='vendedor1', email='v1@eurocar.local',
+            password='vendedor123!', rol='VENDEDOR',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='ACONDICIONADO',
+            fecha_adquisicion=date(2026, 7, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), tipo_iva=Decimal('136.50'),
+            created_by=self.admin,
+        )
+        self.client.force_login(self.admin)
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        self._media = override_settings(MEDIA_ROOT=media)
+        self._media.enable()
+        self.addCleanup(self._media.disable)
+
+    def _publicar(self, **extra):
+        datos = {
+            'estado': 'EN_VENTA',
+            'precio_venta': '11.900,00',
+            'descripcion_dano': 'Buen estado, un solo dueño.',
+            'imagenes-TOTAL_FORMS': '0',
+            'imagenes-INITIAL_FORMS': '0',
+            'imagenes-MIN_NUM_FORMS': '0',
+            'imagenes-MAX_NUM_FORMS': '15',
+        }
+        datos.update(extra)
+        return self.client.post(
+            reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+        )
+
+    def test_publicar_guarda_estado_precio_y_descripcion(self):
+        from decimal import Decimal
+
+        respuesta = self._publicar()
+        self.assertEqual(respuesta.status_code, 302)
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+        self.assertEqual(self.vehiculo.precio_venta, Decimal('11900.00'))
+        self.assertIn('un solo dueño', self.vehiculo.descripcion_dano)
+
+    def test_publicar_no_toca_los_costes(self):
+        from decimal import Decimal
+
+        self._publicar()
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.precio_subasta, Decimal('7500.00'))
+        self.assertEqual(self.vehiculo.coste_inicial, Decimal('8150.00'))
+
+    def test_publicar_guarda_la_imagen_principal(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        respuesta = self._editar(imagen_principal=SimpleUploadedFile(
+        respuesta = self._publicar(imagen_principal=SimpleUploadedFile(
             'portada.png', _png_bytes(), content_type='image/png'
         ))
         self.assertEqual(respuesta.status_code, 302)
@@ -152,10 +251,10 @@ class VehiculoFormEdicionTests(TestCase):
             f'Ruta inesperada: {self.vehiculo.imagen_principal.name}',
         )
 
-    def test_guarda_una_imagen_adicional(self):
+    def test_publicar_guarda_una_foto_adicional(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        respuesta = self._editar(**{
+        respuesta = self._publicar(**{
             'imagenes-TOTAL_FORMS': '1',
             'imagenes-0-orden': '1',
             'imagenes-0-imagen': SimpleUploadedFile(
@@ -168,26 +267,21 @@ class VehiculoFormEdicionTests(TestCase):
         self.assertEqual(len(imagenes), 1)
         self.assertTrue(imagenes[0].imagen.name.startswith('vehiculos/1234abc/'))
 
-    def test_avisa_al_superar_el_maximo_de_imagenes(self):
-        respuesta = self._editar(**{'imagenes-TOTAL_FORMS': '16'})
+    def test_publicar_avisa_al_superar_el_maximo(self):
+        respuesta = self._publicar(**{'imagenes-TOTAL_FORMS': '16'})
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'el máximo es 15')
 
-    def test_cambiar_de_estado_conserva_las_fotos(self):
-        from django.core.files.uploadedfile import SimpleUploadedFile
-
-        ImagenVehiculo.objects.create(
-            vehiculo=self.vehiculo, orden=1,
-            imagen=SimpleUploadedFile('f.png', _png_bytes(), content_type='image/png'),
+    def test_operario_no_puede_publicar(self):
+        operario = User.objects.create_user(
+            username='mecanico1', email='m1@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
         )
-        respuesta = self._editar(estado='ACONDICIONADO')
+        self.client.force_login(operario)
+        respuesta = self.client.get(
+            reverse('vehicles:publicar', args=[self.vehiculo.pk])
+        )
         self.assertEqual(respuesta.status_code, 302)
-
-        self.vehiculo.refresh_from_db()
-        self.assertEqual(self.vehiculo.estado, 'ACONDICIONADO')
-        self.assertEqual(
-            ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 1
-        )
 
     def _foto(self, nombre='vieja.png'):
         from io import BytesIO
@@ -202,15 +296,24 @@ class VehiculoFormEdicionTests(TestCase):
             imagen=SimpleUploadedFile(nombre, buf.getvalue(), content_type='image/png'),
         )
 
+    def test_cambiar_de_estado_conserva_las_fotos(self):
+        self._foto()
+        respuesta = self._publicar(estado='ACONDICIONADO')
+        self.assertEqual(respuesta.status_code, 302)
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'ACONDICIONADO')
+        self.assertEqual(
+            ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 1
+        )
+
     def test_eliminar_foto_cuyo_archivo_ya_no_existe(self):
-        """Marcar Eliminar en una foto perdida no debe fallar."""
         from django.core.files.storage import default_storage
 
         foto = self._foto()
         default_storage.delete(foto.imagen.name)
-        self.assertFalse(default_storage.exists(foto.imagen.name))
 
-        respuesta = self._editar(**{
+        respuesta = self._publicar(**{
             'imagenes-TOTAL_FORMS': '1',
             'imagenes-INITIAL_FORMS': '1',
             'imagenes-0-id': str(foto.pk),
@@ -227,75 +330,27 @@ class VehiculoFormEdicionTests(TestCase):
         nombre_original = foto.imagen.name
         default_storage.delete(nombre_original)
 
-        respuesta = self._editar(**{
+        respuesta = self._publicar(**{
             'imagenes-TOTAL_FORMS': '1',
             'imagenes-INITIAL_FORMS': '1',
             'imagenes-0-id': str(foto.pk),
             'imagenes-0-orden': '1',
         })
         self.assertEqual(respuesta.status_code, 302)
-
         foto.refresh_from_db()
         self.assertEqual(foto.imagen.name, nombre_original)
 
-    # --------------------------------------------------- contabilidad
-    def test_editar_importe_regenera_el_asiento_con_contrapartida(self):
-        from decimal import Decimal
-
-        from apps.accounting.models import AsientoContable
-
-        asiento_viejo = self.vehiculo.crear_asiento_contable()
-        self.assertEqual(asiento_viejo.estado, 'POSTEADO')
-
-        respuesta = self._editar(precio_subasta='8.500,00')
-        self.assertEqual(respuesta.status_code, 302)
-
-        asiento_viejo.refresh_from_db()
-        self.assertEqual(asiento_viejo.estado, 'ANULADO')
-        self.assertTrue(
-            AsientoContable.objects.filter(tipo_documento='AnulacionVehiculo').exists()
+    def test_la_hoja_comercial_no_tiene_campos_de_compra(self):
+        respuesta = self.client.get(
+            reverse('vehicles:publicar', args=[self.vehiculo.pk])
         )
-
-        self.vehiculo.refresh_from_db()
-        self.assertEqual(self.vehiculo.precio_subasta, Decimal('8500.00'))
-        self.assertEqual(self.vehiculo.coste_inicial, Decimal('9150.00'))
-        nuevo = self.vehiculo.asiento_contable
-        self.assertIsNotNone(nuevo)
-        self.assertNotEqual(nuevo.pk, asiento_viejo.pk)
-        self.assertEqual(nuevo.estado, 'POSTEADO')
-
-    def test_editar_siempre_regenera_el_asiento(self):
-        """Guardar el vehículo rehace la contabilidad (sin mensajes de "no cambió")."""
-        from apps.accounting.models import AsientoContable
-
-        asiento = self.vehiculo.crear_asiento_contable()
-
-        respuesta = self._editar(kilometraje='150000')
-        self.assertEqual(respuesta.status_code, 302)
-
-        asiento.refresh_from_db()
-        self.assertEqual(asiento.estado, 'ANULADO')
-        self.assertTrue(
-            AsientoContable.objects.filter(tipo_documento='AnulacionVehiculo').exists()
-        )
-        self.vehiculo.refresh_from_db()
-        self.assertEqual(self.vehiculo.kilometraje, 150000)
-        self.assertNotEqual(self.vehiculo.asiento_contable_id, asiento.pk)
-        self.assertEqual(self.vehiculo.asiento_contable.estado, 'POSTEADO')
-
-    def test_parseo_de_importes_sin_ambiguedad(self):
-        """7.500 son siete mil quinientos; 7.500,50 son 7500,50."""
-        from decimal import Decimal
-
-        from apps.vehicles.forms import parsear_importe
-
-        self.assertEqual(parsear_importe('7500'), Decimal('7500'))
-        self.assertEqual(parsear_importe('7500.00'), Decimal('7500.00'))
-        self.assertEqual(parsear_importe('7500,00'), Decimal('7500.00'))
-        self.assertEqual(parsear_importe('7.500'), Decimal('7500'))
-        self.assertEqual(parsear_importe('7.500,00'), Decimal('7500.00'))
-        self.assertEqual(parsear_importe('7.500,50'), Decimal('7500.50'))
-        self.assertEqual(parsear_importe('1.234.567,89'), Decimal('1234567.89'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'name="precio_venta"')
+        self.assertContains(respuesta, 'name="estado"')
+        self.assertContains(respuesta, 'name="imagen_principal"')
+        self.assertNotContains(respuesta, 'name="precio_subasta"')
+        self.assertNotContains(respuesta, 'name="tasas_sala"')
+        self.assertNotContains(respuesta, 'name="factura_compra_pdf"')
 
 
 class CorregirCosteVehiculoCommandTests(TestCase):

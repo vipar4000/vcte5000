@@ -513,18 +513,30 @@ forma_pago=Caja Chica</code></pre>
 <p>El sistema permite almacenar una imagen principal y multiples imagenes adicionales por vehiculo.</p>
 
 <div class="warning-box">
-    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>: el formulario de <strong>Editar Vehiculo</strong> muestra entonces los campos de imagen, y la pantalla <strong>&#128226; Publicar</strong> permite lo mismo de forma mas directa. Si el vehiculo deja de estar EN_VENTA, sus imagenes <strong>se conservan</strong> (ocultas) y vuelven a mostrarse al regresar a ese estado.
+    <strong>Subida solo en estado EN_VENTA:</strong> Las imagenes (principal y adicionales) se gestionan en la hoja <strong>&#128226; Publicar</strong> y <strong>solo se pueden subir cuando el vehiculo esta en estado <code>EN_VENTA</code></strong>. Si el vehiculo deja de estar EN_VENTA, sus imagenes <strong>se conservan</strong> (ocultas) y vuelven a mostrarse al regresar a ese estado.
 </div>
 
+<h4>Las dos hojas del vehiculo</h4>
+<table>
+    <tr><th>Hoja</th><th>Que contiene</th></tr>
+    <tr><td><strong>&#9999;&#65039; Editar Vehiculo</strong></td><td>Datos tecnicos, datos de adquisicion, <strong>costes de adquisicion</strong> (subasta, tasas, grua, IVA, forma de pago) y datos de la factura de compra.</td></tr>
+    <tr><td><strong>&#128226; Publicar</strong></td><td><strong>Estado</strong>, <strong>precio de venta</strong>, <strong>descripcion comercial</strong>, <strong>imagen principal</strong> e <strong>imagenes adicionales</strong>.</td></tr>
+</table>
+
 <h4>Publicar el vehiculo (procedimiento)</h4>
-<p>Todo se hace en la <strong>misma pantalla</strong> de <strong>Editar Vehiculo</strong>:</p>
 <ol class="steps">
-    <li>Abra la ficha del vehiculo y pulse <strong>&#9999;&#65039; Editar</strong>.</li>
-    <li>Seleccione el <strong>Estado</strong> <em>En Venta</em>, fije el <strong>Precio de venta</strong> y escriba la <strong>descripcion</strong>.</li>
+    <li>Abra la ficha del vehiculo y pulse <strong>&#128226; Publicar</strong> (tambien esta el enlace en el listado).</li>
+    <li>Seleccione el <strong>Estado</strong> <em>En Venta</em>, fije el <strong>Precio de venta</strong> y escriba la <strong>descripcion comercial</strong>.</li>
     <li>Adjunte la <strong>Imagen Principal</strong> y las <strong>fotos adicionales</strong>, indicando su <strong>Orden</strong>.</li>
     <li>Para quitar una foto, pulse <strong>&#128465;&#65039; Quitar</strong> en su fila (las ya guardadas se borran al guardar; las nuevas desaparecen al momento).</li>
-    <li>Pulse <strong>"Guardar Cambios"</strong>.</li>
+    <li>Pulse <strong>"Guardar datos comerciales"</strong>.</li>
 </ol>
+
+<div class="info-box">
+    <strong>Por que dos hojas:</strong> en <strong>Editar</strong> solo se tocan los datos de compra y la contabilidad;
+    en <strong>Publicar</strong> solo el escaparate (estado, precio y fotos). Asi una edicion comercial no
+    puede descuadrar el asiento ni cambiar los costes.
+</div>
 
 <div class="info-box">
     <strong>Contabilidad automatica al guardar:</strong> cada vez que guarda el vehiculo, el sistema

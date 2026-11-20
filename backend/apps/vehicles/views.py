@@ -10,6 +10,7 @@ from apps.bank.models import BancoMovimiento
 from .models import Vehiculo, ImagenVehiculo
 from .forms import (
     VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet,
+    VehiculoComercialForm,
 )
 
 logger = logging.getLogger(__name__)
@@ -120,39 +121,17 @@ def vehiculo_detail(request, pk):
 
 @login_required
 def vehiculo_create(request):
-    """Crear un vehículo con todos sus datos (técnicos, compra y comerciales)."""
+    """Crear un vehículo (hoja técnica y de compra)."""
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para crear vehículos.')
         return redirect('vehicles:list')
 
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
-        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
-        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
-
-        if procesar_imagenes:
-            imagenes_formset = ImagenVehiculoFormSet(
-                request.POST, request.FILES, prefix='imagenes'
-            )
-        else:
-            imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
-
-        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
+        if form.is_valid():
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
-            if procesar_imagenes:
-                imagenes_formset.instance = vehiculo
-                imagenes_formset.save()
-            elif request.FILES.get('imagen_principal') or any(
-                f'imagenes-{i}-imagen' in request.FILES for i in range(0, 20)
-            ):
-                messages.error(
-                    request,
-                    'Las imágenes solo se pueden subir cuando el vehículo está '
-                    'en estado EN_VENTA.',
-                )
-                return redirect('vehicles:detail', pk=vehiculo.pk)
 
             try:
                 asiento = vehiculo.crear_asiento_contable()
@@ -166,40 +145,39 @@ def vehiculo_create(request):
                     request,
                     f'Vehículo creado, pero no se pudo crear el asiento contable: {e}',
                 )
+            messages.info(
+                request,
+                'El estado, el precio de venta, la descripción y las fotos se '
+                'editan en la pestaña 📢 Publicar.',
+            )
             return redirect('vehicles:detail', pk=vehiculo.pk)
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
-        procesar_imagenes = False
-        mostrar_imagenes = False
-        imagenes_formset = ImagenVehiculoFormSet(prefix='imagenes')
 
     return render(request, 'vehicles/form.html', {
         'form': form,
-        'imagenes_formset': imagenes_formset,
-        'mostrar_imagenes': mostrar_imagenes,
         'action': 'crear',
     })
 
 
 @login_required
-def vehiculo_update(request, pk):
-    """Actualizar un vehículo. Si cambian los importes, rehace el asiento."""
-    vehiculo = get_object_or_404(Vehiculo, pk=pk)
+def vehiculo_publicar(request, pk):
+    """Publicar el vehículo: estado, precio de venta, descripción y fotos.
 
-    if not request.user.is_admin:
-        messages.error(request, 'No tiene permisos para editar vehículos.')
+    Es una acción separada de la edición técnica a propósito: aquí no se tocan
+    los costes de compra ni la contabilidad, así que el equipo de ventas puede
+    trabajar sin ver márgenes y sin riesgo de descuadrar el asiento.
+    """
+    if not (request.user.is_admin or request.user.is_vendedor):
+        messages.error(request, 'No tiene permisos para publicar vehículos.')
         return redirect('vehicles:detail', pk=pk)
 
-    if request.method == 'POST':
-        # Valor previo de la portada: si el vehículo sale de EN_VENTA hay que
-        # restaurarlo, porque validar el formulario ya vuelca el archivo nuevo
-        # sobre la instancia del modelo.
-        imagen_principal_previa = vehiculo.imagen_principal
-        form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
-        mostrar_imagenes = request.POST.get('estado') == 'EN_VENTA'
-        procesar_imagenes = mostrar_imagenes and 'imagenes-TOTAL_FORMS' in request.POST
+    vehiculo = get_object_or_404(Vehiculo, pk=pk)
 
+    if request.method == 'POST':
+        form = VehiculoComercialForm(request.POST, request.FILES, instance=vehiculo)
+        procesar_imagenes = 'imagenes-TOTAL_FORMS' in request.POST
         if procesar_imagenes:
             imagenes_formset = ImagenVehiculoFormSet(
                 request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
@@ -209,35 +187,54 @@ def vehiculo_update(request, pk):
                 instance=vehiculo, prefix='imagenes'
             )
 
-        if form.is_valid() and (not procesar_imagenes or imagenes_formset.is_valid()):
-            nuevo_estado = form.cleaned_data.get('estado')
-            # Las fotos NO se borran al salir de EN_VENTA: se conservan ocultas.
-            tenia_fotos = bool(vehiculo.imagen_principal) or vehiculo.imagenes.exists()
-            if nuevo_estado != 'EN_VENTA':
-                form.cleaned_data.pop('imagen_principal', None)
-                form.instance.imagen_principal = imagen_principal_previa
-                if tenia_fotos:
-                    messages.info(
-                        request,
-                        'El vehículo ya no está EN VENTA: sus fotos se conservan '
-                        'ocultas y reaparecerán si vuelve a ese estado.',
-                    )
-
-            vehiculo = form.save()
-            if procesar_imagenes:
-                imagenes_formset.instance = vehiculo
-                imagenes_formset.save()
-            elif request.FILES.get('imagen_principal') or any(
-                f'imagenes-{i}-imagen' in request.FILES for i in range(0, 20)
-            ):
+        if form.is_valid() and (
+            not procesar_imagenes or imagenes_formset.is_valid()
+        ):
+            try:
+                with transaction.atomic():
+                    form.save()
+                    if procesar_imagenes:
+                        imagenes_formset.save()
+            except Exception as error:
+                # Nunca devolver un 500 por aquí: se informa del motivo real y,
+                # si algo se guardó a medias, la transacción lo revierte.
+                logger.exception(
+                    'Error al guardar los datos comerciales del vehículo %s',
+                    vehiculo.pk,
+                )
                 messages.error(
                     request,
-                    'Las imágenes solo se pueden subir cuando el vehículo está '
-                    'en estado EN_VENTA.',
+                    f'No se pudieron guardar los datos comerciales: {error}. '
+                    f'No se cambió nada.',
                 )
+            else:
+                messages.success(request, 'Datos comerciales y fotos actualizados.')
+                return redirect('vehicles:detail', pk=vehiculo.pk)
+        else:
+            messages.error(request, 'Por favor, corrija los errores del formulario.')
+    else:
+        form = VehiculoComercialForm(instance=vehiculo)
+        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
 
-            # La contabilidad se rehace siempre: si había asiento se anula con
-            # contrapartida y se crea el nuevo con los importes guardados.
+    return render(request, 'vehicles/publicar.html', {
+        'form': form,
+        'vehiculo': vehiculo,
+        'imagenes_formset': imagenes_formset,
+    })
+
+@login_required
+def vehiculo_update(request, pk):
+    """Editar la hoja técnica y de compra. Regenera el asiento al guardar."""
+    vehiculo = get_object_or_404(Vehiculo, pk=pk)
+
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para editar vehículos.')
+        return redirect('vehicles:detail', pk=pk)
+
+    if request.method == 'POST':
+        form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
+        if form.is_valid():
+            vehiculo = form.save()
             try:
                 asiento = _regenerar_asiento_compra(vehiculo, request.user)
                 messages.success(
@@ -255,14 +252,10 @@ def vehiculo_update(request, pk):
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm(instance=vehiculo)
-        mostrar_imagenes = vehiculo.estado == 'EN_VENTA'
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
 
     return render(request, 'vehicles/form.html', {
         'form': form,
         'vehiculo': vehiculo,
-        'imagenes_formset': imagenes_formset,
-        'mostrar_imagenes': mostrar_imagenes,
         'action': 'editar',
     })
 

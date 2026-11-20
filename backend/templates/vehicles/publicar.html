@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}R Car Rogil ERP - Publicar vehículo{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div>
+        <a href="{% url 'vehicles:detail' vehiculo.pk %}" class="text-eurocar-light hover:underline">← Volver a la ficha</a>
+        <h1 class="text-2xl font-bold text-gray-800 mt-1">📢 Publicar vehículo</h1>
+        <p class="text-gray-500">
+            {{ vehiculo.matricula }} · {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.anio }})
+        </p>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 text-sm">
+        Aquí solo se editan los <strong>datos comerciales</strong> (estado, precio de venta,
+        descripción y fotos). Los costes de compra y la contabilidad no se tocan desde esta pantalla.
+    </div>
+
+    {% if form.errors or imagenes_formset.errors or imagenes_formset.non_form_errors %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-800 font-medium mb-2">Por favor, corrija lo siguiente:</p>
+        <ul class="text-red-600 text-sm list-disc list-inside">
+            {% for field, errors in form.errors.items %}
+            {% for error in errors %}<li>{{ field }}: {{ error }}</li>{% endfor %}
+            {% endfor %}
+            {% for error in imagenes_formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
+            {% for img_form in imagenes_formset %}
+            {% for field, errors in img_form.errors.items %}
+            {% for error in errors %}<li>Imagen {{ forloop.parentloop.counter }}: {{ error }}</li>{% endfor %}
+            {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-lg shadow p-6 space-y-6">
+        {% csrf_token %}
+
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Datos comerciales</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    {{ form.estado }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de venta (€)</label>
+                    {{ form.precio_venta }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        Es el precio que verá el cliente en la web. Sin precio no aparece en el catálogo.
+                    </p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción comercial</label>
+                {{ form.descripcion_dano }}
+                <p class="text-xs text-gray-500 mt-1">
+                    Equipamiento, estado, extras… Se publica junto al vehículo.
+                </p>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Imagen principal</legend>
+            {{ form.imagen_principal }}
+            <p class="text-xs text-gray-500 mt-1">
+                La que se ve primero en el catálogo. Horizontal y de al menos 2000 px.
+            </p>
+            {% if vehiculo.imagen_principal %}
+            <div class="mt-3">
+                <img src="{{ vehiculo.imagen_principal.url }}" alt="Portada actual" class="h-24 rounded">
+            </div>
+            {% endif %}
+        </fieldset>
+
+        <fieldset>
+            <legend class="text-lg font-semibold mb-4">Fotos adicionales</legend>
+            <p class="text-xs text-gray-500 mb-3">
+                Hasta {{ imagenes_formset.max_num }} fotos. Se reducen y optimizan al guardar.
+            </p>
+
+            {{ imagenes_formset.management_form }}
+
+            <div id="filas-imagenes" class="space-y-3">
+                {% for img_form in imagenes_formset %}
+                <div class="imagen-row flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg">
+                    {{ img_form.id }}
+                    {% if img_form.instance.pk %}
+                    <div class="hidden">{{ img_form.DELETE }}</div>
+                    {% endif %}
+                    {% if img_form.url_actual %}
+                    <img src="{{ img_form.url_actual }}" alt="Foto" class="h-14 w-20 object-cover rounded">
+                    {% endif %}
+                    <div class="flex-1 min-w-[200px]">
+                        {{ img_form.imagen }}
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-xs text-gray-500 mb-1">Orden</label>
+                        {{ img_form.orden }}
+                    </div>
+                    <button type="button"
+                            class="btn-quitar-imagen inline-flex items-center gap-1 px-3 py-1.5 text-sm
+                                   text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition">
+                        🗑️ Quitar
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div id="empty-form-template" style="display:none">
+                <div class="imagen-row flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg">
+                    <div class="flex-1 min-w-[200px]">
+                        {{ imagenes_formset.empty_form.imagen }}
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-xs text-gray-500 mb-1">Orden</label>
+                        {{ imagenes_formset.empty_form.orden }}
+                    </div>
+                    <button type="button"
+                            class="btn-quitar-imagen inline-flex items-center gap-1 px-3 py-1.5 text-sm
+                                   text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition">
+                        🗑️ Quitar
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" id="btn-add-imagen"
+                    class="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                           text-eurocar-blue border border-eurocar-light rounded-lg hover:bg-blue-50 transition">
+                <span class="text-lg leading-none font-bold">+</span> Añadir foto
+            </button>
+        </fieldset>
+
+        <div class="flex justify-end gap-3 pt-4 border-t">
+            <a href="{% url 'vehicles:detail' vehiculo.pk %}"
+               class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+            <button type="submit"
+                    class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                Guardar datos comerciales
+            </button>
+        </div>
+    </form>
+
+    <p class="text-xs text-gray-500">
+        ¿Necesita corregir la compra (costes, factura, fecha)? Use
+        <a href="{% url 'vehicles:update' vehiculo.pk %}" class="text-eurocar-light hover:underline">Editar datos técnicos</a>,
+        disponible solo para administración.
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/vehiculo-publicar.js' %}"></script>
+{% endblock %}
