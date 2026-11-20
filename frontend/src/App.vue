@@ -18,7 +18,7 @@
             <router-link to="/" class="hover:text-eurocar-light transition">Inicio</router-link>
             <router-link to="/catalogo" class="hover:text-eurocar-light transition">Catálogo</router-link>
             <router-link to="/tasacion" class="hover:text-eurocar-light transition">Tasamos tu coche</router-link>
-            <router-link to="/contacto" class="hover:text-eurocar-light transition">Contacto</router-link>
+            <router-link to="/cita" class="hover:text-eurocar-light transition">Pedir cita</router-link>
           </nav>
           
           <!-- Mobile Menu Button -->
@@ -35,7 +35,7 @@
             <router-link to="/" class="hover:text-eurocar-light transition py-2">Inicio</router-link>
             <router-link to="/catalogo" class="hover:text-eurocar-light transition py-2">Catálogo</router-link>
             <router-link to="/tasacion" class="hover:text-eurocar-light transition py-2">Tasamos tu coche</router-link>
-            <router-link to="/contacto" class="hover:text-eurocar-light transition py-2">Contacto</router-link>
+            <router-link to="/cita" class="hover:text-eurocar-light transition py-2">Pedir cita</router-link>
           </nav>
         </div>
       </div>
@@ -66,13 +66,13 @@
               <li><router-link to="/" class="hover:text-white">Inicio</router-link></li>
               <li><router-link to="/catalogo" class="hover:text-white">Catálogo</router-link></li>
               <li><router-link to="/tasacion" class="hover:text-white">Tasación</router-link></li>
-              <li><router-link to="/contacto" class="hover:text-white">Contacto</router-link></li>
+              <li><router-link to="/cita" class="hover:text-white">Pedir cita</router-link></li>
             </ul>
           </div>
           
           <!-- Contacto -->
           <div>
-            <h4 class="font-semibold mb-4">Contacto</h4>
+            <h4 class="font-semibold mb-4">Visítanos</h4>
             <ul class="space-y-2 text-gray-400 text-sm">
               <li>📞 +34 722 81 7617</li>
               <li>info@rcarrogil.com <span class="text-xs text-yellow-300">(por actualizar)</span></li>

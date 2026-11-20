@@ -22,9 +22,14 @@ const routes = [
     component: () => import('../views/Tasacion.vue')
   },
   {
+    path: '/cita',
+    name: 'Cita',
+    component: () => import('../views/Cita.vue')
+  },
+  {
+    // Enlaces antiguos: /contacto lleva a la cita
     path: '/contacto',
-    name: 'Contacto',
-    component: () => import('../views/Contacto.vue')
+    redirect: '/cita'
   }
 ]
 

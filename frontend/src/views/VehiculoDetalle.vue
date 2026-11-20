@@ -70,10 +70,10 @@
             </div>
           </div>
 
-          <!-- Botón WhatsApp -->
-          <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="btn-contact">
-            📞 Contactar por WhatsApp
-          </a>
+          <!-- Pedir cita -->
+          <router-link :to="{ path: '/cita', query: { vehiculo: route.params.id } }" class="btn-contact">
+            📅 Pedir cita para verlo
+          </router-link>
 
           <!-- Garantía -->
           <div class="guarantee-badge">
@@ -195,12 +195,6 @@ const onMouseMove = (e) => {
 const onMouseLeave = () => {
   isZooming.value = false
 }
-
-const whatsappUrl = computed(() => {
-  const tel = '34722817617'
-  const msg = `Hola, estoy interesado en el auto que vi en su sitio web:\n\n🚗 *Vehículo:* ${vehiculo.value.marca} ${vehiculo.value.modelo}\n💰 *Precio:* ${formatEUR(vehiculo.value.precio_venta)}\n\n¿Sigue disponible? Me gustaría agendar una cita para verlo.`
-  return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`
-})
 
 const handleKeydown = (e) => {
   if (!lightboxOpen.value) return
@@ -339,7 +333,7 @@ onUnmounted(() => {
 }
 .btn-contact {
   display: block;
-  background: #25d366;
+  background: #1B3A5C;
   color: white;
   border: none;
   padding: 16px;
@@ -353,7 +347,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 .btn-contact:hover {
-  background: #1da851;
+  background: #2e5a89;
 }
 .guarantee-badge {
   background: #f0fdf4;
