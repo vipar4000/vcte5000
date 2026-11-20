@@ -1,190 +1,151 @@
 /**
- * Vehiculo costes: formateo numerico espanol + calculo automatico.
+ * Vehículo · importes: formato español sin alterar valores.
  *
  * Formato visual:  1.234.567,89  (punto miles, coma decimal)
- * Formato envio:   1234567.89    (decimal estandar para Django)
+ * Formato envío:   1234567.89    (decimal estándar para Django)
  *
- * Auto-calcula: coste_inicial = precio_subasta + tasas_sala + logistica_grua
+ * Regla de interpretación (parseValor):
+ *   - Si hay coma: los puntos son separadores de miles ("7.500,50" → 7500.50).
+ *   - Si hay varios puntos: son separadores de miles ("1.234.567" → 1234567).
+ *   - Si hay un único punto:
+ *        con 3 cifras detrás → separador de miles ("7.500" → 7500)
+ *        con 1-2 cifras      → decimal ("7500.5" → 7500.5)
+ *
+ * No se reformatea mientras se escribe: se formatea al salir del campo y antes
+ * de enviar. Así no hay saltos de cursor ni multiplicaciones por 100 al
+ * interpretar como español un número que ya estaba en formato estándar.
  */
 (function () {
     'use strict';
 
-    var FIELD_IDS = ['id_precio_subasta', 'id_tasas_sala', 'id_logistica_grua'];
-    // Campos que se formatean aunque no sumen al coste de compra
-    var MONETARY_FIELD_IDS = FIELD_IDS.concat(['id_precio_venta']);
-    var PERCENTAGE_FIELD_IDS = ['id_tipo_iva'];
-    var IVA_RATE_ID = 'id_tipo_iva_rate';
-    var display;
+    var CAMPOS_COSTE = ['id_precio_subasta', 'id_tasas_sala', 'id_logistica_grua'];
+    var CAMPOS_IMPORTE = CAMPOS_COSTE.concat(['id_precio_venta', 'id_tipo_iva']);
+    var ID_TASA = 'id_tipo_iva_rate';
 
-    /* ── Formateo espanol ─────────────────────────────────────────── */
+    /** Texto escrito por el usuario → "1234.56" (o '' si no hay número). */
+    function parseValor(texto) {
+        if (texto === null || texto === undefined) return '';
+        var s = String(texto).replace(/[^\d.,-]/g, '').trim();
+        if (!s) return '';
+        var negativo = s.charAt(0) === '-';
+        if (negativo) s = s.substring(1);
+
+        if (s.indexOf(',') !== -1) {
+            // Formato español: puntos = miles, coma = decimal
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            var puntos = s.split('.').length - 1;
+            if (puntos > 1) {
+                s = s.replace(/\./g, '');
+            } else if (puntos === 1) {
+                var partes = s.split('.');
+                if (partes[1].length === 3) {
+                    // "7.500" es siete mil quinientos, no 7,5
+                    s = partes[0] + partes[1];
+                }
+            }
+        }
+        return (negativo ? '-' : '') + s;
+    }
 
     /** "1234567.89" → "1.234.567,89" */
-    function formatSpanish(numStr) {
-        if (!numStr || numStr === '') return '';
-        var negative = numStr.charAt(0) === '-';
-        if (negative) numStr = numStr.substring(1);
-
-        var hasTrailingDot = numStr.charAt(numStr.length - 1) === '.';
-        var parts = numStr.split('.');
-        var intPart = parts[0] || '0';
-        var decPart = parts.length > 1 ? parts[1] : '';
-
-        // Puntos de miles en la parte entera
-        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-        var result = intPart;
-        if (decPart !== '') {
-            result += ',' + decPart;
-        } else if (hasTrailingDot) {
-            result += ',';
-        }
-        return negative ? '-' + result : result;
-    }
-
-    /** "1.234.567,89" → "1234567.89"  (para envio a Django)
-     *
-     * Si el valor ya viene en formato estándar ("7500.00") se devuelve tal
-     * cual: antes se eliminaban todos los puntos y el importe se multiplicaba
-     * por 100 en cada formateo (7.500 → 750.000 → 75.000.000).
-     */
-    function parseSpanish(str) {
-        if (str === null || str === undefined) return '';
-        var s = String(str).replace(/%/g, '').replace(/\s/g, '').trim();
+    function formatEspanol(numero) {
+        var s = String(numero === null || numero === undefined ? '' : numero).trim();
         if (!s) return '';
-        if (s.indexOf(',') !== -1) {
-            // Formato español: los puntos son miles y la coma es decimal
-            return s.replace(/\./g, '').replace(',', '.');
-        }
-        // Formato estándar: el punto ya es el decimal
-        return s;
+        var negativo = s.charAt(0) === '-';
+        if (negativo) s = s.substring(1);
+
+        var partes = s.split('.');
+        var entero = partes[0] || '0';
+        var decimales = partes.length > 1 ? partes[1].substring(0, 2) : '';
+
+        entero = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        var resultado = decimales ? entero + ',' + decimales : entero;
+        return (negativo ? '-' : '') + resultado;
     }
 
-    /** Extrae solo digitos, un punto y hasta 2 decimales del valor crudo */
-    function extractRaw(val) {
-        // Permitir solo: digitos, un punto decimal, signo menos al inicio
-        var cleaned = val.replace(/[^\d.\-]/g, '');
-        // Solo un punto
-        var firstDot = cleaned.indexOf('.');
-        if (firstDot !== -1) {
-            cleaned = cleaned.substring(0, firstDot + 1) +
-                      cleaned.substring(firstDot + 1).replace(/\./g, '');
-            // Max 2 decimales despues del punto
-            var afterDot = cleaned.substring(firstDot + 1);
-            if (afterDot.length > 2) {
-                cleaned = cleaned.substring(0, firstDot + 1) + afterDot.substring(0, 2);
-            }
+    function formatearCampo(el) {
+        var limpio = parseValor(el.value);
+        if (limpio !== '') {
+            el.value = formatEspanol(limpio);
         }
-        return cleaned;
     }
 
-    /* ── Auto-calcular coste inicial ──────────────────────────────── */
+    /* ── Totales ──────────────────────────────────────────────────── */
 
-    function calculateTotal() {
+    function calcularTotal() {
+        var display = document.getElementById('coste-inicial-display');
         if (!display) return;
         var total = 0;
-        for (var i = 0; i < FIELD_IDS.length; i++) {
-            var el = document.getElementById(FIELD_IDS[i]);
-            if (el) {
-                var raw = parseSpanish(el.value);
-                var val = parseFloat(raw);
-                if (!isNaN(val)) total += val;
-            }
+        for (var i = 0; i < CAMPOS_COSTE.length; i++) {
+            var el = document.getElementById(CAMPOS_COSTE[i]);
+            if (!el) continue;
+            var valor = parseFloat(parseValor(el.value));
+            if (!isNaN(valor)) total += valor;
         }
-        display.textContent = '\u20AC' + total.toFixed(2).replace('.', ',');
+        display.textContent = '€' + total.toFixed(2).replace('.', ',');
     }
-
-    /* ── Auto-calcular IVA desde base_imponible (tasas + logistica) x tasa ── */
 
     function calcularIVA() {
-        var tasasEl = document.getElementById('id_tasas_sala');
-        var logisEl = document.getElementById('id_logistica_grua');
-        var rateEl = document.getElementById(IVA_RATE_ID);
-        var ivaEl = document.getElementById('id_tipo_iva');
-        if (!tasasEl || !logisEl || !rateEl || !ivaEl) return;
+        var tasas = document.getElementById('id_tasas_sala');
+        var logistica = document.getElementById('id_logistica_grua');
+        var tasa = document.getElementById(ID_TASA);
+        var iva = document.getElementById('id_tipo_iva');
+        if (!tasas || !logistica || !tasa || !iva) return;
 
-        var base = (parseFloat(parseSpanish(tasasEl.value)) || 0) +
-                   (parseFloat(parseSpanish(logisEl.value)) || 0);
-        var tasa = parseFloat(rateEl.value) || 0;
-        var iva = base * tasa / 100;
-        ivaEl.value = formatSpanish(iva.toFixed(2));
+        var base = (parseFloat(parseValor(tasas.value)) || 0) +
+                   (parseFloat(parseValor(logistica.value)) || 0);
+        var porcentaje = parseFloat(tasa.value) || 0;
+        iva.value = formatEspanol((base * porcentaje / 100).toFixed(2));
     }
 
-    /* ── Formatear al escribir ────────────────────────────────────── */
+    /* ── Formatear al salir del campo ─────────────────────────────── */
 
-    function handleInput(e) {
-        var el = e.target;
-        var cursorFromEnd = el.value.length - el.selectionStart;
-
-        // Primero parsear formato español (quitar puntos miles, coma→punto), luego limpiar
-        var raw = extractRaw(parseSpanish(el.value));
-        var formatted = formatSpanish(raw);
-
-        el.value = formatted;
-
-        // Restaurar posicion del cursor
-        var newCursorPos = formatted.length - cursorFromEnd;
-        if (newCursorPos < 0) newCursorPos = 0;
-        el.setSelectionRange(newCursorPos, newCursorPos);
-
-        calculateTotal();
-        calcularIVA();
+    function alEntrar(el) {
+        // Al enfocar se muestra el valor "crudo" para poder editarlo cómodo
+        var limpio = parseValor(el.value);
+        if (limpio !== '') el.value = limpio;
     }
 
-    /* ── Pre-cargar formato al iniciar ────────────────────────────── */
-
-    function precacheFormat() {
-        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
-        for (var i = 0; i < allIds.length; i++) {
-            var el = document.getElementById(allIds[i]);
-            if (el && el.value) {
-                // Idempotente: da igual si llega "7500.00" o "7.500,00"
-                el.value = formatSpanish(parseSpanish(el.value));
-            }
-        }
-        calculateTotal();
-        calcularIVA();
+    function alSalir(el) {
+        formatearCampo(el);
+        calcularTotal();
     }
 
-    /* ── Limpiar formato antes de enviar ──────────────────────────── */
+    /* ── Envío: valores estándar ──────────────────────────────────── */
 
-    function cleanBeforeSubmit() {
-        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
-        for (var i = 0; i < allIds.length; i++) {
-            var el = document.getElementById(allIds[i]);
-            if (el) {
-                el.value = parseSpanish(el.value);
-            }
+    function limpiarAntesDeEnviar() {
+        for (var i = 0; i < CAMPOS_IMPORTE.length; i++) {
+            var el = document.getElementById(CAMPOS_IMPORTE[i]);
+            if (el) el.value = parseValor(el.value);
         }
     }
 
     /* ── Init ─────────────────────────────────────────────────────── */
 
     document.addEventListener('DOMContentLoaded', function () {
-        display = document.getElementById('coste-inicial-display');
-
-        var allIds = MONETARY_FIELD_IDS.concat(PERCENTAGE_FIELD_IDS);
-        for (var i = 0; i < allIds.length; i++) {
-            var el = document.getElementById(allIds[i]);
-            if (el) {
-                el.addEventListener('input', handleInput);
-                el.addEventListener('change', handleInput);
-            }
+        for (var i = 0; i < CAMPOS_IMPORTE.length; i++) {
+            var el = document.getElementById(CAMPOS_IMPORTE[i]);
+            if (!el) continue;
+            formatearCampo(el);
+            el.addEventListener('focus', function (evento) { alEntrar(evento.target); });
+            el.addEventListener('blur', function (evento) { alSalir(evento.target); });
+            el.addEventListener('input', calcularTotal);
         }
 
-        // Evento para cambio de tasa IVA
-        var rateEl = document.getElementById(IVA_RATE_ID);
-        if (rateEl) {
-            rateEl.addEventListener('change', function () {
+        var tasa = document.getElementById(ID_TASA);
+        if (tasa) {
+            tasa.addEventListener('change', function () {
                 calcularIVA();
+                calcularTotal();
             });
         }
 
-        precacheFormat();
-
-        // Limpiar antes de enviar el formulario
-        var form = document.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', cleanBeforeSubmit);
+        var formulario = document.querySelector('form');
+        if (formulario) {
+            formulario.addEventListener('submit', limpiarAntesDeEnviar);
         }
+
+        calcularTotal();
     });
 })();

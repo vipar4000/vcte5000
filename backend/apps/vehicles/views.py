@@ -10,7 +10,6 @@ from apps.bank.models import BancoMovimiento
 from .models import Vehiculo, ImagenVehiculo
 from .forms import (
     VehiculoForm, VehiculoBusquedaForm, ImagenVehiculoFormSet,
-    VehiculoComercialForm,
 )
 
 logger = logging.getLogger(__name__)
@@ -180,68 +179,6 @@ def vehiculo_create(request):
         'imagenes_formset': imagenes_formset,
         'mostrar_imagenes': mostrar_imagenes,
         'action': 'crear',
-    })
-
-
-@login_required
-def vehiculo_publicar(request, pk):
-    """Publicar el vehículo: estado, precio de venta, descripción y fotos.
-
-    Es una acción separada de la edición técnica a propósito: aquí no se tocan
-    los costes de compra ni la contabilidad, así que el equipo de ventas puede
-    trabajar sin ver márgenes y sin riesgo de descuadrar el asiento.
-    """
-    if not (request.user.is_admin or request.user.is_vendedor):
-        messages.error(request, 'No tiene permisos para publicar vehículos.')
-        return redirect('vehicles:detail', pk=pk)
-
-    vehiculo = get_object_or_404(Vehiculo, pk=pk)
-
-    if request.method == 'POST':
-        form = VehiculoComercialForm(request.POST, request.FILES, instance=vehiculo)
-        procesar_imagenes = 'imagenes-TOTAL_FORMS' in request.POST
-        if procesar_imagenes:
-            imagenes_formset = ImagenVehiculoFormSet(
-                request.POST, request.FILES, instance=vehiculo, prefix='imagenes'
-            )
-        else:
-            imagenes_formset = ImagenVehiculoFormSet(
-                instance=vehiculo, prefix='imagenes'
-            )
-
-        if form.is_valid() and (
-            not procesar_imagenes or imagenes_formset.is_valid()
-        ):
-            try:
-                with transaction.atomic():
-                    form.save()
-                    if procesar_imagenes:
-                        imagenes_formset.save()
-            except Exception as error:
-                # Nunca devolver un 500 por aquí: se informa del motivo real y,
-                # si algo se guardó a medias, la transacción lo revierte.
-                logger.exception(
-                    'Error al guardar los datos comerciales del vehículo %s',
-                    vehiculo.pk,
-                )
-                messages.error(
-                    request,
-                    f'No se pudieron guardar los datos comerciales: {error}. '
-                    f'No se cambió nada.',
-                )
-            else:
-                messages.success(request, 'Datos comerciales y fotos actualizados.')
-                return redirect('vehicles:detail', pk=vehiculo.pk)
-        else:
-            messages.error(request, 'Por favor, corrija los errores del formulario.')
-    else:
-        form = VehiculoComercialForm(instance=vehiculo)
-        imagenes_formset = ImagenVehiculoFormSet(instance=vehiculo, prefix='imagenes')
-
-    return render(request, 'vehicles/publicar.html', {
-        'form': form,
-        'vehiculo': vehiculo,
-        'imagenes_formset': imagenes_formset,
     })
 
 
