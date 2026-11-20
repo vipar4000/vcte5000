@@ -538,12 +538,19 @@ def reserva_create(request):
                     concepto=f"Reserva/Señal {reserva.vehiculo} - {reserva.cliente_nombre}",
                     tipo='INGRESO',
                     importe=reserva.importe_reserva,
+                    vehiculo=reserva.vehiculo,
                 )
                 reserva.banco_movimiento = movimiento
                 reserva.save()
 
-                # Crear asiento contable: anticipo con IVA
-                _crear_asiento_reserva(reserva, request.user)
+                # Asiento del anticipo (con IVA). Se postea y se enlaza con el
+                # movimiento, igual que hace la venta: así la traza es completa.
+                asiento = _crear_asiento_reserva(reserva, request.user)
+                if asiento.esta_cuadrado:
+                    asiento.estado = 'POSTEADO'
+                    asiento.save(update_fields=['estado'])
+                movimiento.asiento_asociado = asiento
+                movimiento.save(update_fields=['asiento_asociado'])
 
             messages.success(
                 request,

@@ -61,6 +61,7 @@
   <li><a href="#fase2">Fase 2 — Anulación paso a paso (pasos A1 a A9)</a></li>
   <li><a href="#informes">Fase 3 — Comprobación de informes</a></li>
   <li><a href="#conciliacion">Anexo opcional — Conciliación bancaria</a></li>
+  <li><a href="#anexo-b">Anexo B — Reservas, venta con señal y personal</a></li>
   <li><a href="#hallazgos">Hallazgos conocidos (leer antes de reportar fallos)</a></li>
   <li><a href="#acta">Acta de la prueba</a></li>
 </ol>
@@ -76,6 +77,14 @@
   <tr><td><strong>Qué debe ver</strong></td><td>Los valores que el sistema debe mostrar. Si alguno no coincide, márquelo como FALLA y anótelo.</td></tr>
   <tr><td><strong>Resultado</strong></td><td>Casillas <code>OK</code> / <code>FALLA</code> para marcar a mano (o en el navegador).</td></tr>
 </table>
+
+<div class="box ok">
+  <strong>Comprobación automática (recomendada antes de la manual):</strong>
+  desde la raíz del repositorio, <code>python prueba_anexo_b.py</code> ejecuta en una transacción que se
+  revierte el recorrido del <a href="#anexo-b">Anexo B</a> (dos hojas, reserva con señal, venta, personal
+  sin acceso y nóminas quincenales) y muestra un resumen <code>OK / FALLA</code>.
+  La prueba del capítulo 20 se ejecuta con <code>python test_pipeline_capitulo20.py</code>.
+</div>
 
 <div class="box info">
   <strong>Regla de oro:</strong> no pase al paso siguiente hasta que el anterior esté OK.
@@ -94,6 +103,7 @@
   <tr><th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Uso en la prueba</th></tr>
   <tr><td><code>admin</code></td><td><code>admin123!</code></td><td>ADMIN</td><td>Todo el recorrido</td></tr>
   <tr><td><code>mecanico1</code></td><td><code>mecanico123!</code></td><td>OPERARIO</td><td>Operario de la orden de trabajo</td></tr>
+  <tr><td><em>Sin acceso</em></td><td>—</td><td>OPERARIO</td><td>Ficha laboral sin credenciales: se crea en el Anexo B (PIN <code>7777</code>)</td></tr>
 </table>
 
 <h2>2.3 Salario del operario (necesario para el coste de la OT)</h2>
@@ -891,6 +901,188 @@ La <strong>fecha de vencimiento es obligatoria en las compras a crédito</strong
   de la Fase 2. Si lo ejecutan, anótenlo en el acta.
 </div>
 
+
+<h1 id="anexo-b">Anexo B — Reservas, venta con señal y personal</h1>
+
+<div class="box warn">
+  <strong>Ejecute este anexo después de la Fase 3.</strong>
+  Crea una nómina y una venta nuevas, así que cambia los totales. Comprueba los módulos añadidos
+  en la última versión: las <strong>dos hojas del vehículo</strong>, la <strong>reserva con señal</strong>
+  y el <strong>personal sin acceso con nóminas quincenales</strong>.
+</div>
+
+<p>Todos los importes suponen un vehículo comprado por <strong>7.500 + 400 + 250 = 8.150 €</strong>
+y vendido en <strong>11.500 €</strong>. Si usa otro vehículo, cambie solo esos dos importes.</p>
+
+<!-- ===================== B1 ===================== -->
+<div class="step">B1 — Dos hojas del vehículo: Editar y Publicar</div>
+
+<p><strong>Dónde:</strong> Vehículos → abrir un vehículo → <strong>✏️ Editar</strong> y, desde la ficha,
+<strong>📢 Publicar</strong>.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>En <strong>Editar</strong> hay campos de</td><td>técnicos, adquisición, costes y factura de compra</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>En <strong>Editar</strong> NO aparecen</td><td>precio de venta, descripción comercial ni fotos</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>En <strong>Publicar</strong> aparecen</td><td>estado, precio de venta, fecha de publicación, descripción y galería</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>En <strong>Publicar</strong> NO aparecen</td><td>precio de subasta, tasas, grúa ni factura</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Al pasar el estado a <strong>En Venta</strong> y guardar, la fecha de publicación</td><td>se rellena sola con el día de hoy</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>La ficha muestra un bloque <strong>Datos comerciales</strong> con</td><td>precio, fecha de publicación y botón ✏️ Editar</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box info">
+  <strong>Importes:</strong> escriba <code>7500</code> en un coste y salga del campo: debe quedar
+  <code>7.500,00</code> (no <code>7,50</code> ni <code>75.000.000,00</code>). Al reabrir la ficha el
+  importe debe seguir siendo el mismo.
+</div>
+
+<!-- ===================== B2 ===================== -->
+<div class="step">B2 — Reserva de 1.000 € (señal)</div>
+
+<p><strong>Dónde:</strong> 🔖 Reservas → <strong>+ Nueva Reserva</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Vehículo</td><td>el de la prueba (estado <em>En Venta</em>)</td></tr>
+  <tr><td>Cliente</td><td><code>Carlos Ruiz</code></td></tr>
+  <tr><td>DNI/NIE</td><td><code>12345678A</code></td></tr>
+  <tr><td>Fecha de reserva</td><td><code>20/11/2026</code></td></tr>
+  <tr><td>Importe de la reserva</td><td><code>1000,00</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Estado de la reserva</td><td><strong>ACTIVA</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Movimiento en Banco</td><td><strong>INGRESO +1.000,00</strong> «Reserva/Señal…»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento del anticipo — cuentas</td><td>DEBE <code>572</code> 1.000,00 · HABER <code>438</code> 826,45 · HABER <code>477</code> 173,55</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El asiento está</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Intentar una segunda reserva del mismo coche</td><td>avisa «ya tiene una reserva activa» y no la crea</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== B3 ===================== -->
+<div class="step">B3 — Venta con la señal descontada</div>
+
+<p><strong>Dónde:</strong> abrir la reserva → <strong>Convertir en Venta</strong> → formulario de venta.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Cliente</td><td><code>Carlos Ruiz</code> · <code>12345678A</code> · Madrid · <code>28001</code></td></tr>
+  <tr><td>Fecha de venta</td><td><code>25/11/2026</code></td></tr>
+  <tr><td>Método de pago</td><td>Transferencia bancaria</td></tr>
+  <tr><td>Precio de venta</td><td><code>11500,00</code> (precio completo)</td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>La pantalla de venta avisa de la señal</td><td>«Reserva de 1.000 €… se descontará»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Ingreso bancario de la venta</td><td><strong>+10.500,00</strong> (no 11.500,00)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Total cobrado en banco por este coche</td><td><strong>11.500,00</strong> (1.000 + 10.500)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Estado de la reserva</td><td><strong>CONVERTIDA</strong> y enlazada con la venta</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento de la venta — DEBE</td><td><code>572</code> 10.500,00 + <code>438</code> 826,45 + <code>477</code> 173,55</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento de la venta — HABER</td><td><code>700</code> 2.768,60 + <code>471</code> 581,40 + <code>310</code> 8.150,00</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de <code>438</code> y <code>477</code> de esta reserva</td><td><strong>0,00</strong> (anticipo cancelado)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El asiento está</td><td>POSTEADO y cuadrado (11.500 = 11.500)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box danger">
+  <strong>Fallo histórico (ya corregido):</strong> si veía <strong>dos ingresos</strong>
+  (1.000 de la señal <em>y</em> 11.500 de la venta) y la reserva seguía ACTIVA, era el fallo de la
+  versión anterior. Repárelo con
+  <code>python manage.py reparar_venta_con_reserva --matricula 1234ABC --dry-run</code>
+  y, si el resumen es correcto, repita sin <code>--dry-run</code>.
+</div>
+
+<!-- ===================== B4 ===================== -->
+<div class="step">B4 — Trabajador sin acceso web</div>
+
+<p><strong>Dónde:</strong> 👥 Usuarios → <strong>+ Nuevo Usuario</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td><strong>Trabajador sin acceso web</strong></td><td>marcado ✔</td></tr>
+  <tr><td>Nombre / Apellidos</td><td><code>Manuel</code> / <code>García</code></td></tr>
+  <tr><td>Rol</td><td>Operario de Taller</td></tr>
+  <tr><td>Móvil</td><td><code>600111222</code></td></tr>
+  <tr><td>PIN de kiosco</td><td><code>7777</code></td></tr>
+  <tr><td>Salario base mensual</td><td><code>1500,00</code></td></tr>
+  <tr><td>% SS patronal</td><td><code>31,50</code></td></tr>
+  <tr><td>Periodicidad de pago</td><td><strong>Quincenal</strong></td></tr>
+  <tr><td>% IRPF</td><td><code>6,00</code></td></tr>
+  <tr><td>% SS obrera</td><td><code>6,35</code></td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Al marcar la casilla, los campos Usuario/Correo/Contraseña</td><td>se ocultan y dejan de ser obligatorios</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El botón <strong>Crear usuario</strong> envía el formulario</td><td>sí, sin bloquearse</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>En el listado aparece con la etiqueta</td><td><strong>🔒 Sin acceso</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Intentar entrar con su usuario y cualquier contraseña</td><td><strong>no entra</strong> (no tiene contraseña válida)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Fichar en <code>/erp/asistencia/kiosco/</code> con PIN <code>7777</code></td><td>registra ENTRADA a nombre de <strong>Manuel García</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Segundo fichaje con el mismo PIN</td><td>registra <strong>SALIDA</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<div class="box info">
+  El kiosco de fichaje <strong>no pide iniciar sesión</strong>: está pensado para la tablet del taller.
+  Solo acepta PIN de trabajadores activos.
+</div>
+
+<!-- ===================== B5 ===================== -->
+<div class="step">B5 — Nómina quincenal automática</div>
+
+<p><strong>Dónde:</strong> 👷 Nóminas → <strong>Nueva Nómina</strong>.</p>
+
+<h3>Datos del formulario</h3>
+<table>
+  <tr><th>Campo</th><th>Valor</th></tr>
+  <tr><td>Trabajador</td><td><code>Manuel García</code></td></tr>
+  <tr><td>Periodicidad</td><td><strong>Quincenal</strong></td></tr>
+  <tr><td>Fecha de nómina</td><td><code>16/11/2026</code> (segunda quincena)</td></tr>
+  <tr><td>Calcular importes según la ficha</td><td>marcado ✔</td></tr>
+</table>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Al elegir el trabajador, el salario bruto se rellena con</td><td><strong>750,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>SS patronal 31,5 %</td><td><strong>236,25</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>SS obrera 6,35 %</td><td><strong>47,62</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Retención IRPF 6 %</td><td><strong>45,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Líquido a percibir</td><td><strong>657,38</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento — DEBE</td><td><code>640</code> 750,00 + <code>642</code> 236,25</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento — HABER</td><td><code>4751</code> 45,00 + <code>476</code> 283,87 + <code>465</code> 657,38</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>El asiento está</td><td>POSTEADO y cuadrado (986,25 = 986,25)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== B6 ===================== -->
+<div class="step">B6 — Generador de nóminas del periodo (sin duplicar)</div>
+
+<p><strong>Dónde:</strong> 👷 Nóminas → <strong>Generar nóminas del periodo</strong>.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Tras generar, el mensaje</td><td>«… nómina(s) generada(s) según la periodicidad de cada ficha»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Manuel García (quincenal)</td><td>ya tiene su nómina: <strong>no se duplica</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Un trabajador semanal con 1.500 € de salario</td><td>genera <strong>350,00</strong> de bruto (7/30 del mes)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Un trabajador mensual con 1.500 €</td><td>genera <strong>1.500,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<h3>Comprobación final del anexo</h3>
+<table>
+  <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Movimientos de banco del coche de prueba</td><td>1.000 + 10.500 = <strong>11.500,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Todos los asientos nuevos están</td><td>POSTEADOS y cuadrados</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Contabilidad → Informes → Balance sigue</td><td>cuadrado (Activo = Pasivo + Patrimonio)</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+
 <h1 id="hallazgos">6. Hallazgos conocidos</h1>
 
 <p>Estos comportamientos están verificados sobre el sistema actual. <strong>No los reporte como fallos
@@ -954,6 +1146,37 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
   </tr>
 </table>
 
+<h2>6.1 Correcciones verificadas en esta versión</h2>
+<p>Estos fallos ya están corregidos; la prueba debe confirmar que <strong>no vuelven a aparecer</strong>:</p>
+<table>
+  <tr><th>#</th><th>Qué fallaba</th><th>Qué debe pasar ahora</th></tr>
+  <tr>
+    <td>C1</td>
+    <td>Los importes de compra se multiplicaban o dividían (7500 → 7,50 → 75.000.000,00)</td>
+    <td>Escribir <code>7500</code> deja <code>7.500,00</code> y se mantiene al reabrir (paso B1)</td>
+  </tr>
+  <tr>
+    <td>C2</td>
+    <td>Al pulsar Enter en un importe, el vehículo se guardaba solo</td>
+    <td>Solo guarda con <strong>Guardar Cambios</strong> (paso B1)</td>
+  </tr>
+  <tr>
+    <td>C3</td>
+    <td>Vender con reserva apuntaba dos ingresos (señal + precio completo)</td>
+    <td>Un solo cobro por el resto y la reserva queda CONVERTIDA (pasos B2 y B3)</td>
+  </tr>
+  <tr>
+    <td>C4</td>
+    <td>El formulario de «Trabajador sin acceso» no dejaba guardar</td>
+    <td>El botón <strong>Crear usuario</strong> envía sin pedir usuario ni contraseña (paso B4)</td>
+  </tr>
+  <tr>
+    <td>C5</td>
+    <td>El generador automático de nóminas no encontraba administrador y no generaba nada</td>
+    <td>Genera las nóminas del periodo sin duplicarlas (paso B6)</td>
+  </tr>
+</table>
+
 <h1 id="acta">7. Acta de la prueba</h1>
 
 <table>
@@ -965,6 +1188,9 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
   <tr><td>Pasos OK</td><td class="fill"></td></tr>
   <tr><td>Pasos con FALLA</td><td class="fill"></td></tr>
   <tr><td>Copia de seguridad restaurada</td><td>Sí ☐ &nbsp;&nbsp; No ☐</td></tr>
+  <tr><td>Pruebas automáticas del capítulo 20 (<code>test_pipeline_capitulo20.py</code>)</td><td class="fill">93 / 93 OK</td></tr>
+  <tr><td>Pruebas automáticas del Anexo B (<code>prueba_anexo_b.py</code>)</td><td class="fill">46 / 46 OK</td></tr>
+  <tr><td>Suite de pruebas del sistema (<code>manage.py test</code>)</td><td class="fill">160 OK, 1 omitida</td></tr>
 </table>
 
 <h3>Fallos encontrados</h3>
@@ -991,8 +1217,8 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
 </div>
 
 <p class="small">
-  Documento generado para la puesta en marcha del ERP. Versión 1.0.
-  Los importes y resultados esperados coinciden con el pipeline del capítulo 20 del manual y con la suite de 86 pruebas automáticas del sistema.
+  Documento generado para la puesta en marcha del ERP. Versión 2.0 (20/11/2026).
+  Los importes y resultados esperados coinciden con el pipeline del capítulo 20 del manual y con la suite de 160 pruebas automáticas del sistema.
 </p>
 
 </body>
