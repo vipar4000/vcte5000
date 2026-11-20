@@ -112,12 +112,33 @@
         calcularTotal();
     }
 
-    /* ── Envío: valores estándar ──────────────────────────────────── */
+    /* ── Envío: solo con el botón Guardar ─────────────────────────── */
+
+    /** Enter dentro de un campo NO envía el formulario.
+     *
+     * El navegador envía el formulario al pulsar Enter en un input (envío
+     * implícito): eso guardaba y generaba un asiento sin que el usuario
+     * terminara de corregir el resto de importes. Se permite Enter en el
+     * textarea (saltos de línea) y en los botones (su acción normal).
+     */
+    function bloquearEnter(evento) {
+        if (evento.key !== 'Enter') return;
+        var el = evento.target;
+        if (!el) return;
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'BUTTON') return;
+        evento.preventDefault();
+    }
 
     function limpiarAntesDeEnviar() {
         for (var i = 0; i < CAMPOS_IMPORTE.length; i++) {
             var el = document.getElementById(CAMPOS_IMPORTE[i]);
             if (el) el.value = parseValor(el.value);
+        }
+        // Evita un segundo envío (crearía otro asiento) mientras guarda
+        var boton = document.querySelector('button[type="submit"]');
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent = 'Guardando…';
         }
     }
 
@@ -143,6 +164,7 @@
 
         var formulario = document.querySelector('form');
         if (formulario) {
+            formulario.addEventListener('keydown', bloquearEnter);
             formulario.addEventListener('submit', limpiarAntesDeEnviar);
         }
 
