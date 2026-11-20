@@ -2,6 +2,25 @@
 
 {% block title %}R Car Rogil ERP - {% if action == 'crear' %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
 
+{% block extra_js %}
+<script>
+(function () {
+    var check = document.getElementById('id_sin_acceso');
+    if (!check) return;
+    var campos = document.querySelectorAll('.campo-acceso');
+
+    function actualizar() {
+        var sinAcceso = check.checked;
+        campos.forEach(function (bloque) {
+            bloque.style.display = sinAcceso ? 'none' : '';
+        });
+    }
+    check.addEventListener('change', actualizar);
+    actualizar();
+})();
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
     <div>
@@ -10,9 +29,9 @@
         </h1>
         <p class="text-gray-500">
             {% if action == 'crear' %}
-            Cree una cuenta de acceso al ERP.
+            Cuenta de acceso al ERP o ficha laboral sin acceso (obreros, limpieza, auxiliares).
             {% else %}
-            {{ usuario.username }} — deje las contraseñas vacías para no cambiarlas.
+            {{ usuario.nombre_completo }} — deje las contraseñas vacías para no cambiarlas.
             {% endif %}
         </p>
     </div>
@@ -26,8 +45,25 @@
     <form method="post" class="bg-white rounded-lg shadow p-6 space-y-5">
         {% csrf_token %}
 
+        <div id="bloque-sin-acceso"
+             class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <label class="flex items-start gap-2 text-sm text-blue-900">
+                {{ form.sin_acceso }}
+                <span>
+                    <strong>Trabajador sin acceso web</strong> (ficha laboral)<br>
+                    <span class="text-blue-800 text-xs">
+                        Aparece en 👷 Nóminas y puede fichar en taller con su PIN,
+                        pero no entra al ERP. No hace falta usuario ni contraseña.
+                    </span>
+                </span>
+            </label>
+            {% for error in form.sin_acceso.errors %}
+            <p class="text-red-600 text-xs mt-1">{{ error }}</p>
+            {% endfor %}
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div class="campo-acceso">
                 <label class="block text-sm font-medium mb-1">Usuario *</label>
                 {{ form.username }}
                 {% for error in form.username.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
@@ -45,7 +81,7 @@
                 <label class="block text-sm font-medium mb-1">Apellidos</label>
                 {{ form.last_name }}
             </div>
-            <div>
+            <div class="campo-acceso">
                 <label class="block text-sm font-medium mb-1">Correo electrónico *</label>
                 {{ form.email }}
                 {% for error in form.email.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
@@ -69,6 +105,22 @@
                 <label class="block text-sm font-medium mb-1">% SS patronal</label>
                 {{ form.porcentaje_ss_patronal }}
             </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Periodicidad de pago</label>
+                {{ form.periodicidad_pago }}
+                <p class="text-xs text-gray-500 mt-1">
+                    Mensual, quincenal (2 pagos) o semanal (4 pagos). El generador de nóminas
+                    calcula el importe proporcional.
+                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">% IRPF</label>
+                {{ form.porcentaje_irpf }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">% SS obrera</label>
+                {{ form.porcentaje_ss_obrera }}
+            </div>
             <div class="flex items-end">
                 <label class="flex items-center gap-2 text-sm">
                     {{ form.is_active }} Cuenta activa
@@ -76,7 +128,7 @@
             </div>
         </div>
 
-        <div class="border-t pt-5">
+        <div class="border-t pt-5 campo-acceso">
             <p class="text-sm font-medium mb-3">
                 {% if action == 'crear' %}Contraseña *{% else %}Cambiar contraseña (opcional){% endif %}
             </p>

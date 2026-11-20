@@ -14,6 +14,12 @@ class User(AbstractUser):
         ('VENDEDOR', 'Vendedor'),
         ('GESTORIA', 'Gestoría Externa'),
     ]
+
+    PERIODICIDADES_PAGO = [
+        ('MENSUAL', 'Mensual'),
+        ('QUINCENAL', 'Quincenal'),
+        ('SEMANAL', 'Semanal'),
+    ]
     
     email = models.EmailField(unique=True, verbose_name='correo electrónico')
     rol = models.CharField(max_length=20, choices=ROLES, default='OPERARIO', verbose_name='rol')
@@ -52,6 +58,35 @@ class User(AbstractUser):
         default=31.50,
         verbose_name='% SS patronal'
     )
+
+    # Ficha laboral: se puede dar de alta personal sin acceso al ERP
+    sin_acceso = models.BooleanField(
+        default=False,
+        verbose_name='trabajador sin acceso web',
+        help_text=(
+            'Ficha laboral sin credenciales: aparece en nóminas y puede fichar '
+            'con su PIN, pero no entra al ERP.'
+        ),
+    )
+    periodicidad_pago = models.CharField(
+        max_length=10,
+        choices=PERIODICIDADES_PAGO,
+        default='MENSUAL',
+        verbose_name='periodicidad de pago',
+        help_text='Mensual, quincenal (2 pagos) o semanal (4 pagos al mes).',
+    )
+    porcentaje_irpf = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('6.00'),
+        verbose_name='% IRPF',
+    )
+    porcentaje_ss_obrera = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('6.35'),
+        verbose_name='% SS obrera',
+    )
     
     class Meta:
         verbose_name = 'usuario'
@@ -62,6 +97,19 @@ class User(AbstractUser):
         nombre = self.get_full_name().strip() or self.username
         return f"{nombre} ({self.get_rol_display()})"
     
+    @property
+    def nombre_completo(self):
+        """Nombre para listados y nóminas (evita depender del username)."""
+        nombre = f'{self.first_name} {self.last_name}'.strip()
+        return nombre or self.username
+
+    @property
+    def dias_periodo_pago(self):
+        """Días que cubre su periodicidad (base 30 para el mensual)."""
+        return {'MENSUAL': 30, 'QUINCENAL': 15, 'SEMANAL': 7}.get(
+            self.periodicidad_pago, 30
+        )
+
     @property
     def is_admin(self):
         return self.rol == 'ADMIN' or self.is_superuser

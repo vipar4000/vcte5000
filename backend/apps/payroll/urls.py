@@ -8,4 +8,5 @@ urlpatterns = [
     path('nueva/', views.nomina_create, name='create'),
     path('<int:pk>/', views.nomina_detail, name='detail'),
     path('generar-mensual/', views.nomina_generar_mensual, name='generar_mensual'),
+    path('importes/<int:pk>/', views.importes_empleado, name='importes'),
 ]

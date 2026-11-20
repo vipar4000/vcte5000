@@ -8,7 +8,7 @@
         </a>
     </div>
 
-    <h1 class="text-2xl font-bold text-eurocar-blue mb-6">Nómina de {{ nomina.empleado.get_full_name|default:nomina.empleado.username }}</h1>
+    <h1 class="text-2xl font-bold text-eurocar-blue mb-6">Nómina de {{ nomina.empleado.nombre_completo }}</h1>
 
     <!-- Datos de la nómina -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -16,11 +16,11 @@
         <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
                 <span class="text-gray-500">Empleado:</span>
-                <span class="font-medium ml-2">{{ nomina.empleado.get_full_name|default:nomina.empleado.username }}</span>
+                <span class="font-medium ml-2">{{ nomina.empleado.nombre_completo }}</span>
             </div>
             <div>
                 <span class="text-gray-500">Fecha:</span>
-                <span class="font-medium ml-2">{{ nomina.fecha_nomina|date:"F Y" }}</span>
+                <span class="font-medium ml-2">{{ nomina.fecha_nomina|date:"d/m/Y" }} · {{ nomina.get_periodo_display }}</span>
             </div>
         </div>
     </div>

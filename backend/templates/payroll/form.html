@@ -16,21 +16,50 @@
         <form method="post" class="space-y-4">
             {% csrf_token %}
 
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.empleado.label }}</label>
                     {{ form.empleado }}
-                    {% if form.empleado.errors %}
-                    <p class="text-red-500 text-xs mt-1">{{ form.empleado.errors.0 }}</p>
-                    {% endif %}
+                    {% for error in form.empleado.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.periodo.label }}</label>
+                    {{ form.periodo }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        Al elegir el trabajador se pone la de su ficha.
+                    </p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.fecha_nomina.label }}</label>
                     {{ form.fecha_nomina }}
-                    {% if form.fecha_nomina.errors %}
-                    <p class="text-red-500 text-xs mt-1">{{ form.fecha_nomina.errors.0 }}</p>
-                    {% endif %}
+                    {% for error in form.fecha_nomina.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
                 </div>
+                <div class="flex items-end">
+                    <label class="flex items-start gap-2 text-sm text-gray-700">
+                        {{ form.calcular_automaticamente }}
+                        <span>
+                            {{ form.calcular_automaticamente.label }}
+                            <span class="block text-xs text-gray-500">
+                                {{ form.calcular_automaticamente.help_text }}
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="aviso-calculo"
+                 class="hidden rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <span id="aviso-texto"></span>
             </div>
 
             <div class="border-t pt-4">
@@ -39,16 +68,16 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.salario_bruto.label }}</label>
                         {{ form.salario_bruto }}
-                        {% if form.salario_bruto.errors %}
-                        <p class="text-red-500 text-xs mt-1">{{ form.salario_bruto.errors.0 }}</p>
-                        {% endif %}
+                        {% for error in form.salario_bruto.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.ss_patronal.label }}</label>
                         {{ form.ss_patronal }}
-                        {% if form.ss_patronal.errors %}
-                        <p class="text-red-500 text-xs mt-1">{{ form.ss_patronal.errors.0 }}</p>
-                        {% endif %}
+                        {% for error in form.ss_patronal.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -59,16 +88,16 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.retencion_irpf.label }}</label>
                         {{ form.retencion_irpf }}
-                        {% if form.retencion_irpf.errors %}
-                        <p class="text-red-500 text-xs mt-1">{{ form.retencion_irpf.errors.0 }}</p>
-                        {% endif %}
+                        {% for error in form.retencion_irpf.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">{{ form.ss_obrera.label }}</label>
                         {{ form.ss_obrera }}
-                        {% if form.ss_obrera.errors %}
-                        <p class="text-red-500 text-xs mt-1">{{ form.ss_obrera.errors.0 }}</p>
-                        {% endif %}
+                        {% for error in form.ss_obrera.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -86,4 +115,67 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    // Rellena los importes con la ficha del trabajador (periodicidad y porcentajes)
+    var empleado = document.getElementById('id_empleado');
+    var periodo = document.getElementById('id_periodo');
+    var auto = document.getElementById('id_calcular_automaticamente');
+    var aviso = document.getElementById('aviso-calculo');
+    var avisoTexto = document.getElementById('aviso-texto');
+
+    var campos = {
+        salario_bruto: document.getElementById('id_salario_bruto'),
+        ss_patronal: document.getElementById('id_ss_patronal'),
+        retencion_irpf: document.getElementById('id_retencion_irpf'),
+        ss_obrera: document.getElementById('id_ss_obrera')
+    };
+
+    if (!empleado || !periodo || !auto) return;
+
+    var baseUrl = "{% url 'payroll:importes' 0 %}".replace('/0/', '/');
+
+    function calcular(conPeriodo) {
+        var pk = empleado.value;
+        if (!pk) return;
+        var url = baseUrl + pk + '/';
+        if (conPeriodo) url += '?periodo=' + periodo.value;
+
+        fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(function (r) { return r.json(); })
+            .then(function (datos) {
+                if (datos.error) return;
+                if (!conPeriodo && periodo.value !== datos.periodo) {
+                    periodo.value = datos.periodo;
+                }
+                if (auto.checked) {
+                    for (var clave in campos) {
+                        if (campos[clave]) campos[clave].value = datos[clave];
+                    }
+                }
+                aviso.classList.remove('hidden');
+                avisoTexto.textContent =
+                    datos.nombre + ' · ' + datos.periodo.toLowerCase() +
+                    ' · IRPF ' + datos.porcentaje_irpf + ' % · SS obrera ' +
+                    datos.porcentaje_ss_obrera + ' % · líquido ' +
+                    Number(datos.liquido).toLocaleString('es-ES',
+                        {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+            })
+            .catch(function () { /* sin conexión: se puede escribir a mano */ });
+    }
+
+    empleado.addEventListener('change', function () { calcular(false); });
+    periodo.addEventListener('change', function () { calcular(true); });
+    auto.addEventListener('change', function () {
+        [campos.salario_bruto, campos.ss_patronal, campos.retencion_irpf, campos.ss_obrera]
+            .forEach(function (campo) { if (campo) campo.readOnly = auto.checked; });
+        if (auto.checked) calcular(true);
+    });
+
+    if (empleado.value) calcular(false);
+})();
+</script>
 {% endblock %}

@@ -8,7 +8,7 @@
     <div class="flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Usuarios</h1>
-            <p class="text-gray-500">Cuentas de acceso al ERP y sus permisos</p>
+            <p class="text-gray-500">Cuentas de acceso al ERP y fichas laborales (sin acceso)</p>
         </div>
         <a href="{% url 'usuarios:create' %}"
            class="bg-eurocar-blue text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
@@ -67,10 +67,22 @@
             <tbody class="divide-y divide-gray-200">
                 {% for usuario in usuarios %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-medium">{{ usuario.username }}</td>
-                    <td class="px-4 py-3">{{ usuario.get_full_name|default:"—" }}</td>
+                    <td class="px-4 py-3 font-medium">
+                        {{ usuario.nombre_completo }}
+                        {% if usuario.sin_acceso %}
+                        <span class="ml-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600"
+                              title="Ficha laboral sin credenciales: ficha con PIN y cobra nómina">
+                            🔒 Sin acceso
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if usuario.sin_acceso %}—{% else %}{{ usuario.get_full_name|default:"—" }}{% endif %}
+                    </td>
                     <td class="px-4 py-3">{{ usuario.get_rol_display }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ usuario.email }}</td>
+                    <td class="px-4 py-3 text-gray-600">
+                        {% if usuario.sin_acceso %}—{% else %}{{ usuario.email }}{% endif %}
+                    </td>
                     <td class="px-4 py-3">
                         {% if usuario.is_active %}
                         <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Activo</span>

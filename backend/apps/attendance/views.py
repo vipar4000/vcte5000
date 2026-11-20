@@ -81,8 +81,8 @@ def marcaje_create(request):
     return render(request, 'attendance/form.html', context)
 
 
-@login_required
 def kiosco_view(request):
+    """Kiosco de fichaje de la tablet del taller (sin sesión, solo PIN)."""
     """Vista kiosco para tablets - fichaje por PIN."""
     form = PinMarcajeForm()
     mensaje = None
@@ -95,7 +95,12 @@ def kiosco_view(request):
             
             # Buscar operario por PIN
             try:
-                operario = User.objects.get(pin_kiosco=pin, rol='OPERARIO', is_active=True)
+                # .first() evita un 500 si dos fichas compartieran PIN
+                operario = User.objects.filter(
+                    pin_kiosco=pin, rol='OPERARIO', is_active=True
+                ).first()
+                if operario is None:
+                    raise User.DoesNotExist
                 
                 # Verificar geofencing
                 ip_address = get_client_ip(request)
@@ -122,7 +127,7 @@ def kiosco_view(request):
                         validado=True,
                     )
                     
-                    mensaje = f'✅ {operario.get_full_name()} - {tipo}'
+                    mensaje = f'✅ {operario.nombre_completo} - {tipo}'
                     tipo_mensaje = 'success'
                     
             except User.DoesNotExist:
@@ -155,26 +160,19 @@ def configuracion_nomina_create(request):
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para configurar nóminas.')
         return redirect('attendance:nomina_list')
-    
+
     if request.method == 'POST':
         form = ConfiguracionNominaForm(request.POST)
         if form.is_valid():
             config = form.save()
-            
-            # Actualizar salario en el modelo User
-            operario = config.operario
-            operario.salario_base_mensual = config.salario_base_mensual
-            operario.porcentaje_ss_patronal = config.porcentaje_ss_patronal
-            operario.save()
-            
             messages.success(
-                request, 
-                f'Nómina configurada para {operario.get_full_name()}'
+                request,
+                f'Nómina configurada para {config.operario.nombre_completo}'
             )
             return redirect('attendance:nomina_list')
     else:
         form = ConfiguracionNominaForm()
-    
+
     context = {
         'form': form,
     }
@@ -185,30 +183,23 @@ def configuracion_nomina_create(request):
 def configuracion_nomina_update(request, pk):
     """Actualizar configuración de nómina."""
     config = get_object_or_404(ConfiguracionNomina, pk=pk)
-    
+
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para editar nóminas.')
         return redirect('attendance:nomina_list')
-    
+
     if request.method == 'POST':
         form = ConfiguracionNominaForm(request.POST, instance=config)
         if form.is_valid():
             config = form.save()
-            
-            # Actualizar salario en el modelo User
-            operario = config.operario
-            operario.salario_base_mensual = config.salario_base_mensual
-            operario.porcentaje_ss_patronal = config.porcentaje_ss_patronal
-            operario.save()
-            
             messages.success(
-                request, 
-                f'Nómina actualizada para {operario.get_full_name()}'
+                request,
+                f'Nómina actualizada para {config.operario.nombre_completo}'
             )
             return redirect('attendance:nomina_list')
     else:
         form = ConfiguracionNominaForm(instance=config)
-    
+
     context = {
         'form': form,
         'config': config,

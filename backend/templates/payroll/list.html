@@ -26,7 +26,8 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Empleado</th>
-                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Fecha</th>
+                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Periodicidad</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">Fecha</th>
                     <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">Salario Bruto</th>
                     <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">SS Patronal</th>
                     <th class="px-4 py-3 text-right text-sm font-medium text-gray-600">Líquido</th>
@@ -38,10 +39,11 @@
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-4 py-3 text-sm">
                         <a href="{% url 'payroll:detail' pk=nomina.pk %}" class="text-eurocar-blue hover:underline font-medium">
-                            {{ nomina.empleado.get_full_name|default:nomina.empleado.username }}
+                            {{ nomina.empleado.nombre_completo }}
                         </a>
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ nomina.fecha_nomina|date:"m/Y" }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ nomina.get_periodo_display }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ nomina.fecha_nomina|date:"d/m/Y" }}</td>
                     <td class="px-4 py-3 text-sm text-right font-mono">€{{ nomina.salario_bruto|floatformat:2 }}</td>
                     <td class="px-4 py-3 text-sm text-right font-mono">€{{ nomina.ss_patronal|floatformat:2 }}</td>
                     <td class="px-4 py-3 text-sm text-right font-mono font-medium">€{{ nomina.liquido_percibir|floatformat:2 }}</td>

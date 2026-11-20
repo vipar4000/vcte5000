@@ -20,7 +20,18 @@ class NominaEstructura(models.Model):
         related_name='nominas_estructura',
         verbose_name='empleado',
     )
+    PERIODOS = [
+        ('MENSUAL', 'Mensual'),
+        ('QUINCENAL', 'Quincenal'),
+        ('SEMANAL', 'Semanal'),
+    ]
+
     fecha_nomina = models.DateField(verbose_name='fecha de nómina')
+    periodo = models.CharField(
+        max_length=10, choices=PERIODOS, default='MENSUAL',
+        verbose_name='periodicidad',
+        help_text='Mensual, quincenal o semanal: define qué parte del salario se paga.',
+    )
 
     # Devengos
     salario_bruto = models.DecimalField(
@@ -70,7 +81,8 @@ class NominaEstructura(models.Model):
         ordering = ['-fecha_nomina', '-created_at']
 
     def __str__(self):
-        return f"Nómina {self.empleado} - {self.fecha_nomina.strftime('%m/%Y')}"
+        etiqueta = getattr(self.empleado, 'nombre_completo', self.empleado)
+        return f"Nómina {etiqueta} - {self.get_periodo_display()} {self.fecha_nomina.strftime('%m/%Y')}"
 
     def save(self, *args, **kwargs):
         self.liquido_percibir = (

@@ -1191,6 +1191,7 @@ Ejemplo con Convenio del Metal de Madrid:
     <tr><th>Campo</th><th>Cuenta PGC</th><th>Descripcion</th></tr>
     <tr><td><code>empleado</code></td><td>—</td><td>Usuario (rol OPERARIO)</td></tr>
     <tr><td><code>fecha_nomina</code></td><td>—</td><td>Fecha de devengo</td></tr>
+    <tr><td><code>periodo</code></td><td>—</td><td>Mensual, quincenal o semanal (define qué parte del salario se paga)</td></tr>
     <tr><td><code>salario_bruto</code></td><td>640 (DEBE)</td><td>Sueldos y salarios</td></tr>
     <tr><td><code>ss_patronal</code></td><td>642 (DEBE)</td><td>Seguridad Social a cargo de la empresa</td></tr>
     <tr><td><code>retencion_irpf</code></td><td>4751 (HABER)</td><td>Retencion IRPF practicada</td></tr>
@@ -1234,7 +1235,57 @@ Asiento contable (auto-posteado si cuadrado):
   ———————————————————
   Suma DEBE:  2.367,00 = Suma HABER: 2.367,00 ✓</code></pre>
 
-<h3>6.5.4 Crear Nomina Manualmente</h3>
+<h3>6.5.4 Personal sin acceso al ERP y pagos quincenales o semanales</h3>
+
+<p>En <strong>&#128101; Usuarios</strong> se pueden dar de alta dos tipos de ficha:</p>
+<table>
+    <tr><th>Tipo</th><th>Qué pide</th><th>Qué puede hacer</th></tr>
+    <tr>
+        <td><strong>Cuenta de acceso</strong></td>
+        <td>Usuario, correo y contraseña</td>
+        <td>Entrar al ERP según su rol</td>
+    </tr>
+    <tr>
+        <td><strong>Ficha laboral sin acceso</strong><br><span class="text-xs">(obreros, limpieza, auxiliares)</span></td>
+        <td>Solo nombre, rol, <strong>PIN de 4 dígitos</strong> y datos de nomina</td>
+        <td>Cobrar nomina y <strong>fichar en taller con su PIN</strong>, sin usuario ni contraseña</td>
+    </tr>
+</table>
+
+<ol class="steps">
+    <li>Vaya a <strong>&#128101; Usuarios &rarr; &#10133; Nuevo Usuario</strong>.</li>
+    <li>Marque <strong>&laquo;Trabajador sin acceso web&raquo;</strong>: desaparecen los campos de usuario y contraseña.</li>
+    <li>Rellene nombre, rol (Operario), <strong>PIN de 4 dígitos</strong> y el salario base mensual.</li>
+    <li>Elija la <strong>Periodicidad de pago</strong> (Mensual / Quincenal / Semanal) y sus
+        <strong>% IRPF</strong> y <strong>% SS Obrera</strong>.</li>
+    <li>Guarde. El sistema crea un usuario interno y una contraseña inservible: no puede iniciar sesion.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Calculo proporcional:</strong> el salario base de la ficha es <strong>mensual</strong> y el sistema
+    lo reparte segun la periodicidad:
+    <ul>
+        <li><strong>Mensual:</strong> importe integro (30 dias).</li>
+        <li><strong>Quincenal:</strong> la mitad (15 dias).</li>
+        <li><strong>Semanal:</strong> 7/30 del mes (7 dias).</li>
+    </ul>
+    Los porcentajes de SS patronal, SS obrera e IRPF se aplican sobre el bruto del periodo.
+</div>
+
+<pre><code>Ejemplo con salario base mensual 1.500,00 EUR (SS patronal 31,50 %, SS obrera 6,35 %, IRPF 6 %)
+
+  Mensual:   bruto 1.500,00  SS obrera  95,25  IRPF  90,00  liquido 1.314,75
+  Quincenal: bruto   750,00  SS obrera  47,62  IRPF  45,00  liquido   657,38
+  Semanal:   bruto   350,00  SS obrera  22,22  IRPF  21,00  liquido   306,78</code></pre>
+
+<p>Al crear la nomina (<strong>&#10133; Nueva Nomina</strong>), al elegir el trabajador y la periodicidad los
+importes se rellenan solos con la casilla <strong>&laquo;Calcular importes segun la ficha del trabajador&raquo;</strong>
+marcada. Tambien se puede desmarcar y escribirlos a mano.</p>
+
+<p>El boton <strong>&laquo;Generar nominas del periodo&raquo;</strong> crea una nomina por cada trabajador activo
+con salario, cada una con <strong>su propia periodicidad</strong>, y no duplica la que ya exista para ese periodo.</p>
+
+<h3>6.5.5 Crear Nomina Manualmente</h3>
 <ol class="steps">
     <li>Navegue a <strong>Nominas</strong> en el menu lateral (requiere ADMIN o GESTORIA)</li>
     <li>Haga clic en <strong>"Nueva Nomina"</strong></li>
