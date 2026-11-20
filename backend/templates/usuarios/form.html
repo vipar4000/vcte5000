@@ -2,25 +2,6 @@
 
 {% block title %}R Car Rogil ERP - {% if action == 'crear' %}Nuevo usuario{% else %}Editar usuario{% endif %}{% endblock %}
 
-{% block extra_js %}
-<script>
-(function () {
-    var check = document.getElementById('id_sin_acceso');
-    if (!check) return;
-    var campos = document.querySelectorAll('.campo-acceso');
-
-    function actualizar() {
-        var sinAcceso = check.checked;
-        campos.forEach(function (bloque) {
-            bloque.style.display = sinAcceso ? 'none' : '';
-        });
-    }
-    check.addEventListener('change', actualizar);
-    actualizar();
-})();
-</script>
-{% endblock %}
-
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
     <div>
@@ -42,7 +23,7 @@
     </div>
     {% endif %}
 
-    <form method="post" class="bg-white rounded-lg shadow p-6 space-y-5">
+    <form method="post" novalidate class="bg-white rounded-lg shadow p-6 space-y-5">
         {% csrf_token %}
 
         <div id="bloque-sin-acceso"
@@ -60,11 +41,17 @@
             {% for error in form.sin_acceso.errors %}
             <p class="text-red-600 text-xs mt-1">{{ error }}</p>
             {% endfor %}
+            <p id="aviso-sin-acceso" class="hidden mt-2 text-xs text-blue-800">
+                No hace falta usuario ni contraseña: guarde con
+                <strong>{% if action == 'crear' %}Crear usuario{% else %}Guardar cambios{% endif %}</strong>.
+            </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="campo-acceso">
-                <label class="block text-sm font-medium mb-1">Usuario *</label>
+                <label class="block text-sm font-medium mb-1">
+                    Usuario <span class="text-gray-400 text-xs">(solo con acceso)</span>
+                </label>
                 {{ form.username }}
                 {% for error in form.username.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
@@ -76,34 +63,42 @@
             <div>
                 <label class="block text-sm font-medium mb-1">Nombre</label>
                 {{ form.first_name }}
+                {% for error in form.first_name.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
+                <p class="text-xs text-gray-500 mt-1">Obligatorio en fichas sin acceso.</p>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Apellidos</label>
                 {{ form.last_name }}
+                {% for error in form.last_name.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div class="campo-acceso">
-                <label class="block text-sm font-medium mb-1">Correo electrónico *</label>
+                <label class="block text-sm font-medium mb-1">
+                    Correo electrónico <span class="text-gray-400 text-xs">(solo con acceso)</span>
+                </label>
                 {{ form.email }}
                 {% for error in form.email.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Móvil</label>
                 {{ form.movil }}
+                {% for error in form.movil.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">PIN de kiosco</label>
                 {{ form.pin_kiosco }}
-                <p class="text-xs text-gray-500 mt-1">4 dígitos. Solo para operarios que fichan.</p>
+                <p class="text-xs text-gray-500 mt-1">4 dígitos. Obligatorio para fichar en taller.</p>
                 {% for error in form.pin_kiosco.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Salario base mensual (€)</label>
                 {{ form.salario_base_mensual }}
-                <p class="text-xs text-gray-500 mt-1">Se usa para el coste/hora de las OTs.</p>
+                <p class="text-xs text-gray-500 mt-1">Coste/hora de las OTs y base de la nómina.</p>
+                {% for error in form.salario_base_mensual.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">% SS patronal</label>
                 {{ form.porcentaje_ss_patronal }}
+                {% for error in form.porcentaje_ss_patronal.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Periodicidad de pago</label>
@@ -112,25 +107,29 @@
                     Mensual, quincenal (2 pagos) o semanal (4 pagos). El generador de nóminas
                     calcula el importe proporcional.
                 </p>
+                {% for error in form.periodicidad_pago.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">% IRPF</label>
                 {{ form.porcentaje_irpf }}
+                {% for error in form.porcentaje_irpf.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">% SS obrera</label>
                 {{ form.porcentaje_ss_obrera }}
+                {% for error in form.porcentaje_ss_obrera.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
             <div class="flex items-end">
                 <label class="flex items-center gap-2 text-sm">
                     {{ form.is_active }} Cuenta activa
                 </label>
+                {% for error in form.is_active.errors %}<p class="text-red-600 text-xs mt-1">{{ error }}</p>{% endfor %}
             </div>
         </div>
 
         <div class="border-t pt-5 campo-acceso">
             <p class="text-sm font-medium mb-3">
-                {% if action == 'crear' %}Contraseña *{% else %}Cambiar contraseña (opcional){% endif %}
+                {% if action == 'crear' %}Contraseña <span class="text-gray-400 text-xs">(solo con acceso)</span>{% else %}Cambiar contraseña (opcional){% endif %}
             </p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -159,4 +158,49 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var check = document.getElementById('id_sin_acceso');
+    if (!check) return;
+
+    var bloques = document.querySelectorAll('.campo-acceso');
+    var aviso = document.getElementById('aviso-sin-acceso');
+    var obligatorios = ['id_username', 'id_email', 'id_password', 'id_password2'];
+
+    function actualizar() {
+        var sinAcceso = check.checked;
+
+        bloques.forEach(function (bloque) {
+            bloque.style.display = sinAcceso ? 'none' : '';
+        });
+        if (aviso) aviso.classList.toggle('hidden', !sinAcceso);
+
+        // Sin acceso ningún campo oculto puede quedar como obligatorio:
+        // el navegador bloqueaba el envío por eso (botón que no hace nada).
+        obligatorios.forEach(function (id) {
+            var campo = document.getElementById(id);
+            if (!campo) return;
+            if (sinAcceso) {
+                if (campo.hasAttribute('required')) {
+                    campo.dataset.eraObligatorio = '1';
+                    campo.removeAttribute('required');
+                }
+                campo.disabled = true;
+            } else {
+                if (campo.dataset.eraObligatorio) {
+                    campo.setAttribute('required', 'required');
+                    delete campo.dataset.eraObligatorio;
+                }
+                campo.disabled = false;
+            }
+        });
+    }
+
+    check.addEventListener('change', actualizar);
+    actualizar();
+})();
+</script>
 {% endblock %}

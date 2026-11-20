@@ -94,6 +94,33 @@ class FichaSinAccesoTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'Ese PIN ya lo usa otro trabajador')
 
+    def test_el_formulario_no_bloquea_el_envio_por_campos_ocultos(self):
+        """Regresión: con la casilla marcada, el navegador bloqueaba el botón.
+
+        Los campos de usuario/correo/contraseña conservaban el atributo `required`
+        aunque estuvieran ocultos, y el formulario no se podía enviar.
+        """
+        respuesta = self.client.get(reverse('usuarios:create'))
+        html = respuesta.content.decode()
+
+        self.assertIn('novalidate', html)
+        self.assertIn("removeAttribute('required')", html)
+
+    def test_al_reintentar_el_alta_el_campo_usuario_no_es_obligatorio(self):
+        import re
+
+        respuesta = self.client.post(
+            reverse('usuarios:create'), self._datos(pin_kiosco='')
+        )
+        html = respuesta.content.decode()
+
+        campo = re.search(r'<input[^>]*id="id_username"[^>]*>', html)
+        self.assertIsNotNone(campo)
+        self.assertNotIn('required', campo.group(0))
+
+        correo = re.search(r'<input[^>]*id="id_email"[^>]*>', html)
+        self.assertNotIn('required', correo.group(0))
+
     def test_puede_fichar_en_el_kiosco_con_su_pin(self):
         self.client.post(reverse('usuarios:create'), self._datos())
 
