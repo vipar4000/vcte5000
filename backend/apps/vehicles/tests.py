@@ -482,3 +482,88 @@ class VehiculoFormatoYPublicacionTest(TestCase):
             form = respuesta.context['imagenes_formset'].forms[0]
             self.assertIsInstance(form, ImagenVehiculoForm)
             self.assertTrue(form.url_actual().startswith('/media/'))
+
+    # ---------------------- borrado de fotos con archivo perdido
+    def _media_temporal(self):
+        import shutil
+        import tempfile
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        return media
+
+    def _foto(self, nombre='vieja.png'):
+        from io import BytesIO
+
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.vehicles.models import ImagenVehiculo
+
+        buf = BytesIO()
+        Image.new('RGB', (400, 300), color='blue').save(buf, 'PNG')
+        return ImagenVehiculo.objects.create(
+            vehiculo=self.vehiculo, orden=1,
+            imagen=SimpleUploadedFile(nombre, buf.getvalue(), content_type='image/png'),
+        )
+
+    def test_eliminar_foto_cuyo_archivo_ya_no_existe(self):
+        """Regresión: marcar Eliminar en una foto perdida daba 500.
+
+        La validación re-procesaba la imagen guardada e intentaba leer un
+        archivo que el despliegue ya se había llevado.
+        """
+        from django.core.files.storage import default_storage
+        from django.test import override_settings
+
+        from apps.vehicles.models import ImagenVehiculo
+
+        media = self._media_temporal()
+        with override_settings(MEDIA_ROOT=media):
+            foto = self._foto()
+            default_storage.delete(foto.imagen.name)
+            self.assertFalse(default_storage.exists(foto.imagen.name))
+
+            self.client.force_login(self.admin)
+            datos = {
+                'estado': 'EN_VENTA', 'precio_venta': '11.900,00',
+                'descripcion_dano': 'x',
+                'imagenes-TOTAL_FORMS': '1', 'imagenes-INITIAL_FORMS': '1',
+                'imagenes-MIN_NUM_FORMS': '0', 'imagenes-MAX_NUM_FORMS': '15',
+                'imagenes-0-id': str(foto.pk),
+                'imagenes-0-orden': '1',
+                'imagenes-0-DELETE': 'on',
+            }
+            respuesta = self.client.post(
+                reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+            )
+            self.assertEqual(respuesta.status_code, 302)
+            self.assertFalse(ImagenVehiculo.objects.filter(pk=foto.pk).exists())
+
+    def test_guardar_sin_tocar_fotos_no_lee_el_archivo(self):
+        """Guardar los datos comerciales no re-procesa las fotos existentes."""
+        from django.core.files.storage import default_storage
+        from django.test import override_settings
+
+        media = self._media_temporal()
+        with override_settings(MEDIA_ROOT=media):
+            foto = self._foto()
+            nombre_original = foto.imagen.name
+            default_storage.delete(nombre_original)
+
+            self.client.force_login(self.admin)
+            datos = {
+                'estado': 'EN_VENTA', 'precio_venta': '11.900,00',
+                'descripcion_dano': 'x',
+                'imagenes-TOTAL_FORMS': '1', 'imagenes-INITIAL_FORMS': '1',
+                'imagenes-MIN_NUM_FORMS': '0', 'imagenes-MAX_NUM_FORMS': '15',
+                'imagenes-0-id': str(foto.pk),
+                'imagenes-0-orden': '1',
+            }
+            respuesta = self.client.post(
+                reverse('vehicles:publicar', args=[self.vehiculo.pk]), datos
+            )
+            self.assertEqual(respuesta.status_code, 302)
+
+            foto.refresh_from_db()
+            self.assertEqual(foto.imagen.name, nombre_original)

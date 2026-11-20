@@ -62,7 +62,11 @@ def procesar_imagen(archivo, nombre):
     Raises:
         ImagenInvalida: si el archivo excede el tope o no es una imagen legible.
     """
-    tamano = getattr(archivo, 'size', None)
+    try:
+        tamano = getattr(archivo, 'size', None)
+    except (OSError, ValueError):
+        # El archivo no se puede leer (por ejemplo, ya no está en disco)
+        tamano = None
     if tamano is not None and tamano > PESO_MAXIMO_BYTES:
         raise ImagenInvalida(
             f'La imagen pesa {tamano / (1024 * 1024):.1f} MB y el máximo son '

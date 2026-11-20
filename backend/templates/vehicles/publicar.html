@@ -87,6 +87,9 @@
                 {% for img_form in imagenes_formset %}
                 <div class="imagen-row flex flex-wrap gap-3 items-center p-3 bg-gray-50 rounded-lg">
                     {{ img_form.id }}
+                    {% if img_form.instance.pk %}
+                    <div class="hidden">{{ img_form.DELETE }}</div>
+                    {% endif %}
                     {% if img_form.url_actual %}
                     <img src="{{ img_form.url_actual }}" alt="Foto" class="h-14 w-20 object-cover rounded">
                     {% endif %}
@@ -97,11 +100,11 @@
                         <label class="block text-xs text-gray-500 mb-1">Orden</label>
                         {{ img_form.orden }}
                     </div>
-                    {% if img_form.instance.pk %}
-                    <label class="flex items-center gap-1 text-sm text-red-600">
-                        {{ img_form.DELETE }} Eliminar
-                    </label>
-                    {% endif %}
+                    <button type="button"
+                            class="btn-quitar-imagen inline-flex items-center gap-1 px-3 py-1.5 text-sm
+                                   text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition">
+                        🗑️ Quitar
+                    </button>
                 </div>
                 {% endfor %}
             </div>
@@ -115,6 +118,11 @@
                         <label class="block text-xs text-gray-500 mb-1">Orden</label>
                         {{ imagenes_formset.empty_form.orden }}
                     </div>
+                    <button type="button"
+                            class="btn-quitar-imagen inline-flex items-center gap-1 px-3 py-1.5 text-sm
+                                   text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition">
+                        🗑️ Quitar
+                    </button>
                 </div>
             </div>
 

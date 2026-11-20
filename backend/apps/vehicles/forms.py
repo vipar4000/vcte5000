@@ -3,6 +3,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from django.forms.models import BaseInlineFormSet
+from django.core.files.uploadedfile import UploadedFile
 from .images import ImagenInvalida, nombre_para, procesar_imagen
 from .models import Vehiculo, ImagenVehiculo
 
@@ -323,9 +324,15 @@ class ImagenVehiculoForm(forms.ModelForm):
             return ''
 
     def clean_imagen(self):
-        """Reduce la foto y la guarda en la carpeta de la matrícula."""
+        """Reduce la foto y la guarda en la carpeta de la matrícula.
+
+        Solo se procesa un archivo **recién subido**. Una imagen ya guardada
+        (FieldFile) se deja como está: volver a leerla falla si el archivo ya no
+        existe en disco (el disco de Render se borra en cada despliegue) y era
+        la causa del 500 al marcar «Eliminar» en una foto antigua.
+        """
         archivo = self.cleaned_data.get('imagen')
-        if not archivo or not hasattr(archivo, 'read'):
+        if not isinstance(archivo, UploadedFile):
             return archivo
         # La matrícula se toma del POST (es la que se está guardando); si no
         # llegara, se usa la del vehículo ya cargado.
