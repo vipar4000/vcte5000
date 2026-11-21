@@ -49,6 +49,7 @@ Agent instruction sources beyond this file: `.claude/skills/` contains TestSprit
 | Backfill asientos banco | `cd backend && python manage.py backfill_asientos_banco` (retroactive asientos for INGRESO movements) |
 | §20 pipeline (safe) | `python test_pipeline_capitulo20.py` (needs test users only; runs in a rolled-back transaction against the dev DB) |
 | Anexo B (safe) | `python prueba_anexo_b.py` (dos hojas, reserva con señal, venta, personal sin acceso y nóminas quincenales; transacción revertida) |
+| Limpiar datos de prueba | `cd backend && python manage.py limpiar_datos_prueba` (simula) / `--confirmar` (borra). Conserva usuarios y plan contable; no usar `flush` |
 | §20 full simulation (**destructive**) | `python simulacion_capitulo20.py` — deletes `db.sqlite3`, runs `migrate --run-syncdb`, recreates everything |
 
 **No lint/typecheck/format gates exist**. CI: `.github/workflows/ci.yml` (tests + `check --deploy` + build de la SPA) y `.github/workflows/backup.yml` (pg_dump diario verificado con `pg_restore --list`, 90 días de retención). `render.yaml` defines the Render deploy; `Procfile` starts gunicorn. Guía de salida a producción: `PRODUCCION.md`.
@@ -145,4 +146,5 @@ Deployed on **Render** (Python runtime, not Docker). Self-hosted alternative: `d
 - **Staging quirks** (`config/settings/staging.py`): Celery tasks run eagerly/sync — don't assume a Celery worker or Redis-backed cache there.
 - **Auto-Deploy**: push to the service's configured branch. If a push doesn't go live, click **Manual Deploy → Clear build cache & deploy**.
 - **Ephemeral filesystem**: uploaded media lost on redeploy. Persist via R2 (set `AWS_STORAGE_BUCKET_NAME` to activate `storages.backends.s3.S3Storage` in `production.py:33`). Bucket must be public (`AWS_QUERYSTRING_AUTH=False`).
+- **Limpiar staging**: `python manage.py limpiar_datos_prueba` (sin `--confirmar` solo simula) borra vehículos, ventas, compras, OTs, gastos, nóminas, marcajes, banco y asientos, **conservando usuarios, plan contable y tareas de Celery**; con los ajustes de producción exige `--forzar`. Hacer antes un `pg_dump`. No usar `flush` (borraría también los usuarios).
 - UptimeRobot pings `https://<app>.onrender.com/api/ping/` every 10 min to avoid cold starts (`/api/ping/` returns plain-text "OK", no DB access — also Render's `healthCheckPath`). DB backed up daily by `.github/workflows/backup.yml`.
