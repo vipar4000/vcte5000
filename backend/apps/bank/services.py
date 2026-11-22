@@ -81,13 +81,19 @@ def obtener_cuenta_banco_default():
     return BancoCuenta.objects.filter(activa=True).first()
 
 
+# Margen de días para emparejar una línea del extracto con el movimiento del
+# ERP: el banco puede reflejar una transferencia 1-3 días hábiles después.
+DIAS_TOLERANCIA_CONCILIACION = 3
+
+
 def conciliar_extracto(banco_cuenta, rows):
     """
     Busca emparejamientos automáticos entre líneas del extracto bancario
     y movimientos del ERP.
 
     Algoritmo:
-    1. Rango de fechas: ±2 días respecto a la fecha del banco.
+    1. Rango de fechas: ±3 días respecto a la fecha del banco (una
+       transferencia puede aparecer en el extracto 1-3 días hábiles después).
     2. Dirección y monto: coincidencia exacta en tipo e importe.
     3. Mapeo de conceptos: scoring por similitud de texto.
 
@@ -116,9 +122,9 @@ def conciliar_extracto(banco_cuenta, rows):
         bank_importe = abs(Decimal(str(row['importe'])))
         bank_concepto = str(row.get('concepto', ''))
 
-        # Buscar candidatos: mismo tipo, mismo importe, fecha ±2 días
-        fecha_min = bank_fecha - timedelta(days=2)
-        fecha_max = bank_fecha + timedelta(days=2)
+        # Buscar candidatos: mismo tipo e importe exacto, fecha ±3 días
+        fecha_min = bank_fecha - timedelta(days=DIAS_TOLERANCIA_CONCILIACION)
+        fecha_max = bank_fecha + timedelta(days=DIAS_TOLERANCIA_CONCILIACION)
 
         candidatos = BancoMovimiento.objects.filter(
             banco_cuenta=banco_cuenta,

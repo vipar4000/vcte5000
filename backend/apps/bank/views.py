@@ -92,9 +92,14 @@ def cuenta_create(request):
             deposito = form.cleaned_data.get('deposito_inicial')
             if deposito and deposito > 0:
                 notas = form.cleaned_data.get('notas_deposito', '')
+                # La fecha real del abono: si el banco ingreso el dinero dias
+                # antes de darse de alta la cuenta, hay que respetarla.
+                fecha_deposito = (
+                    form.cleaned_data.get('fecha_deposito') or date.today()
+                )
                 movimiento = crear_movimiento_banco(
                     banco_cuenta=cuenta,
-                    fecha=date.today(),
+                    fecha=fecha_deposito,
                     concepto='Deposito inicial',
                     tipo='INGRESO',
                     importe=deposito,
@@ -104,7 +109,7 @@ def cuenta_create(request):
                 if soporte:
                     movimiento.soporte = soporte
                     movimiento.save()
-                _crear_asiento_deposito(cuenta, deposito, 'Deposito inicial', date.today(), request.user)
+                _crear_asiento_deposito(cuenta, deposito, 'Deposito inicial', fecha_deposito, request.user)
                 messages.success(request, f'Deposito inicial de {deposito} registrado.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
     else:

@@ -12,11 +12,18 @@ class BancoCuentaForm(forms.ModelForm):
         required=False, label='Notas del deposito',
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
     )
+    fecha_deposito = forms.DateField(
+        required=False,
+        label='Fecha del deposito',
+        help_text='Fecha real en la que el banco abono el dinero (no la de hoy).',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
 
     class Meta:
         model = BancoCuenta
         fields = ['nombre', 'iban', 'swift', 'cuenta_contable', 'activa',
-                  'soporte_deposito', 'deposito_inicial', 'notas_deposito']
+                  'soporte_deposito', 'deposito_inicial', 'fecha_deposito',
+                  'notas_deposito']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: BBVA Empresa'}),
             'iban': forms.TextInput(attrs={'class': 'form-control'}),
@@ -31,6 +38,7 @@ class BancoCuentaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if editing:
             del self.fields['deposito_inicial']
+            del self.fields['fecha_deposito']
             del self.fields['notas_deposito']
             del self.fields['soporte_deposito']
 

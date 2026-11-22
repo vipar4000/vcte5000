@@ -2064,6 +2064,7 @@ Cuenta: Santander, fecha 01/07/2026.</code></pre>
             <li><strong>Cuenta contable:</strong> 572 - Banco (debe ser del grupo 572xxx)</li>
             <li><strong>Soporte del deposito:</strong> Archivo PDF o imagen que justifique el deposito inicial (opcional)</li>
             <li><strong>Deposito inicial:</strong> Importe del primer deposito, ej. 25000,00 EUR (opcional)</li>
+            <li><strong>Fecha del deposito:</strong> dia real en que el banco abono el dinero (por defecto, hoy). Es la fecha con la que se registra el ingreso, y marca desde cuando hay saldo para pagar.</li>
             <li><strong>Notas del deposito:</strong> Observaciones sobre el deposito (opcional)</li>
         </ul>
     </li>
@@ -2177,7 +2178,7 @@ Cuenta: Santander, fecha 01/07/2026.</code></pre>
     <li>Haga clic en <strong>"Procesar Extracto"</strong></li>
     <li>El sistema muestra resultados del matching automático:
         <ul>
-            <li><span style="color:green;">Verde:</span> coincidencia automatica (mismo importe, fecha +/-2 dias)</li>
+            <li><span style="color:green;">Verde:</span> coincidencia automatica (mismo importe, fecha +/-3 dias)</li>
             <li><span style="color:orange;">Amarillo:</span> sin coincidencia (revisar manualmente)</li>
         </ul>
     </li>
@@ -2189,7 +2190,7 @@ Cuenta: Santander, fecha 01/07/2026.</code></pre>
 <div class="info-box">
     <p>1. <strong>Mismo tipo:</strong> INGRESO del banco solo se compara con INGRESO del ERP, y EGRESO con EGRESO.</p>
     <p>2. <strong>Mismo importe:</strong> coincidencia exacta en valor absoluto.</p>
-    <p>3. <strong>Fecha +/-2 dias:</strong> compensa el desfase de fecha valor del banco.</p>
+    <p>3. <strong>Fecha +/-3 dias:</strong> compensa el desfase real del banco: una transferencia emitida un dia puede aparecer en el extracto 1 a 3 dias habiles despues. El importe debe ser exacto.</p>
     <p>4. <strong>Concepto:</strong> similitud de texto (<code>SequenceMatcher</code>) como desempate. Puntuacion 0-1.</p>
 </div>
 

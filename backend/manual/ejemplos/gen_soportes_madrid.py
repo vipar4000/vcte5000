@@ -403,7 +403,7 @@ def generar_certificado_apertura(path):
             '**IBAN: ES14 0049 1234 5678 9012 3456',
             '**BIC / SWIFT: BSCHESMMXXX',
             'Número de cuenta: 0049 1234 56 7890123456',
-            'Fecha de apertura: 01/07/2026',
+            'Fecha de apertura: 30/06/2026',
             'Ingreso inicial: 50.000,00 EUR',
             '',
             'La entidad certifica que la cuenta indicada está abierta a nombre del',
@@ -589,13 +589,13 @@ def main():
     # el modulo Banco al conciliarlos con el checkbox "Manual").
     # La compra por caja (CM-005) no toca el banco; el pago del alquiler
     # (Paso 8.6a) no esta en este extracto de muestra (queda sin conciliar).
-    # La fecha del deposito es la del dia de la prueba (05/08/2026);
-    # el matcher admite +/-2 dias si se ejecuta en otra fecha.
+    # El deposito inicial es del 30/06/2026 (antes de todas las operaciones).
+    # El matcher de conciliacion admite +/-3 dias entre el extracto y el ERP.
     csv_path = os.path.join(BASE, '07_extracto_bancario_santander.csv')
     with open(csv_path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f, delimiter=';')
         writer.writerow(['fecha', 'concepto', 'tipo', 'importe'])
-        writer.writerow(['05/08/2026', 'Deposito inicial', 'INGRESO', '50.000,00'])
+        writer.writerow(['30/06/2026', 'Deposito inicial', 'INGRESO', '50.000,00'])
         writer.writerow(['01/07/2026', 'Inversión inicial INV-2026-001: Taller Equipamiento S.L.', 'EGRESO', '2.480,50'])
         writer.writerow(['01/07/2026', 'Compra vehículo Volkswagen Golf 1.6 TDI (1234ABC)', 'EGRESO', '8.286,50'])
         writer.writerow(['02/07/2026', 'Compra inventario: Refrigerante G12 - Auto Parts Europa S.L.', 'EGRESO', '78,65'])

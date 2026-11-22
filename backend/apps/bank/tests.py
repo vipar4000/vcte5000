@@ -154,3 +154,93 @@ class ControlSaldoPorFechaTests(TestCase):
 
         self.assertEqual(movimiento.importe, Decimal('500.00'))
         self.assertEqual(self.cuenta.saldo_a_fecha(date(2026, 7, 1)), Decimal('500.00'))
+
+
+class ConciliacionToleranciaTests(TestCase):
+    """El banco puede reflejar una transferencia 1-3 días hábiles después."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.accounting.models import CuentaContable, PlanContableDefault
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        PlanContableDefault.crear_plan_base()
+        self.cuenta = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.movimiento = BancoMovimiento.objects.create(
+            banco_cuenta=self.cuenta, fecha=date(2026, 7, 1),
+            concepto='Deposito inicial', tipo='INGRESO',
+            importe=Decimal('1000.00'),
+        )
+
+    def _conciliar(self, fecha, importe='1000.00'):
+        from apps.bank.services import conciliar_extracto
+
+        return conciliar_extracto(self.cuenta, [{
+            'fecha': fecha,
+            'concepto': 'Deposito inicial',
+            'tipo': 'INGRESO',
+            'importe': importe,
+        }])[0]
+
+    def test_coincide_el_mismo_dia(self):
+        resultado = self._conciliar(date(2026, 7, 1))
+        self.assertEqual(resultado['erp_match'], self.movimiento)
+
+    def test_coincide_tres_dias_despues(self):
+        resultado = self._conciliar(date(2026, 7, 4))
+        self.assertEqual(resultado['erp_match'], self.movimiento)
+
+    def test_coincide_tres_dias_antes(self):
+        resultado = self._conciliar(date(2026, 6, 28))
+        self.assertEqual(resultado['erp_match'], self.movimiento)
+
+    def test_no_coincide_a_cuatro_dias(self):
+        resultado = self._conciliar(date(2026, 7, 5))
+        self.assertIsNone(resultado['erp_match'])
+
+    def test_el_importe_tiene_que_ser_exacto(self):
+        resultado = self._conciliar(date(2026, 7, 2), importe='1000.01')
+        self.assertIsNone(resultado['erp_match'])
+
+
+class DepositoInicialConFechaTests(TestCase):
+    """El alta de cuenta permite indicar la fecha real del abono."""
+
+    def setUp(self):
+        from apps.accounts.models import User
+        from apps.accounting.models import CuentaContable, PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.cuenta_572 = CuentaContable.objects.get(codigo='572')
+
+    def test_el_deposito_se_registra_en_la_fecha_indicada(self):
+        from decimal import Decimal
+
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        respuesta = self.client.post(reverse('bank:cuenta_create'), {
+            'nombre': 'Banco Santander',
+            'iban': 'ES9121000418450200051999',
+            'swift': '',
+            'cuenta_contable': self.cuenta_572.pk,
+            'activa': 'on',
+            'deposito_inicial': '50000.00',
+            'fecha_deposito': '2026-06-30',
+            'notas_deposito': '',
+        })
+        self.assertEqual(respuesta.status_code, 302)
+
+        banco = BancoCuenta.objects.get(nombre='Banco Santander')
+        deposito = BancoMovimiento.objects.get(banco_cuenta=banco, tipo='INGRESO')
+        self.assertEqual(deposito.fecha, date(2026, 6, 30))
+        self.assertEqual(deposito.importe, Decimal('50000.00'))
+        self.assertEqual(banco.saldo_a_fecha(date(2026, 6, 30)), Decimal('50000.00'))
