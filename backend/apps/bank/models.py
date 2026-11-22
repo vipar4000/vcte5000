@@ -60,6 +60,26 @@ class BancoCuenta(models.Model):
         ).aggregate(total=models.Sum('importe'))['total'] or Decimal('0')
         return ingresos - egresos
 
+    def saldo_a_fecha(self, fecha):
+        """Saldo real de la cuenta en una fecha concreta.
+
+        Cuenta **todos** los movimientos (conciliados o no) con fecha menor o
+        igual a la indicada. Es la referencia para autorizar un pago: no se
+        puede pagar con dinero que aún no había entrado.
+        """
+        if fecha is None:
+            from django.utils import timezone
+            fecha = timezone.localdate()
+
+        movimientos = self.movimientos.filter(fecha__lte=fecha)
+        ingresos = movimientos.filter(tipo='INGRESO').aggregate(
+            total=models.Sum('importe')
+        )['total'] or Decimal('0')
+        egresos = movimientos.filter(tipo='EGRESO').aggregate(
+            total=models.Sum('importe')
+        )['total'] or Decimal('0')
+        return ingresos - egresos
+
     @property
     def saldo_sin_conciliar(self):
         """Movimientos pendientes de conciliar (saldo_pendiente - saldo)."""

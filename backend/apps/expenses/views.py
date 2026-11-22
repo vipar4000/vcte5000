@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
 from django.db.models import Q, Sum
@@ -95,6 +96,16 @@ def gasto_create(request):
                             request,
                             f'Asiento de pago #{pago.numero} (DEBE 410 / HABER {gasto.forma_pago.codigo if gasto.forma_pago else "572"}) generado automáticamente.'
                         )
+                except ValidationError as error:
+                    # Sin saldo en el banco a esa fecha: se deshace el pago
+                    gasto.pagado = False
+                    gasto.save(update_fields=['pagado'])
+                    messages.error(request, error.messages[0])
+                except ValidationError as error:
+                    # Sin saldo en el banco a esa fecha: se deshace el pago
+                    gasto.pagado = False
+                    gasto.save(update_fields=['pagado'])
+                    messages.error(request, error.messages[0])
                 except Exception as e:
                     messages.warning(
                         request,

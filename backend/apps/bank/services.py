@@ -15,6 +15,36 @@ logger = logging.getLogger(__name__)
 
 
 @transaction.atomic
+def validar_saldo_egreso(banco_cuenta, fecha, importe):
+    """Impide pagar con dinero que la cuenta aún no tenía en esa fecha.
+
+    Raises:
+        ValidationError: con el texto que se muestra en rojo al usuario.
+    """
+    from apps.core.formatting import format_euros
+
+    disponible = banco_cuenta.saldo_a_fecha(fecha)
+    if importe > disponible:
+        raise ValidationError(
+            'Saldo insuficiente en la cuenta bancaria en la fecha indicada '
+            f'(Saldo disponible: {format_euros(disponible)}). '
+            'Registre primero el ingreso/depósito. '
+            f'Cuenta: {banco_cuenta.nombre}, fecha {fecha:%d/%m/%Y}.'
+        )
+
+
+def cuenta_banco_para_pago(cuenta_contable=None):
+    """Cuenta bancaria con la que se paga: la de la forma de pago o la de defecto."""
+    from .models import BancoCuenta
+
+    cuenta = None
+    if cuenta_contable is not None:
+        cuenta = BancoCuenta.objects.filter(
+            cuenta_contable=cuenta_contable
+        ).first()
+    return cuenta or obtener_cuenta_banco_default()
+
+
 def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
                             asiento=None, vehiculo=None, notas=''):
     """
@@ -26,12 +56,7 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
     banco_cuenta = BancoCuenta.objects.select_for_update().get(pk=banco_cuenta.pk)
 
     if tipo == 'EGRESO':
-        disponible = banco_cuenta.saldo_pendiente
-        if importe > disponible:
-            raise ValidationError(
-                f'Saldo insuficiente en {banco_cuenta.nombre}. '
-                f'Disponible: {format_euros(disponible)}, solicitado: {format_euros(importe)}'
-            )
+        validar_saldo_egreso(banco_cuenta, fecha, importe)
 
     movimiento = BancoMovimiento.objects.create(
         banco_cuenta=banco_cuenta,

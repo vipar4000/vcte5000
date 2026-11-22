@@ -119,6 +119,38 @@ def vehiculo_detail(request, pk):
     return render(request, 'vehicles/detail.html', context)
 
 
+def _error_saldo_compra_vehiculo(form):
+    """Comprueba que la cuenta de pago tenga saldo en la fecha de adquisición.
+
+    Devuelve el mensaje de error o None. La caja (570) no genera movimiento
+    bancario, así que no se valida.
+    """
+    from django.core.exceptions import ValidationError
+
+    from apps.bank.services import cuenta_banco_para_pago, validar_saldo_egreso
+
+    datos = form.cleaned_data
+    forma_pago = datos.get('forma_pago')
+    if forma_pago is not None and forma_pago.codigo.startswith('570'):
+        return None
+
+    cuenta = cuenta_banco_para_pago(forma_pago)
+    if cuenta is None:
+        return None
+
+    total = (
+        (datos.get('precio_subasta') or 0)
+        + (datos.get('tasas_sala') or 0)
+        + (datos.get('logistica_grua') or 0)
+        + (datos.get('tipo_iva') or 0)
+    )
+    try:
+        validar_saldo_egreso(cuenta, datos.get('fecha_adquisicion'), total)
+    except ValidationError as error:
+        return error.messages[0]
+    return None
+
+
 @login_required
 def vehiculo_create(request):
     """Crear un vehículo (hoja técnica y de compra)."""
@@ -129,6 +161,13 @@ def vehiculo_create(request):
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES)
         if form.is_valid():
+            error_saldo = _error_saldo_compra_vehiculo(form)
+            if error_saldo:
+                messages.error(request, error_saldo)
+                return render(request, 'vehicles/form.html', {
+                    'form': form, 'action': 'crear',
+                })
+
             vehiculo = form.save(commit=False)
             vehiculo.created_by = request.user
             vehiculo.save()
@@ -234,6 +273,13 @@ def vehiculo_update(request, pk):
     if request.method == 'POST':
         form = VehiculoForm(request.POST, request.FILES, instance=vehiculo)
         if form.is_valid():
+            error_saldo = _error_saldo_compra_vehiculo(form)
+            if error_saldo:
+                messages.error(request, error_saldo)
+                return render(request, 'vehicles/form.html', {
+                    'form': form, 'vehiculo': vehiculo, 'action': 'editar',
+                })
+
             vehiculo = form.save()
             try:
                 asiento = _regenerar_asiento_compra(vehiculo, request.user)

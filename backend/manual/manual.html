@@ -2018,6 +2018,36 @@ Verificacion: DEBE (145,20) = HABER (145,20) -> CUADRADO</code></pre>
     El unico punto de entrada es la funcion <code>crear_movimiento_banco()</code> en <code>apps/bank/services.py</code>.
 </div>
 
+<h2>9.0 Control de saldo antes de pagar (tesoreria)</h2>
+
+<p>Ningun pago por banco puede dejar la cuenta en negativo. Antes de registrar cualquier
+<strong>egreso</strong> (compra de vehiculo, compra de material, gasto, inversion o devolucion de una
+reserva) el sistema comprueba el <strong>saldo de la cuenta a la fecha de la operacion</strong>,
+no el saldo de hoy.</p>
+
+<div class="warning-box">
+    <strong>Ejemplo real:</strong> si el deposito inicial entra el <code>10/08/2026</code>, no se puede
+    registrar una compra fechada el <code>01/07/2026</code> pagada por banco: ese dia la cuenta estaba
+    a cero. Aunque hoy haya dinero, el sistema lo bloquea.
+</div>
+
+<p>Si no hay fondos suficientes, el pago se rechaza y aparece en rojo:</p>
+
+<pre><code>Saldo insuficiente en la cuenta bancaria en la fecha indicada (Saldo disponible: 0,00 EUR).
+Registre primero el ingreso/deposito.
+Cuenta: Santander, fecha 01/07/2026.</code></pre>
+
+<ol class="steps">
+    <li>Registre primero el <strong>ingreso o deposito</strong> en <strong>Banco</strong> con fecha igual o anterior al pago.</li>
+    <li>Vuelva a registrar la compra o el gasto.</li>
+</ol>
+
+<div class="info-box">
+    <strong>Que se valida:</strong> saldo = ingresos de la cuenta con fecha &le; fecha del pago, menos
+    egresos con fecha &le; esa fecha. Los ingresos con fecha anterior si se permiten (es dinero que ya
+    existia). El pago en efectivo (caja 570) no pasa por banco y no se valida.
+</div>
+
 <h2 id="capitulo-9-1">9.1 Cuentas Bancarias</h2>
 
 <p>Cada cuenta bancaria de la empresa se registra en el sistema vinculada a una subcuenta del PGC grupo 572 (Banco). El saldo se calcula en tiempo real sumando los movimientos conciliados.</p>

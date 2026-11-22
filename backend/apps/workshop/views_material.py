@@ -86,7 +86,7 @@ def _resolver_forma_pago(header_form):
     return forma_pago_cuenta, cuenta_pago, pagar_ahora, None
 
 
-def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_pago_code):
+def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_pago_code, fecha=None):
     """Valida el saldo del banco antes de pagar al contado. Devuelve texto o None."""
     paga_con_banco = pagar_ahora and (not cuenta_pago_code or cuenta_pago_code == '572')
     if forma_pago_code != '572' and not paga_con_banco:
@@ -105,12 +105,18 @@ def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_p
     banco_cuenta = BancoCuenta.objects.filter(cuenta_contable__codigo='572').first()
     if not banco_cuenta:
         banco_cuenta = obtener_cuenta_banco_default()
-    if banco_cuenta and total > banco_cuenta.saldo_pendiente:
-        return (
-            f'Saldo insuficiente en {banco_cuenta.nombre} para el pago de '
-            f'{format_euros(total)}. Disponible: '
-            f'{format_euros(banco_cuenta.saldo_pendiente)}.'
-        )
+    if not banco_cuenta:
+        return None
+
+    from django.core.exceptions import ValidationError
+    from apps.bank.services import validar_saldo_egreso
+
+    try:
+        # El saldo se mira a la fecha del pago, no al saldo de hoy: no se puede
+        # pagar con dinero que todavía no había entrado en la cuenta.
+        validar_saldo_egreso(banco_cuenta, fecha, total)
+    except ValidationError as error:
+        return error.messages[0]
     return None
 
 
@@ -324,6 +330,8 @@ def compra_material_create(request):
             error_saldo = _error_saldo_banco(
                 linea_formset, header_form.cleaned_data['tipo_iva'],
                 forma_pago_code, pagar_ahora, cuenta_pago_code,
+                fecha=header_form.cleaned_data.get('fecha_pago')
+                or header_form.cleaned_data.get('fecha_compra'),
             )
             if error_saldo:
                 messages.error(request, error_saldo)

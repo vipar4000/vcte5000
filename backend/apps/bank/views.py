@@ -619,21 +619,27 @@ def reserva_cancelar(request, pk):
         messages.error(request, 'Acción no válida.')
         return redirect('bank:reserva_detail', pk=pk)
 
-    with transaction.atomic():
-        reserva.estado = accion
-        reserva.save(update_fields=['estado'])
+    from django.core.exceptions import ValidationError
 
-        # Crear movimiento de egreso (devolución) si es devuelta
-        if accion == 'DEVUELTA':
-            banco_cuenta = reserva.banco_movimiento.banco_cuenta
-            crear_movimiento_banco(
-                banco_cuenta=banco_cuenta,
-                fecha=date.today(),
-                concepto=f"Devolución reserva {reserva.vehiculo} - {reserva.cliente_nombre}",
-                tipo='EGRESO',
-                importe=reserva.importe_reserva,
-            )
-        # Si es PENALIZADA, el dinero queda en la empresa (sin movimiento)
+    try:
+        with transaction.atomic():
+            reserva.estado = accion
+            reserva.save(update_fields=['estado'])
+
+            # Crear movimiento de egreso (devolución) si es devuelta
+            if accion == 'DEVUELTA':
+                banco_cuenta = reserva.banco_movimiento.banco_cuenta
+                crear_movimiento_banco(
+                    banco_cuenta=banco_cuenta,
+                    fecha=date.today(),
+                    concepto=f"Devolución reserva {reserva.vehiculo} - {reserva.cliente_nombre}",
+                    tipo='EGRESO',
+                    importe=reserva.importe_reserva,
+                )
+            # Si es PENALIZADA, el dinero queda en la empresa (sin movimiento)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+        return redirect('bank:reserva_detail', pk=pk)
 
     messages.success(request, f'Reserva {reserva.get_estado_display().lower()} correctamente.')
     return redirect('bank:reserva_detail', pk=pk)

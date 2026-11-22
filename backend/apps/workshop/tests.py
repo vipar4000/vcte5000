@@ -375,13 +375,14 @@ class CompraMaterialTests(TestCase):
         self.assertEqual(self.pastillas.stock_actual, 0)
 
     def _post_compra(self, forma_pago='', cantidad='20', precio='8.50',
-                     tipo_iva='21.00', pagado='', fecha_pago='', cuenta_pago=''):
+                     tipo_iva='21.00', pagado='', fecha_pago='', cuenta_pago='',
+                     fecha_compra='2026-07-01'):
         """POST de una compra de una línea (aceite) con la forma de pago dada."""
         self.client.force_login(self.admin)
         data = {
             'proveedor': 'Distribuciones Auto S.L.',
             'cif_nif': 'B12345678',
-            'fecha_compra': '2026-07-01',
+            'fecha_compra': fecha_compra,
             'fecha_vencimiento': '2026-08-15',
             'numero_factura': 'FC-AUTO-2026-001',
             'tipo_inventario': '300',
@@ -503,6 +504,60 @@ class CompraMaterialTests(TestCase):
         self.assertEqual(self.aceite.stock_actual, 0)
         self.assertEqual(CompraMaterial.objects.count(), 0)
         self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 0)
+
+
+    def test_compra_por_banco_con_fecha_anterior_al_deposito_se_bloquea(self):
+        """Caso Madrid: el dinero entra el 10/08 y la compra es del 01/07.
+
+        El saldo de hoy cubre el pago, pero a la fecha de la compra la cuenta
+        estaba a cero: el sistema debe bloquearlo y avisar en rojo.
+        """
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        banco = BancoCuenta.objects.create(
+            nombre='Santander Deposito Tardio',
+            iban='ES9121000418450200051555',
+            cuenta_contable=cuenta_572,
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco,
+            fecha='2026-08-10',
+            concepto='Deposito inicial',
+            tipo='INGRESO',
+            importe=Decimal('1000.00'),
+            conciliado=True,
+        )
+
+        response = self._post_compra(forma_pago='572', fecha_compra='2026-07-01')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Saldo insuficiente en la cuenta bancaria en la fecha indicada')
+        self.assertContains(response, 'Registre primero el ingreso/depósito')
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 0)
+        self.assertEqual(CompraMaterial.objects.count(), 0)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 0)
+
+    def test_compra_por_banco_despues_del_deposito_se_permite(self):
+        cuenta_572 = CuentaContable.objects.get(codigo='572')
+        banco = BancoCuenta.objects.create(
+            nombre='Santander Con Fondos',
+            iban='ES9121000418450200051666',
+            cuenta_contable=cuenta_572,
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco,
+            fecha='2026-08-10',
+            concepto='Deposito inicial',
+            tipo='INGRESO',
+            importe=Decimal('1000.00'),
+            conciliado=True,
+        )
+
+        response = self._post_compra(forma_pago='572', fecha_compra='2026-08-11')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CompraMaterial.objects.count(), 1)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
 
     def test_compra_credito_pagada_al_crear_genera_asiento_pago_y_egreso(self):
         """Checkbox 'Pagar ahora' al crear a crédito: asiento PagoCompraMaterial + EGRESO."""

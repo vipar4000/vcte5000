@@ -1,4 +1,6 @@
 import tempfile
+from datetime import date
+from decimal import Decimal
 from io import BytesIO
 from PIL import Image
 from django.test import TestCase
@@ -69,6 +71,48 @@ class VehiculoHojaTecnicaTests(TestCase):
             reverse('vehicles:update', args=[self.vehiculo.pk]),
             self._datos(**extra),
         )
+
+
+    def _banco_con_deposito(self, fecha, importe='10000.00'):
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        banco = BancoCuenta.objects.create(
+            nombre='Santander Vehiculos',
+            iban='ES9121000418450200051777',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco, fecha=fecha, concepto='Deposito inicial',
+            tipo='INGRESO', importe=Decimal(importe), conciliado=True,
+        )
+        return banco
+
+    def test_no_se_puede_comprar_un_vehiculo_antes_del_deposito(self):
+        """El banco no puede quedar en negativo: depósito 10/08, compra 01/07."""
+        self._banco_con_deposito(fecha=date(2026, 8, 10), importe='10000.00')
+
+        respuesta = self.client.post(reverse('vehicles:create'), self._datos(
+            matricula='9999ZZZ', bastidor='WVWZZZ1KZAW999999',
+            fecha_adquisicion='2026-07-01',
+        ))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(
+            respuesta, 'Saldo insuficiente en la cuenta bancaria en la fecha indicada'
+        )
+        self.assertFalse(Vehiculo.objects.filter(matricula='9999ZZZ').exists())
+
+    def test_se_puede_comprar_si_el_deposito_es_anterior(self):
+        self._banco_con_deposito(fecha=date(2026, 7, 1), importe='10000.00')
+
+        respuesta = self.client.post(reverse('vehicles:create'), self._datos(
+            matricula='9999ZZZ', bastidor='WVWZZZ1KZAW999999',
+            fecha_adquisicion='2026-07-02',
+        ))
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(Vehiculo.objects.filter(matricula='9999ZZZ').exists())
 
     def test_el_formulario_muestra_importes_y_fecha(self):
         from apps.vehicles.forms import VehiculoForm
