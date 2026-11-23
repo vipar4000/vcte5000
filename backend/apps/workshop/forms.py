@@ -10,7 +10,19 @@ User = get_user_model()
 
 class OrdenTrabajoForm(forms.ModelForm):
     """Formulario para crear/editar órdenes de trabajo."""
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # No se abren OTs nuevas sobre vehículos ya vendidos. Si se edita una
+        # OT antigua, su vehículo se mantiene aunque esté vendido.
+        vendidos = Vehiculo.objects.filter(estado='VENDIDO')
+        queryset = Vehiculo.objects.exclude(estado='VENDIDO')
+        if self.instance.pk and self.instance.vehiculo_id:
+            queryset = queryset | Vehiculo.objects.filter(
+                pk=self.instance.vehiculo_id
+            )
+        self.fields['vehiculo'].queryset = queryset.order_by('matricula')
+
     class Meta:
         model = OrdenTrabajo
         fields = [

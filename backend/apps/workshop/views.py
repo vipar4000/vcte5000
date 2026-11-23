@@ -1,7 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from decimal import Decimal
+
+from django.db import transaction
 from django.db.models import Q, Sum, Count
+
+from apps.accounts.models import User
+from apps.vehicles.models import Vehiculo
+
 from .models import OrdenTrabajo, Material, MaterialUsado
 from .forms import OrdenTrabajoForm, MaterialForm, MaterialUsadoFormSet
 
@@ -76,68 +83,89 @@ def orden_trabajo_detail(request, pk):
 
 @login_required
 def orden_trabajo_create(request):
-    """Crear nueva orden de trabajo."""
+    """Crear una orden de trabajo.
+
+    Es la **misma vista** para los dos accesos del menú:
+      - Taller -> + Nueva OT
+      - Vehículos -> ficha -> + Nueva OT (con `?vehiculo=<pk>`)
+    """
     if not request.user.is_admin and not request.user.is_operario:
         messages.error(request, 'No tiene permisos para crear órdenes de trabajo.')
         return redirect('workshop:list')
-    
-    # Pre-seleccionar vehículo si viene de la página de detail
-    vehiculo_inicial = request.GET.get('vehiculo', '')
-    
+
+    # Vehículo precargado cuando se entra desde la ficha del coche
+    vehiculo_id = request.GET.get('vehiculo') or request.POST.get('vehiculo')
+    vehiculo_inicial = None
+    if vehiculo_id:
+        vehiculo_inicial = Vehiculo.objects.filter(pk=vehiculo_id).first()
+        if vehiculo_inicial is not None and vehiculo_inicial.estado == 'VENDIDO':
+            messages.warning(
+                request,
+                'Ese vehículo está vendido: no se pueden abrir órdenes de '
+                'trabajo nuevas sobre él.',
+            )
+            vehiculo_inicial = None
+
     if request.method == 'POST':
         form = OrdenTrabajoForm(request.POST)
-        formset = MaterialUsadoFormSet(request.POST)
-        
-        if form.is_valid():
-            ot = form.save(commit=False)
-            ot.created_by = request.user
-            ot.save()
+        # El navegador envía siempre el management form; si falta, se entiende
+        # que la OT se crea sin materiales.
+        procesar_materiales = 'materiales_usados-TOTAL_FORMS' in request.POST
+        formset = (
+            MaterialUsadoFormSet(request.POST)
+            if procesar_materiales
+            else MaterialUsadoFormSet()
+        )
 
-            # Si es la primera OT del vehículo, cambiar estado a TALLER
-            vehiculo = ot.vehiculo
-            if vehiculo.estado == 'ADQUIRIDO':
-                vehiculo.estado = 'TALLER'
-                vehiculo.save(update_fields=['estado'])
-            
-            # Guardar materiales usados
-            formset = MaterialUsadoFormSet(request.POST, instance=ot)
-            if formset.is_valid():
-                formset.save()
-            
+        if form.is_valid() and (not procesar_materiales or formset.is_valid()):
+            with transaction.atomic():
+                ot = form.save(commit=False)
+                ot.created_by = request.user
+                ot.save()
+
+                if procesar_materiales:
+                    formset.instance = ot
+                    formset.save()
+
+                # Si el vehículo estaba Adquirido, pasa a En Taller
+                vehiculo = ot.vehiculo
+                if vehiculo.estado == 'ADQUIRIDO':
+                    vehiculo.estado = 'TALLER'
+                    vehiculo.save(update_fields=['estado'])
+
             messages.success(
-                request, 
+                request,
                 f'Orden de trabajo OT-{ot.pk} creada correctamente.'
             )
             return redirect('workshop:detail_ot', pk=ot.pk)
-        else:
-            messages.error(request, 'Por favor, corrija los errores del formulario.')
+
+        messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         initial_data = {}
-        if vehiculo_inicial:
+        if vehiculo_inicial is not None:
             initial_data['vehiculo'] = vehiculo_inicial
         form = OrdenTrabajoForm(initial=initial_data)
         formset = MaterialUsadoFormSet()
-    
-    from apps.vehicles.models import Vehiculo
-    from apps.accounts.models import User
-    
+
     operarios = User.objects.filter(rol='OPERARIO', is_active=True)
     operarios_coste_hora = {}
-    for op in operarios:
-        if op.salario_base_mensual and op.porcentaje_ss_patronal is not None:
-            from decimal import Decimal
-            coste_mensual = op.salario_base_mensual * (1 + op.porcentaje_ss_patronal / Decimal('100'))
-            operarios_coste_hora[op.pk] = float(coste_mensual / 176)
-    
+    for operario in operarios:
+        if operario.salario_base_mensual and operario.porcentaje_ss_patronal is not None:
+            coste_mensual = operario.salario_base_mensual * (
+                1 + operario.porcentaje_ss_patronal / Decimal('100')
+            )
+            operarios_coste_hora[operario.pk] = float(coste_mensual / 176)
+
     context = {
         'form': form,
         'formset': formset,
-        'vehiculos': Vehiculo.objects.exclude(estado='VENDIDO'),
+        'vehiculo_inicial': vehiculo_inicial,
         'operarios': operarios,
         'operarios_coste_hora_json': operarios_coste_hora,
         'action': 'crear',
     }
     return render(request, 'workshop/form.html', context)
+
 
 
 @login_required

@@ -70,6 +70,56 @@ class OrdenTrabajoFormTests(TestCase):
         self.vehiculo.refresh_from_db()
         self.assertEqual(self.vehiculo.estado, 'TALLER')
 
+
+    def test_los_dos_accesos_apuntan_a_la_misma_vista(self):
+        """Taller y ficha del coche comparten vista y plantilla (sin duplicar)."""
+        self.client.force_login(self.admin)
+        url_formulario = reverse('workshop:create_ot')
+
+        ficha = self.client.get(
+            reverse('vehicles:detail', args=[self.vehiculo.pk])
+        ).content.decode()
+        self.assertIn(url_formulario, ficha)
+        self.assertIn(f'{url_formulario}?vehiculo={self.vehiculo.pk}', ficha)
+
+        listado = self.client.get(reverse('workshop:list')).content.decode()
+        self.assertIn(url_formulario, listado)
+
+        # Las dos entradas devuelven el mismo formulario
+        desde_taller = self.client.get(url_formulario)
+        desde_ficha = self.client.get(
+            url_formulario, {'vehiculo': self.vehiculo.pk}
+        )
+        self.assertEqual(desde_taller.status_code, 200)
+        self.assertEqual(desde_ficha.status_code, 200)
+        self.assertIn('id="id_vehiculo"', desde_taller.content.decode())
+        self.assertIn('id="id_vehiculo"', desde_ficha.content.decode())
+
+    def test_el_vehiculo_llega_preseleccionado_desde_la_ficha(self):
+        self.client.force_login(self.admin)
+
+        html = self.client.get(
+            reverse('workshop:create_ot'), {'vehiculo': self.vehiculo.pk}
+        ).content.decode()
+
+        self.assertIn(
+            f'<option value="{self.vehiculo.pk}" selected>', html
+        )
+
+    def test_un_vehiculo_vendido_no_se_ofrece_ni_se_precarga(self):
+        self.client.force_login(self.admin)
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+
+        respuesta = self.client.get(
+            reverse('workshop:create_ot'), {'vehiculo': self.vehiculo.pk}
+        )
+        html = respuesta.content.decode()
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'está vendido')
+        self.assertNotIn(f'<option value="{self.vehiculo.pk}" selected>', html)
+
     @unittest.skipIf(
         'sqlite' in connections.databases['default']['ENGINE'].lower(),
         'SQLite compartido en memoria no ve datos entre requests del cliente en TestCase'
