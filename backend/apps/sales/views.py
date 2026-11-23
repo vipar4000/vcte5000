@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Q, Sum
 from decimal import Decimal
+
+from django.db import transaction
 from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from .forms import VentaVehiculoForm, CostoAcondicionamientoForm
 from apps.vehicles.models import Vehiculo
@@ -57,10 +59,25 @@ def venta_detail(request, pk):
         pk=pk
     )
     
+    from apps.bank.models import BancoMovimiento
+
+    # Cobros en banco de este vehículo (la señal y el cobro de la venta)
+    cobros = BancoMovimiento.objects.filter(
+        vehiculo_asociado=venta.vehiculo, tipo='INGRESO'
+    ).select_related('banco_cuenta').order_by('fecha')
+    cobro_venta = cobros.filter(concepto__startswith='Cobro venta').first()
+    total_banco = sum((c.importe for c in cobros), Decimal('0'))
+
     context = {
         'venta': venta,
         'beneficio': venta.beneficio,
         'precio_final': venta.precio_final_cliente,
+        'cobros': cobros,
+        'cobro_venta': cobro_venta,
+        'total_banco': total_banco,
+        'falta_cobro': (
+            venta.metodo_pago != 'FINANCIADO' and cobro_venta is None
+        ),
     }
     return render(request, 'sales/detail.html', context)
 
@@ -83,59 +100,66 @@ def venta_create(request):
     if request.method == 'POST':
         form = VentaVehiculoForm(request.POST)
         if form.is_valid():
-            venta = form.save(commit=False)
-            venta.created_by = request.user
-            
-            # Calcular coste total del vehículo
-            vehiculo = venta.vehiculo
-            venta.coste_total = vehiculo.coste_total
-            
-            # Calcular margen porcentaje
-            if venta.coste_total > 0:
-                venta.margen_porcentaje = (
-                    (venta.precio_venta - venta.coste_total) / venta.coste_total * 100
-                )
-            
-            venta.save()
-            
-            # Cambiar estado del vehículo a VENDIDO
-            vehiculo.estado = 'VENDIDO'
-            vehiculo.save()
-            
-            # Crear garantía automáticamente
-            GarantiaVehiculo.objects.create(
-                venta=venta,
-                tipo_cliente=venta.tipo_cliente,
-                fecha_inicio=venta.fecha_venta,
-            )
-            
-            # Señal de la reserva: se descuenta y la reserva queda convertida
-            reserva = None
-            if reserva_inicial and reserva_inicial.estado == 'ACTIVA':
-                reserva = reserva_inicial
-            if reserva is None:
-                reserva = Reserva.objects.filter(
-                    vehiculo=venta.vehiculo, estado='ACTIVA'
-                ).first()
-
-            anticipo = reserva.importe_reserva if reserva else 0
-
-            # Crear asiento contable automáticamente
             try:
-                venta.crear_asiento_contable(anticipo=anticipo)
-                venta.registrar_movimiento_banco(
-                    asiento=venta.asiento_contable, anticipo=anticipo
-                )
-            except Exception as e:
-                messages.warning(
+                # Todo o nada: venta, asiento y cobro en banco. Antes, si el
+                # asiento o el movimiento fallaban, la venta quedaba guardada
+                # sin ingreso en Banco y solo salía un aviso amarillo.
+                with transaction.atomic():
+                    venta = form.save(commit=False)
+                    venta.created_by = request.user
+
+                    vehiculo = venta.vehiculo
+                    venta.coste_total = vehiculo.coste_total
+
+                    if venta.coste_total > 0:
+                        venta.margen_porcentaje = (
+                            (venta.precio_venta - venta.coste_total)
+                            / venta.coste_total * 100
+                        )
+
+                    venta.save()
+
+                    vehiculo.estado = 'VENDIDO'
+                    vehiculo.save()
+
+                    GarantiaVehiculo.objects.create(
+                        venta=venta,
+                        tipo_cliente=venta.tipo_cliente,
+                        fecha_inicio=venta.fecha_venta,
+                    )
+
+                    # Señal de la reserva: se descuenta y queda convertida
+                    reserva = None
+                    if reserva_inicial and reserva_inicial.estado == 'ACTIVA':
+                        reserva = reserva_inicial
+                    if reserva is None:
+                        reserva = Reserva.objects.filter(
+                            vehiculo=venta.vehiculo, estado='ACTIVA'
+                        ).first()
+
+                    anticipo = reserva.importe_reserva if reserva else 0
+
+                    asiento = venta.crear_asiento_contable(anticipo=anticipo)
+                    movimiento = venta.registrar_movimiento_banco(
+                        asiento=asiento, anticipo=anticipo
+                    )
+
+                    if reserva:
+                        reserva.estado = 'CONVERTIDA'
+                        reserva.venta = venta
+                        reserva.save(update_fields=['estado', 'venta'])
+            except Exception as error:
+                messages.error(
                     request,
-                    f'Venta registrada, pero no se pudo crear el asiento contable: {str(e)}'
+                    f'No se pudo registrar la venta y no se guardó nada: {error}'
                 )
+                return render(request, 'sales/form.html', {
+                    'form': form, 'action': 'crear',
+                    'reserva_id': reserva_inicial.pk if reserva_inicial else '',
+                    'reserva': reserva_inicial,
+                })
 
             if reserva:
-                reserva.estado = 'CONVERTIDA'
-                reserva.venta = venta
-                reserva.save(update_fields=['estado', 'venta'])
                 messages.info(
                     request,
                     f'Se aplicó la señal de {format_euros(reserva.importe_reserva)} '
@@ -143,9 +167,21 @@ def venta_create(request):
                     f'{format_euros(venta.precio_venta - reserva.importe_reserva)} '
                     f'por cobrar.'
                 )
-            
+            if movimiento is not None:
+                messages.info(
+                    request,
+                    f'Cobro registrado en Banco: {format_euros(movimiento.importe)} '
+                    f'en {movimiento.banco_cuenta.nombre}.'
+                )
+            elif venta.metodo_pago == 'FINANCIADO':
+                messages.info(
+                    request,
+                    'Venta financiada: no entra dinero en el banco; el importe '
+                    'queda pendiente en clientes (430).'
+                )
+
             messages.success(
-                request, 
+                request,
                 f'Venta registrada correctamente. Beneficio: {format_euros(venta.beneficio)}'
             )
             return redirect('sales:detail', pk=venta.pk)

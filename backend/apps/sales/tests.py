@@ -220,3 +220,98 @@ class VentaConReservaTests(TestCase):
             sum(m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')),
             Decimal('1000.00'),
         )
+
+    def test_la_venta_por_transferencia_avisa_del_cobro_en_banco(self):
+        respuesta = self._vender()
+        self.assertEqual(respuesta.status_code, 302)
+
+        from django.contrib.messages import get_messages
+
+        mensajes = [str(m) for m in get_messages(respuesta.wsgi_request)]
+        self.assertTrue(
+            any('Cobro registrado en Banco' in m for m in mensajes), mensajes
+        )
+
+    def test_la_venta_financiada_no_crea_ingreso_en_banco(self):
+        respuesta = self.client.post(reverse('sales:create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'FINANCIADO',
+            'precio_venta': '11500.00',
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(
+            BancoMovimiento.objects.filter(tipo='INGRESO').count(), 0
+        )
+
+    def test_si_falla_el_cobro_no_se_guarda_la_venta(self):
+        """Todo o nada: sin cuenta bancaria no queda una venta sin ingreso."""
+        from apps.bank.models import BancoCuenta
+
+        BancoCuenta.objects.all().delete()
+
+        respuesta = self._vender()
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'No hay ninguna cuenta bancaria activa')
+        self.assertEqual(VentaVehiculo.objects.count(), 0)
+
+    def test_el_detalle_de_la_venta_muestra_el_cobro(self):
+        reserva = self._crear_reserva()
+        self._vender(reserva=reserva)
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+
+        respuesta = self.client.get(reverse('sales:detail', args=[venta.pk]))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Cobro en banco')
+        self.assertContains(respuesta, '10.500,00')
+        self.assertNotContains(respuesta, 'no tiene ingreso en Banco')
+
+    def test_el_detalle_avisa_si_falta_el_cobro(self):
+        venta = VentaVehiculo.objects.create(
+            vehiculo=self.vehiculo, tipo_cliente='PARTICULAR',
+            cliente_nombre='Carlos Ruiz', cliente_dni='12345678A',
+            cliente_direccion='Calle Mayor 1', cliente_poblacion='Madrid',
+            cliente_provincia='Madrid', cliente_cp='28001',
+            cliente_telefono='612345678', cliente_email='carlos@example.com',
+            fecha_venta=date(2026, 11, 15), metodo_pago='TRANSFERENCIA',
+            precio_venta=Decimal('11500.00'),
+            coste_total=self.vehiculo.coste_total,
+            created_by=self.admin,
+        )
+
+        respuesta = self.client.get(reverse('sales:detail', args=[venta.pk]))
+
+        self.assertContains(respuesta, 'no tiene ingreso en Banco')
+        self.assertContains(respuesta, 'reparar_cobro_venta')
+
+    def test_el_comando_repara_una_venta_sin_cobro(self):
+        from django.core.management import call_command
+
+        self._vender()
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+
+        # Simula el fallo: se borra el ingreso
+        BancoMovimiento.objects.filter(tipo='INGRESO').delete()
+        self.assertEqual(BancoMovimiento.objects.count(), 0)
+
+        call_command('reparar_cobro_venta', venta=venta.pk)
+
+        ingresos = BancoMovimiento.objects.filter(tipo='INGRESO')
+        self.assertEqual(ingresos.count(), 1)
+        self.assertEqual(ingresos.first().importe, Decimal('11500.00'))
+        self.assertEqual(ingresos.first().asiento_asociado, venta.asiento_contable)
+
+        # No duplica si se ejecuta otra vez
+        call_command('reparar_cobro_venta', venta=venta.pk)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='INGRESO').count(), 1)

@@ -254,16 +254,31 @@ class VentaVehiculo(models.Model):
             return asiento
 
     def registrar_movimiento_banco(self, asiento=None, anticipo=None):
-        """Ingreso del cobro. Si hubo señal, solo entra el importe pendiente."""
+        """Ingreso del cobro. Si hubo señal, solo entra el importe pendiente.
+
+        - Venta financiada: no entra dinero en el banco (lo paga la financiera),
+          así que no se crea movimiento.
+        - Venta al contado/transferencia: se exige una cuenta bancaria activa;
+          si no la hay se avisa con un error claro en vez de omitirlo en silencio.
+        """
+        from django.core.exceptions import ValidationError
+
         from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+
+        if self.metodo_pago == 'FINANCIADO':
+            return None
 
         cuenta = obtener_cuenta_banco_default()
         if not cuenta:
-            return None
+            raise ValidationError(
+                'No hay ninguna cuenta bancaria activa: el cobro no se puede '
+                'registrar en Banco. Cree o active una cuenta y vuelva a guardar.'
+            )
 
         anticipo = Decimal(str(anticipo or 0)).quantize(Decimal('0.01'))
         importe = self.precio_venta - anticipo
         if importe <= 0:
+            # La señal cubre el precio: no queda nada que cobrar por banco
             return None
 
         concepto = f"Cobro venta {self.vehiculo} - {self.cliente_nombre}"

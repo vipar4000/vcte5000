@@ -994,6 +994,18 @@ Base imponible = 20 x 8,50 = <strong>170,00 EUR</strong> &middot; Cuota IVA = 17
 
 <h1 id="capitulo-5">5. Ventas y Documentacion</h1>
 
+<div class="info-box">
+    <strong>Cobro en Banco de la venta:</strong> al guardar una venta por transferencia o efectivo,
+    el sistema crea el <strong>INGRESO</strong> en Banco por el precio menos la señal de la reserva.
+    En la ficha de la venta verá el bloque <strong>&#127974; Cobro en banco</strong> con la fecha, la cuenta y el importe
+    (por ejemplo, venta de 11.500 con señal de 1.000: ingreso de 10.500 y total en banco 11.500).
+    <br>
+    Si esa venta se quedó <strong>sin ingreso</strong> (por un fallo anterior o porque no había cuenta
+    bancaria activa), la ficha lo avisa en rojo y se repara sin duplicar con
+    <code>python manage.py reparar_cobro_venta --venta &lt;nº&gt;</code>.
+    Las ventas <strong>financiadas</strong> no generan ingreso (el dinero no entra en el banco: queda en clientes 430).
+</div>
+
 <h2>5.1 Registrar una Venta</h2>
 <ol class="steps">
     <li>Navegue a <strong>Ventas > Nueva Venta</strong></li>
