@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from .forms import VentaVehiculoForm, CostoAcondicionamientoForm
 from apps.vehicles.models import Vehiculo
@@ -204,38 +205,120 @@ def venta_create(request):
 
 @login_required
 def venta_delete(request, pk):
-    """Eliminar una venta (confirmación)."""
-    venta = get_object_or_404(VentaVehiculo, pk=pk)
-    
+    """Eliminar una venta deshaciendo su contabilidad y su cobro en banco.
+
+    Ley Antifraude: el asiento no se borra, se anula con contrapartida.
+    Si la venta tiene factura REBU, hay que confirmar expresamente su borrado
+    (para pruebas); si no, se avisa sin lanzar un error 500.
+    """
+    venta = get_object_or_404(
+        VentaVehiculo.objects.select_related('vehiculo'), pk=pk
+    )
+
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para eliminar ventas.')
         return redirect('sales:list')
-    
+
     if not request.user.puede_eliminar:
         messages.error(request, 'No tiene permisos para eliminar registros.')
         return redirect('sales:list')
-    
+
+    factura = FacturaVenta.objects.filter(venta=venta).first()
+
     if request.method == 'POST':
-        # Restaurar estado del vehículo
-        vehiculo = venta.vehiculo
-        vehiculo.estado = 'ACONDICIONADO'
-        vehiculo.save()
-        
-        # Borrar asiento contable asociado
-        if venta.asiento_contable:
-            venta.asiento_contable.delete()
-        
-        venta.delete()
+        if factura and not request.POST.get('eliminar_factura'):
+            messages.error(
+                request,
+                f'La venta tiene la factura {factura.codigo_factura}. Para '
+                f'eliminarla, marque «Eliminar también la factura» (solo para '
+                f'correcciones); en producción lo correcto es emitir una '
+                f'factura rectificativa.',
+            )
+            return redirect('sales:delete', pk=pk)
+
+        try:
+            with transaction.atomic():
+                if factura:
+                    factura.delete()
+                _deshacer_venta(venta, request.user)
+        except ProtectedError as error:
+            messages.error(
+                request,
+                f'No se pudo eliminar la venta: {error}. Anule primero lo que '
+                f'la referencia (factura, cobros o reserva).',
+            )
+            return redirect('sales:detail', pk=pk)
+        except Exception as error:
+            messages.error(request, f'No se pudo eliminar la venta: {error}')
+            return redirect('sales:detail', pk=pk)
+
         messages.success(
-            request, 
-            f'Venta eliminada correctamente. Vehículo restaurado a ACONDICIONADO.'
+            request,
+            f'Venta V-{pk} eliminada. El vehículo vuelve a estar disponible y '
+            f'su asiento queda anulado con contrapartida.',
         )
         return redirect('sales:list')
-    
+
     context = {
         'venta': venta,
+        'factura': factura,
     }
     return render(request, 'sales/delete.html', context)
+
+
+def _deshacer_venta(venta, user):
+    """Anula el asiento, deshace el cobro y libera el vehículo y la reserva."""
+    from datetime import date
+
+    from apps.accounting.models import AsientoContable, MovimientoContable
+    from apps.accounting.views import generar_numero_asiento
+    from apps.bank.models import BancoMovimiento, Reserva
+
+    vehiculo = venta.vehiculo
+
+    # 1) Anular el asiento con contrapartida (nunca se borra)
+    asiento = venta.asiento_contable
+    if asiento:
+        reversion = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
+            fecha=date.today(),
+            concepto=f'ANULACIÓN: {asiento.concepto}',
+            estado='BORRADOR',
+            tipo_documento='AnulacionVenta',
+            documento_id=asiento.pk,
+            created_by=user,
+        )
+        for movimiento in asiento.movimientos.all():
+            MovimientoContable.objects.create(
+                asiento=reversion,
+                cuenta=movimiento.cuenta,
+                debe=movimiento.haber,
+                haber=movimiento.debe,
+                descripcion=f'Reversión: {movimiento.descripcion}',
+            )
+        asiento.estado = 'ANULADO'
+        asiento.save(update_fields=['estado'])
+
+        # 2) Quitar el cobro de esta venta en el banco
+        BancoMovimiento.objects.filter(asiento_asociado=asiento).delete()
+
+    BancoMovimiento.objects.filter(
+        vehiculo_asociado=vehiculo,
+        tipo='INGRESO',
+        concepto__startswith='Cobro venta',
+    ).delete()
+
+    # 3) La reserva vuelve a estar activa (el dinero de la señal sigue en banco)
+    Reserva.objects.filter(venta=venta, estado='CONVERTIDA').update(
+        estado='ACTIVA', venta=None
+    )
+
+    # 4) El vehículo vuelve a estar disponible
+    vehiculo.estado = 'EN_VENTA' if vehiculo.precio_venta else 'ACONDICIONADO'
+    vehiculo.save(update_fields=['estado'])
+
+    # 5) Fuera la venta (garantía y cobros fraccionados caen en cascada)
+    venta.delete()
 
 
 @login_required

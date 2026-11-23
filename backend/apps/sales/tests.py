@@ -14,7 +14,7 @@ from django.urls import reverse
 from apps.accounts.models import User
 from apps.accounting.models import CuentaContable, PlanContableDefault
 from apps.bank.models import BancoCuenta, BancoMovimiento, Reserva
-from apps.sales.models import VentaVehiculo
+from apps.sales.models import FacturaVenta, VentaVehiculo
 from apps.vehicles.models import Vehiculo
 
 
@@ -315,3 +315,74 @@ class VentaConReservaTests(TestCase):
         # No duplica si se ejecuta otra vez
         call_command('reparar_cobro_venta', venta=venta.pk)
         self.assertEqual(BancoMovimiento.objects.filter(tipo='INGRESO').count(), 1)
+
+    def _crear_factura(self, venta):
+        from apps.sales.models import FacturaVenta
+
+        return FacturaVenta.objects.create(
+            codigo_factura=f'F2026-{venta.pk:04d}', venta=venta,
+            fecha_operacion=venta.fecha_venta,
+            cliente_nif=venta.cliente_dni,
+            cliente_nombre=venta.cliente_nombre,
+            precio_venta_total=venta.precio_venta,
+            base_imponible_rebu=venta.base_imponible,
+            iva_repercutido=venta.cuota_iva,
+        )
+
+    def test_eliminar_una_venta_sin_factura_deshace_todo(self):
+        from apps.accounting.models import AsientoContable
+
+        reserva = self._crear_reserva()
+        self._vender(reserva=reserva)
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        asiento = venta.asiento_contable
+
+        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
+
+        # Asiento anulado con contrapartida, no borrado
+        asiento.refresh_from_db()
+        self.assertEqual(asiento.estado, 'ANULADO')
+        self.assertTrue(
+            AsientoContable.objects.filter(tipo_documento='AnulacionVenta').exists()
+        )
+
+        # Cobro de la venta fuera del banco; la señal sigue
+        self.assertEqual(
+            [m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')],
+            [Decimal('1000.00')],
+        )
+
+        # Vehículo disponible y reserva activa otra vez
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'ACTIVA')
+        self.assertIsNone(reserva.venta_id)
+
+    def test_eliminar_una_venta_con_factura_avisa_sin_error_500(self):
+        self._vender()
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        factura = self._crear_factura(venta)
+
+        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(VentaVehiculo.objects.filter(pk=venta.pk).exists())
+        self.assertTrue(FacturaVenta.objects.filter(pk=factura.pk).exists())
+
+    def test_eliminar_una_venta_con_factura_confirmando_la_borra(self):
+        self._vender()
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        self._crear_factura(venta)
+
+        respuesta = self.client.post(
+            reverse('sales:delete', args=[venta.pk]),
+            {'eliminar_factura': 'on'},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
+        self.assertEqual(FacturaVenta.objects.count(), 0)

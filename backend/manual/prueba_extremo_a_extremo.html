@@ -1132,12 +1132,7 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
     <td>Los movimientos erróneos solo se compensan con otro movimiento</td>
     <td>Media</td>
   </tr>
-  <tr>
-    <td>H8</td>
-    <td>Eliminar una venta con factura lanza un error interno</td>
-    <td>La protección funciona (los datos se conservan) pero el usuario ve un error 500 en vez de un aviso claro</td>
-    <td>Media</td>
-  </tr>
+
   <tr>
     <td>H9</td>
     <td>Eliminar un vehículo con venta asociada lanza un error interno</td>
@@ -1169,6 +1164,11 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
     <td>C4</td>
     <td>El formulario de «Trabajador sin acceso» no dejaba guardar</td>
     <td>El botón <strong>Crear usuario</strong> envía sin pedir usuario ni contraseña (paso B4)</td>
+  </tr>
+  <tr>
+    <td>C6</td>
+    <td>Eliminar una venta con factura daba un error 500</td>
+    <td>Pide confirmar el borrado de la factura, anula el asiento con contrapartida y no lanza error (paso B3)</td>
   </tr>
   <tr>
     <td>C5</td>
