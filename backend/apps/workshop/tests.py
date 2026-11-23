@@ -120,6 +120,31 @@ class OrdenTrabajoFormTests(TestCase):
         self.assertContains(respuesta, 'está vendido')
         self.assertNotIn(f'<option value="{self.vehiculo.pk}" selected>', html)
 
+
+    def test_crear_ot_no_despublica_un_vehiculo_en_venta(self):
+        """Regla de negocio: solo se pasa a TALLER desde ADQUIRIDO.
+
+        Un coche ya publicado (EN_VENTA) no debe desaparecer del catálogo por
+        abrirle una orden de trabajo.
+        """
+        self.client.force_login(self.admin)
+        self.vehiculo.estado = 'EN_VENTA'
+        self.vehiculo.save(update_fields=['estado'])
+
+        response = self.client.post(reverse('workshop:create_ot'), {
+            'vehiculo': self.vehiculo.pk,
+            'operario': self.operario.pk,
+            'titulo': 'Repaso antes de entregar',
+            'descripcion': 'Revisión',
+            'horas_estimadas': 1,
+            'horas_reales': 0,
+            'estado': 'PENDIENTE',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+
     @unittest.skipIf(
         'sqlite' in connections.databases['default']['ENGINE'].lower(),
         'SQLite compartido en memoria no ve datos entre requests del cliente en TestCase'
