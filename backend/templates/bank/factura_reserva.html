@@ -1,0 +1,109 @@
+{% load l10n %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Factura de anticipo {{ factura.codigo }}</title>
+<style>
+    @page { size: A4; margin: 18mm; }
+    body { font-family: Helvetica, Arial, sans-serif; color: #1f2937; font-size: 11px; }
+    h1 { font-size: 20px; color: #0f3d6e; margin: 0 0 4px 0; }
+    .muted { color: #6b7280; }
+    .small { font-size: 9px; }
+    table { width: 100%; border-collapse: collapse; }
+    .cabecera td { vertical-align: top; }
+    .caja { border: 1px solid #cbd5e1; padding: 8px; }
+    .lineas th { background: #e2e8f0; text-align: left; padding: 6px; border: 1px solid #cbd5e1; }
+    .lineas td { padding: 6px; border: 1px solid #cbd5e1; }
+    .total { font-size: 15px; font-weight: bold; }
+    .nota { background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<table class="cabecera">
+    <tr>
+        <td style="width: 60%;">
+            <h1>{{ empresa.nombre }}</h1>
+            <p class="muted" style="margin: 0;">
+                CIF: {{ empresa.cif }}<br>
+                {{ empresa.direccion }}<br>
+                {{ empresa.cp }} {{ empresa.poblacion }} ({{ empresa.provincia }})<br>
+                Tel. {{ empresa.telefono }} · {{ empresa.email }}
+            </p>
+        </td>
+        <td style="width: 40%; text-align: right;">
+            <p style="margin: 0;"><strong>FACTURA DE ENTREGA A CUENTA</strong></p>
+            <p style="margin: 4px 0 0 0;">Nº <strong>{{ factura.codigo }}</strong></p>
+            <p style="margin: 2px 0 0 0;">Fecha: {{ factura.fecha_operacion|date:"d/m/Y" }}</p>
+        </td>
+    </tr>
+</table>
+
+<table style="margin-top: 14px;">
+    <tr>
+        <td class="caja" style="width: 50%;">
+            <p style="margin: 0 0 3px 0;"><strong>Datos del comprador</strong></p>
+            <p style="margin: 0;">
+                {{ reserva.get_tipo_cliente_display }}<br>
+                <strong>{{ reserva.cliente_nombre }}</strong><br>
+                NIF/CIF: {{ reserva.cliente_dni }}<br>
+                {{ reserva.cliente_direccion }}<br>
+                {{ reserva.cliente_cp }} {{ reserva.cliente_poblacion }} ({{ reserva.cliente_provincia }})<br>
+                Tel. {{ reserva.cliente_telefono }}{% if reserva.cliente_email %} · {{ reserva.cliente_email }}{% endif %}
+            </p>
+        </td>
+        <td class="caja" style="width: 50%;">
+            <p style="margin: 0 0 3px 0;"><strong>Vehículo reservado</strong></p>
+            <p style="margin: 0;">
+                {{ vehiculo.marca }} {{ vehiculo.modelo }}<br>
+                Matrícula: <strong>{{ vehiculo.matricula }}</strong><br>
+                Bastidor: {{ vehiculo.bastidor }}<br>
+                Año: {{ vehiculo.anio }} · {{ vehiculo.kilometraje|floatformat:0 }} km<br>
+                Reserva de fecha: {{ reserva.fecha_reserva|date:"d/m/Y" }}
+            </p>
+        </td>
+    </tr>
+</table>
+
+<table class="lineas" style="margin-top: 14px;">
+    <tr>
+        <th style="width: 60%;">Concepto</th>
+        <th style="width: 20%;">Método de pago</th>
+        <th style="width: 20%; text-align: right;">Importe recibido</th>
+    </tr>
+    <tr>
+        <td>
+            Entrega a cuenta / Reserva de vehículo<br>
+            {{ vehiculo.marca }} {{ vehiculo.modelo }} · Matrícula {{ vehiculo.matricula }}<br>
+            <span class="small muted">Bastidor {{ vehiculo.bastidor }}</span>
+        </td>
+        <td>{{ factura.get_metodo_pago_display }}</td>
+        <td style="text-align: right;">{{ factura.importe|floatformat:2 }} €</td>
+    </tr>
+    <tr>
+        <td colspan="2" style="text-align: right;"><strong>TOTAL ENTREGADO A CUENTA</strong></td>
+        <td class="total" style="text-align: right;">{{ factura.importe|floatformat:2 }} €</td>
+    </tr>
+</table>
+
+<div class="nota">
+    <p style="margin: 0 0 4px 0;"><strong>Nota fiscal (REBU)</strong></p>
+    <p style="margin: 0;">
+        Este importe es una <strong>entrega a cuenta</strong> de la compra del vehículo indicado.
+        Al tratarse de un vehículo usado acogido al <strong>Régimen Especial de Bienes Usados
+        (REBU)</strong>, esta entrega a cuenta <strong>no desglosa cuota de IVA independiente</strong>:
+        el IVA se liquidará sobre el margen de beneficio en la factura final de la venta.
+    </p>
+    <p style="margin: 6px 0 0 0;" class="small">
+        El importe entregado se descontará del precio de venta final. Documento justificativo del
+        anticipo, no válido como factura de la compraventa.
+    </p>
+</div>
+
+<p class="small muted" style="margin-top: 18px;">
+    Documento generado por {{ empresa.nombre }} · {{ factura.codigo }} ·
+    Emitido el {{ factura.fecha_emision|date:"d/m/Y H:i" }} por {{ factura.created_by.nombre_completo }}
+</p>
+
+</body>
+</html>

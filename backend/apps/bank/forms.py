@@ -75,20 +75,85 @@ class BancoMovimientoFilterForm(forms.Form):
 
 
 class ReservaForm(forms.ModelForm):
+    """Reserva con los datos fiscales del comprador (para la factura de anticipo)."""
+
     class Meta:
         model = Reserva
         fields = [
-            'vehiculo', 'cliente_nombre', 'cliente_dni',
-            'fecha_reserva', 'importe_reserva', 'notas',
+            'vehiculo',
+            'tipo_cliente', 'cliente_nombre', 'cliente_dni',
+            'cliente_direccion', 'cliente_poblacion', 'cliente_provincia',
+            'cliente_cp', 'cliente_telefono', 'cliente_email',
+            'fecha_reserva', 'importe_reserva', 'metodo_pago', 'notas',
         ]
         widgets = {
-            'fecha_reserva': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'importe_reserva': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'cliente_nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'cliente_dni': forms.TextInput(attrs={'class': 'form-control'}),
             'vehiculo': forms.Select(attrs={'class': 'form-select'}),
+            'tipo_cliente': forms.Select(attrs={'class': 'form-select'}),
+            'cliente_nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre completo o razón social',
+            }),
+            'cliente_dni': forms.TextInput(attrs={
+                'class': 'form-control', 'maxlength': '9', 'placeholder': '12345678A',
+            }),
+            'cliente_direccion': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Calle y número',
+            }),
+            'cliente_poblacion': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Madrid',
+            }),
+            'cliente_provincia': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Madrid',
+            }),
+            'cliente_cp': forms.TextInput(attrs={
+                'class': 'form-control', 'maxlength': '5', 'placeholder': '28001',
+            }),
+            'cliente_telefono': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': '612345678',
+            }),
+            'cliente_email': forms.EmailInput(attrs={
+                'class': 'form-control', 'placeholder': 'cliente@email.com',
+            }),
+            'fecha_reserva': forms.DateInput(attrs={
+                'type': 'date', 'class': 'form-control',
+            }),
+            'importe_reserva': forms.NumberInput(attrs={
+                'class': 'form-control', 'step': '0.01',
+            }),
+            'metodo_pago': forms.Select(attrs={'class': 'form-select'}),
             'notas': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+        labels = {
+            'vehiculo': 'Vehículo *',
+            'tipo_cliente': 'Tipo de cliente *',
+            'cliente_nombre': 'Nombre completo / Razón social *',
+            'cliente_dni': 'DNI / NIE / CIF *',
+            'cliente_direccion': 'Dirección fiscal (calle y número) *',
+            'cliente_poblacion': 'Población *',
+            'cliente_provincia': 'Provincia *',
+            'cliente_cp': 'Código postal *',
+            'cliente_telefono': 'Teléfono *',
+            'cliente_email': 'Email',
+            'fecha_reserva': 'Fecha de la reserva *',
+            'importe_reserva': 'Importe de la señal (€) *',
+            'metodo_pago': 'Método de pago *',
+            'notas': 'Notas',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # La dirección fiscal es imprescindible para emitir la factura
+        for campo in (
+            'cliente_direccion', 'cliente_poblacion',
+            'cliente_provincia', 'cliente_cp', 'cliente_telefono',
+        ):
+            self.fields[campo].required = True
+
+    def clean_cliente_cp(self):
+        cp = (self.cleaned_data.get('cliente_cp') or '').strip()
+        if cp and (not cp.isdigit() or len(cp) != 5):
+            raise forms.ValidationError('El código postal debe tener 5 dígitos.')
+        return cp
 
 
 class ConciliacionUploadForm(forms.Form):

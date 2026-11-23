@@ -25,4 +25,5 @@ urlpatterns = [
     path('reservas/<int:pk>/', views.reserva_detail, name='reserva_detail'),
     path('reservas/<int:pk>/convertir/', views.reserva_convertir, name='reserva_convertir'),
     path('reservas/<int:pk>/cancelar/', views.reserva_cancelar, name='reserva_cancelar'),
+    path('reservas/<int:pk>/factura/', views.reserva_factura, name='reserva_factura'),
 ]

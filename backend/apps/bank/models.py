@@ -162,14 +162,53 @@ class Reserva(models.Model):
         ('PENALIZADA', 'Penalización (S.L. retiene)'),
     ]
 
+    TIPOS_CLIENTE = [
+        ('PARTICULAR', 'Particular (B2C)'),
+        ('EMPRESA', 'Empresa/Autónomo (B2B)'),
+    ]
+
+    METODOS_PAGO = [
+        ('TRANSFERENCIA', 'Transferencia bancaria'),
+        ('EFECTIVO', 'Efectivo'),
+        ('TARJETA', 'Tarjeta'),
+    ]
+
     vehiculo = models.ForeignKey(
         'vehicles.Vehiculo',
         on_delete=models.PROTECT,
         related_name='reservas',
         verbose_name='vehículo',
     )
-    cliente_nombre = models.CharField(max_length=150, verbose_name='nombre del cliente')
-    cliente_dni = models.CharField(max_length=9, verbose_name='DNI/NIE')
+    tipo_cliente = models.CharField(
+        max_length=15, choices=TIPOS_CLIENTE, default='PARTICULAR',
+        verbose_name='tipo de cliente',
+    )
+    cliente_nombre = models.CharField(
+        max_length=200, verbose_name='nombre completo / razón social'
+    )
+    cliente_dni = models.CharField(max_length=9, verbose_name='DNI/NIE/CIF')
+    cliente_direccion = models.CharField(
+        max_length=200, blank=True, verbose_name='dirección fiscal'
+    )
+    cliente_poblacion = models.CharField(
+        max_length=100, blank=True, verbose_name='población'
+    )
+    cliente_provincia = models.CharField(
+        max_length=100, blank=True, verbose_name='provincia'
+    )
+    cliente_cp = models.CharField(
+        max_length=5, blank=True, verbose_name='código postal'
+    )
+    cliente_telefono = models.CharField(
+        max_length=15, blank=True, verbose_name='teléfono'
+    )
+    cliente_email = models.EmailField(
+        blank=True, verbose_name='email'
+    )
+    metodo_pago = models.CharField(
+        max_length=20, choices=METODOS_PAGO, default='TRANSFERENCIA',
+        verbose_name='método de pago',
+    )
     fecha_reserva = models.DateField(verbose_name='fecha de reserva')
     importe_reserva = models.DecimalField(
         max_digits=8, decimal_places=2, verbose_name='importe de la reserva'
@@ -219,3 +258,69 @@ class Reserva(models.Model):
     def cuota_iva(self):
         """IVA del anticipo."""
         return (self.base_imponible * Decimal('0.21')).quantize(Decimal('0.01'))
+
+
+class FacturaReserva(models.Model):
+    """Factura de entrega a cuenta (señal) de una reserva.
+
+    Numeración correlativa por año (`A-2026-0001`). Al ser vehículos en REBU,
+    el documento refleja la entrega a cuenta **sin desglosar IVA**: el IVA se
+    liquida sobre el margen en la factura final de la venta.
+    """
+
+    reserva = models.OneToOneField(
+        Reserva, on_delete=models.CASCADE,
+        related_name='factura', verbose_name='reserva',
+    )
+    codigo = models.CharField(max_length=20, unique=True, verbose_name='código')
+    fecha_emision = models.DateTimeField(auto_now_add=True, verbose_name='fecha de emisión')
+    fecha_operacion = models.DateField(verbose_name='fecha de la operación')
+    importe = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name='importe recibido'
+    )
+    metodo_pago = models.CharField(
+        max_length=20, choices=Reserva.METODOS_PAGO, default='TRANSFERENCIA',
+        verbose_name='método de pago',
+    )
+    concepto = models.CharField(max_length=255, verbose_name='concepto')
+    pdf = models.FileField(
+        upload_to='reservas/facturas/', blank=True, verbose_name='PDF'
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='facturas_reserva_creadas', verbose_name='creado por',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'factura de reserva'
+        verbose_name_plural = 'facturas de reserva'
+        ordering = ['-fecha_emision']
+
+    def __str__(self):
+        return f'{self.codigo} - {self.reserva.cliente_nombre}'
+
+    @classmethod
+    def generar_siguiente_codigo(cls):
+        """Código correlativo por año: A-2026-0001, A-2026-0002..."""
+        from django.utils import timezone
+
+        anio = timezone.localdate().year
+        prefijo = f'A-{anio}-'
+        ultima = (
+            cls.objects.filter(codigo__startswith=prefijo)
+            .order_by('-codigo')
+            .first()
+        )
+        numero = 1
+        if ultima:
+            try:
+                numero = int(ultima.codigo.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                numero = 1
+
+        while True:
+            codigo = f'{prefijo}{numero:04d}'
+            if not cls.objects.filter(codigo=codigo).exists():
+                return codigo
+            numero += 1

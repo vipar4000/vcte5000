@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
 from django.db.models.deletion import ProtectedError
 from .models import VentaVehiculo, FacturaVenta, DetalleRebu, CostoAcondicionamiento
 from .forms import VentaVehiculoForm, CostoAcondicionamientoForm
@@ -192,6 +193,25 @@ def venta_create(request):
         initial_data = {}
         if vehiculo_inicial:
             initial_data['vehiculo'] = vehiculo_inicial
+
+        # Venta desde una reserva: se cargan los datos fiscales del comprador
+        if reserva_inicial is not None:
+            initial_data.update({
+                'vehiculo': reserva_inicial.vehiculo,
+                'tipo_cliente': reserva_inicial.tipo_cliente,
+                'cliente_nombre': reserva_inicial.cliente_nombre,
+                'cliente_dni': reserva_inicial.cliente_dni,
+                'cliente_direccion': reserva_inicial.cliente_direccion,
+                'cliente_poblacion': reserva_inicial.cliente_poblacion,
+                'cliente_provincia': reserva_inicial.cliente_provincia,
+                'cliente_cp': reserva_inicial.cliente_cp,
+                'cliente_telefono': reserva_inicial.cliente_telefono,
+                'cliente_email': reserva_inicial.cliente_email,
+                'fecha_venta': timezone.localdate(),
+            })
+            if reserva_inicial.vehiculo.precio_venta:
+                initial_data['precio_venta'] = reserva_inicial.vehiculo.precio_venta
+
         form = VentaVehiculoForm(initial=initial_data)
     
     context = {

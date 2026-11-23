@@ -612,6 +612,60 @@ def reserva_convertir(request, pk):
 
 
 @login_required
+def reserva_factura(request, pk):
+    """Emite (si hace falta) y descarga la factura de entrega a cuenta."""
+    from django.http import HttpResponse
+
+    from .models import FacturaReserva
+    from .services import generar_pdf_factura_reserva
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related('vehiculo'), pk=pk
+    )
+    if not (request.user.is_admin or request.user.is_vendedor):
+        messages.error(request, 'No tiene permisos para emitir facturas de reserva.')
+        return redirect('bank:reserva_detail', pk=pk)
+
+    factura = FacturaReserva.objects.filter(reserva=reserva).first()
+    if factura is None:
+        vehiculo = reserva.vehiculo
+        concepto = (
+            f'Entrega a cuenta reserva {vehiculo.marca} {vehiculo.modelo} '
+            f'({vehiculo.matricula}) - Bastidor {vehiculo.bastidor}'
+        )
+        factura = FacturaReserva.objects.create(
+            reserva=reserva,
+            codigo=FacturaReserva.generar_siguiente_codigo(),
+            fecha_operacion=reserva.fecha_reserva,
+            importe=reserva.importe_reserva,
+            metodo_pago=reserva.metodo_pago,
+            concepto=concepto,
+            created_by=request.user,
+        )
+
+    # Si ya está generada y el archivo sigue ahí, se reutiliza (más rápido)
+    pdf_bytes = None
+    if factura.pdf:
+        from django.core.files.storage import default_storage
+
+        try:
+            if default_storage.exists(factura.pdf.name):
+                with default_storage.open(factura.pdf.name, 'rb') as archivo:
+                    pdf_bytes = archivo.read()
+        except OSError:
+            pdf_bytes = None
+
+    if pdf_bytes is None:
+        pdf_bytes = generar_pdf_factura_reserva(factura)
+
+    respuesta = HttpResponse(pdf_bytes, content_type='application/pdf')
+    respuesta['Content-Disposition'] = (
+        f'inline; filename="factura_anticipo_{factura.codigo}.pdf"'
+    )
+    return respuesta
+
+
+@login_required
 def reserva_cancelar(request, pk):
     """Cancela una reserva (devolución o penalización)."""
     if request.method != 'POST':

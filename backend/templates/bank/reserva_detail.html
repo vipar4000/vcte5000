@@ -2,7 +2,7 @@
 {% block title %}Reserva - {{ reserva.vehiculo }}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="max-w-3xl mx-auto">
     <div class="mb-6 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-gray-800">Detalle de Reserva</h1>
         <a href="{% url 'bank:reserva_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
@@ -27,55 +27,117 @@
                 {% endif %}
             </div>
             <div>
-                <p class="text-sm text-gray-600">Cliente</p>
-                <p class="font-medium">{{ reserva.cliente_nombre }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-600">DNI/NIE</p>
-                <p class="font-medium">{{ reserva.cliente_dni }}</p>
-            </div>
-            <div>
                 <p class="text-sm text-gray-600">Fecha de reserva</p>
-                <p class="font-medium">{{ reserva.fecha_reserva }}</p>
+                <p class="font-medium">{{ reserva.fecha_reserva|date:"d/m/Y" }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Importe reserva</p>
-                <p class="text-2xl font-bold text-blue-600">€{{ reserva.importe_reserva|floatformat:2 }}</p>
+                <p class="text-sm text-gray-600">Importe de la señal</p>
+                <p class="text-2xl font-bold text-blue-600">{{ reserva.importe_reserva|floatformat:2 }} €</p>
+                <p class="text-xs text-gray-500">Cobrado por {{ reserva.get_metodo_pago_display|lower }}</p>
             </div>
-            <div>
-                <p class="text-sm text-gray-600">Base imponible (IVA 21%)</p>
-                <p class="font-medium">€{{ base_imponible|floatformat:2 }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-600">Cuota IVA</p>
-                <p class="font-medium">€{{ cuota_iva|floatformat:2 }}</p>
-            </div>
-
-            {% if reserva.banco_movimiento %}
-            <div class="col-span-2">
-                <p class="text-sm text-gray-600">Movimiento bancario</p>
-                <a href="{% url 'bank:movimiento_detail' pk=reserva.banco_movimiento.pk %}" class="text-eurocar-blue hover:underline">
-                    {{ reserva.banco_movimiento }}
-                </a>
-            </div>
-            {% endif %}
-
-            {% if reserva.venta %}
-            <div class="col-span-2">
-                <p class="text-sm text-gray-600">Venta asociada</p>
-                <a href="{% url 'sales:detail' pk=reserva.venta.pk %}" class="text-eurocar-blue hover:underline">
-                    {{ reserva.venta }}
-                </a>
-            </div>
-            {% endif %}
-
-            {% if reserva.notas %}
-            <div class="col-span-2">
-                <p class="text-sm text-gray-600">Notas</p>
-                <p class="font-medium">{{ reserva.notas }}</p>
-            </div>
-            {% endif %}
         </div>
+
+        <!-- Datos fiscales del comprador -->
+        <div class="border-t mt-6 pt-4">
+            <h2 class="text-lg font-semibold mb-3">🧾 Datos fiscales del comprador</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-600">Tipo de cliente</p>
+                    <p class="font-medium">{{ reserva.get_tipo_cliente_display }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Nombre / Razón social</p>
+                    <p class="font-medium">{{ reserva.cliente_nombre }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">DNI / NIE / CIF</p>
+                    <p class="font-medium">{{ reserva.cliente_dni }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Teléfono</p>
+                    <p class="font-medium">{{ reserva.cliente_telefono|default:"—" }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Dirección fiscal</p>
+                    <p class="font-medium">{{ reserva.cliente_direccion|default:"—" }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Población / Provincia / CP</p>
+                    <p class="font-medium">
+                        {{ reserva.cliente_poblacion|default:"—" }}
+                        {% if reserva.cliente_provincia %}({{ reserva.cliente_provincia }}){% endif %}
+                        {% if reserva.cliente_cp %} · {{ reserva.cliente_cp }}{% endif %}
+                    </p>
+                </div>
+                <div class="col-span-2">
+                    <p class="text-gray-600">Email</p>
+                    <p class="font-medium">{{ reserva.cliente_email|default:"—" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Factura de entrega a cuenta -->
+        <div class="border-t mt-6 pt-4">
+            <h2 class="text-lg font-semibold mb-2">📄 Factura de entrega a cuenta</h2>
+            {% if reserva.factura %}
+            <p class="text-sm text-gray-700 mb-2">
+                Emitida con el número <strong>{{ reserva.factura.codigo }}</strong>
+                el {{ reserva.factura.fecha_operacion|date:"d/m/Y" }}.
+            </p>
+            {% else %}
+            <p class="text-sm text-gray-500 mb-2">
+                Todavía no se ha emitido. La numeración es correlativa por año.
+            </p>
+            {% endif %}
+            <a href="{% url 'bank:reserva_factura' pk=reserva.pk %}"
+               target="_blank"
+               class="inline-block bg-eurocar-blue text-white px-4 py-2 rounded hover:bg-blue-800 transition text-sm">
+                🧾 {% if reserva.factura %}Ver / imprimir factura{% else %}Emitir factura de anticipo{% endif %}
+            </a>
+        </div>
+
+        <!-- Desglose contable interno -->
+        <div class="border-t mt-6 pt-4">
+            <h2 class="text-lg font-semibold mb-2">📊 Desglose contable interno</h2>
+            <p class="text-xs text-gray-500 mb-2">
+                Uso interno: no aparece en la factura de anticipo (REBU).
+            </p>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-600">Base imponible</p>
+                    <p class="font-medium">{{ base_imponible|floatformat:2 }} €</p>
+                </div>
+                <div>
+                    <p class="text-gray-600">Cuota IVA</p>
+                    <p class="font-medium">{{ cuota_iva|floatformat:2 }} €</p>
+                </div>
+            </div>
+        </div>
+
+        {% if reserva.banco_movimiento %}
+        <div class="border-t mt-6 pt-4">
+            <p class="text-sm text-gray-600">Movimiento bancario</p>
+            <a href="{% url 'bank:movimiento_detail' pk=reserva.banco_movimiento.pk %}" class="text-eurocar-blue hover:underline">
+                {{ reserva.banco_movimiento }}
+            </a>
+        </div>
+        {% endif %}
+
+        {% if reserva.venta %}
+        <div class="border-t mt-6 pt-4">
+            <p class="text-sm text-gray-600">Venta asociada</p>
+            <a href="{% url 'sales:detail' pk=reserva.venta.pk %}" class="text-eurocar-blue hover:underline">
+                {{ reserva.venta }}
+            </a>
+        </div>
+        {% endif %}
+
+        {% if reserva.notas %}
+        <div class="border-t mt-6 pt-4">
+            <p class="text-sm text-gray-600">Notas</p>
+            <p class="font-medium">{{ reserva.notas }}</p>
+        </div>
+        {% endif %}
 
         {% if reserva.estado == 'ACTIVA' %}
         <div class="border-t mt-6 pt-4 flex gap-4">

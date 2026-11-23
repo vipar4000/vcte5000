@@ -225,3 +225,32 @@ def conciliacion_batch(movimientos_ids):
     count = movimientos.update(conciliado=True)
     logger.info(f'Conciliación batch: {count} movimientos marcados como conciliados')
     return count
+
+
+def generar_pdf_factura_reserva(factura):
+    """Genera el PDF de la factura de entrega a cuenta y lo guarda.
+
+    Reutiliza el motor de PDF del ERP (WeasyPrint o xhtml2pdf) y el
+    almacenamiento configurado (disco local o S3/R2), igual que las facturas
+    REBU de venta.
+    """
+    from django.template.loader import render_to_string
+
+    from apps.sales.services import EMPRESA, _guardar_en_storage, _render_pdf
+
+    contexto = {
+        'factura': factura,
+        'reserva': factura.reserva,
+        'vehiculo': factura.reserva.vehiculo,
+        'empresa': EMPRESA,
+    }
+    html = render_to_string('bank/factura_reserva.html', contexto)
+    pdf_bytes = _render_pdf(html)
+
+    ruta = f'reservas/facturas/{factura.codigo}.pdf'
+    _guardar_en_storage(ruta, pdf_bytes)
+    if factura.pdf.name != ruta:
+        factura.pdf.name = ruta
+        factura.save(update_fields=['pdf'])
+
+    return pdf_bytes

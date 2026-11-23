@@ -74,6 +74,7 @@
                 <li><a href="#capitulo-10-1"><span class="chapter-num">10.1</span> Crear Reserva</a></li>
                 <li><a href="#capitulo-10-2"><span class="chapter-num">10.2</span> Convertir en Venta</a></li>
                 <li><a href="#capitulo-10-3"><span class="chapter-num">10.3</span> Cancelar Reserva</a></li>
+                <li><a href="#capitulo-10-4"><span class="chapter-num">10.4</span> Factura de entrega a cuenta</a></li>
             </ul>
         </li>
         <li><a href="#capitulo-11"><span class="chapter-num">11.</span> API Publica</a></li>
@@ -2612,6 +2613,13 @@ PyG: 611 refleja la variacion de existencias
 
 <p>El sistema de reservas permite apartar un vehiculo cobrando una senal (arras) al cliente. La reserva genera automaticamente un movimiento bancario y un asiento contable de anticipo con IVA. Al convertirse en venta, el anticipo se compensa contablemente.</p>
 
+<div class="info-box">
+    <strong>Datos fiscales del comprador:</strong> la reserva pide los mismos datos que la venta
+    (tipo de cliente B2C/B2B, nombre o razón social, DNI/NIE/CIF, dirección fiscal completa, teléfono y email)
+    porque son los que aparecen en la <strong>factura de entrega a cuenta</strong>.
+    Al convertir la reserva en venta, esos datos se cargan solos en el formulario de venta.
+</div>
+
 <h2 id="capitulo-10-1">10.1 Crear Reserva</h2>
 
 <h3>Datos necesarios</h3>
@@ -2768,6 +2776,33 @@ PyG: 611 refleja la variacion de existencias
 </div>
 
 <!-- ==================== CAPITULO 11 (antiguo 9) ==================== -->
+<h2 id="capitulo-10-4">10.4 Factura de entrega a cuenta (anticipo)</h2>
+
+<p>Desde la ficha de una reserva se puede <strong>emitir e imprimir la factura del anticipo</strong>
+(botón <strong>&#129534; Factura de anticipo</strong>). Contiene:</p>
+
+<ul>
+    <li><strong>Datos fiscales del emisor</strong>: R Car Rogil, CIF, dirección, teléfono y email.</li>
+    <li><strong>Datos fiscales del comprador</strong>: tipo de cliente, nombre o razón social, DNI/NIE/CIF,
+        dirección completa, teléfono y email.</li>
+    <li><strong>Numeración correlativa por año</strong>: <code>A-2026-0001</code>, <code>A-2026-0002</code>...</li>
+    <li><strong>Concepto</strong>: entrega a cuenta / reserva del vehículo con marca, modelo, matrícula y bastidor.</li>
+    <li><strong>Importe recibido</strong> y <strong>método de pago</strong> (transferencia, efectivo o tarjeta).</li>
+    <li><strong>Nota fiscal REBU</strong>: la entrega a cuenta no desglosa cuota de IVA; el IVA se liquidará
+        sobre el margen en la factura final de la venta.</li>
+</ul>
+
+<div class="warning-box">
+    <strong>Una sola factura por reserva:</strong> si se vuelve a pulsar el botón, se abre el mismo documento
+    con el mismo número (no se duplica). El PDF se guarda en el almacenamiento del ERP.
+</div>
+
+<div class="info-box">
+    <strong>Al convertir en venta:</strong> el formulario de venta llega <strong>precargado</strong> con los datos
+    fiscales de la reserva y descuenta el anticipo del precio final. En la ficha de la venta, el bloque
+    «Cobro en banco» muestra la señal y el cobro del resto.
+</div>
+
 <h1 id="capitulo-11">11. API Publica</h1>
 
 <h2>11.1 Endpoints Disponibles</h2>

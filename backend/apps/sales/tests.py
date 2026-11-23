@@ -46,10 +46,18 @@ class VentaConReservaTests(TestCase):
     def _crear_reserva(self, importe='1000.00'):
         respuesta = self.client.post(reverse('bank:reserva_create'), {
             'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
             'cliente_nombre': 'Carlos Ruiz',
             'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
             'fecha_reserva': '2026-11-20',
             'importe_reserva': importe,
+            'metodo_pago': 'TRANSFERENCIA',
             'notas': '',
         })
         self.assertEqual(respuesta.status_code, 302, 'no se creó la reserva')
@@ -404,3 +412,103 @@ class VentaConReservaTests(TestCase):
             apertura < casilla < cierre,
             'La casilla debe estar dentro del formulario para enviarse',
         )
+
+    def test_la_reserva_guarda_los_datos_fiscales_del_comprador(self):
+        reserva = self._crear_reserva()
+
+        self.assertEqual(reserva.tipo_cliente, 'PARTICULAR')
+        self.assertEqual(reserva.cliente_direccion, 'Calle Mayor 1')
+        self.assertEqual(reserva.cliente_poblacion, 'Madrid')
+        self.assertEqual(reserva.cliente_provincia, 'Madrid')
+        self.assertEqual(reserva.cliente_cp, '28001')
+        self.assertEqual(reserva.cliente_telefono, '612345678')
+        self.assertEqual(reserva.cliente_email, 'carlos@example.com')
+        self.assertEqual(reserva.metodo_pago, 'TRANSFERENCIA')
+
+    def test_la_reserva_exige_direccion_fiscal(self):
+        respuesta = self.client.post(reverse('bank:reserva_create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': '',
+            'cliente_poblacion': '',
+            'cliente_provincia': '',
+            'cliente_cp': '',
+            'cliente_telefono': '',
+            'fecha_reserva': '2026-11-20',
+            'importe_reserva': '1000.00',
+            'metodo_pago': 'TRANSFERENCIA',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(Reserva.objects.count(), 0)
+
+    def test_factura_de_anticipo_con_numeracion_correlativa(self):
+        from django.utils import timezone
+
+        from apps.bank.models import FacturaReserva
+
+        reserva = self._crear_reserva()
+        respuesta = self.client.get(
+            reverse('bank:reserva_factura', args=[reserva.pk])
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+        self.assertTrue(respuesta.content.startswith(b'%PDF'))
+
+        factura = FacturaReserva.objects.get(reserva=reserva)
+        anio = timezone.localdate().year
+        self.assertEqual(factura.codigo, f'A-{anio}-0001')
+
+        # Reemitirla no cambia el número
+        self.client.get(reverse('bank:reserva_factura', args=[reserva.pk]))
+        self.assertEqual(FacturaReserva.objects.count(), 1)
+
+        # Otra reserva toma el siguiente correlativo
+        otro = Vehiculo.objects.create(
+            matricula='5678DEF', bastidor='WVWZZZ1KZAW123456',
+            marca='Seat', modelo='León', anio=2019, combustible='GASOLINA',
+            kilometraje=120000, tipo_dano='ACCIDENTAL', etiqueta_ambiental='B',
+            estado='EN_VENTA', fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('6000.00'), tasas_sala=Decimal('300.00'),
+            logistica_grua=Decimal('200.00'), precio_venta=Decimal('9000.00'),
+            created_by=self.admin,
+        )
+        self.vehiculo = otro
+        segunda = self._crear_reserva(importe='500.00')
+        self.client.get(reverse('bank:reserva_factura', args=[segunda.pk]))
+        self.assertEqual(
+            FacturaReserva.objects.get(reserva=segunda).codigo,
+            f'A-{anio}-0002',
+        )
+
+
+    def test_la_ficha_de_la_reserva_muestra_datos_fiscales_y_factura(self):
+        reserva = self._crear_reserva()
+
+        respuesta = self.client.get(
+            reverse('bank:reserva_detail', args=[reserva.pk])
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Datos fiscales del comprador')
+        self.assertContains(respuesta, 'Calle Mayor 1')
+        self.assertContains(respuesta, 'Factura de entrega a cuenta')
+        self.assertContains(respuesta, 'Emitir factura de anticipo')
+
+    def test_la_venta_precarga_los_datos_del_comprador_de_la_reserva(self):
+        reserva = self._crear_reserva()
+
+        respuesta = self.client.get(
+            reverse('sales:create'),
+            {'vehiculo': self.vehiculo.pk, 'reserva': reserva.pk},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        html = respuesta.content.decode()
+        self.assertIn('Carlos Ruiz', html)
+        self.assertIn('12345678A', html)
+        self.assertIn('Calle Mayor 1', html)
+        self.assertIn('28001', html)
+        self.assertIn('612345678', html)
