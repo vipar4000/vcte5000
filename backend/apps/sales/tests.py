@@ -386,3 +386,21 @@ class VentaConReservaTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
         self.assertEqual(FacturaVenta.objects.count(), 0)
+
+    def test_la_casilla_de_la_factura_va_dentro_del_formulario(self):
+        """Regresión: si la casilla queda fuera del <form>, el navegador no la envía."""
+        self._vender()
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        self._crear_factura(venta)
+
+        html = self.client.get(
+            reverse('sales:delete', args=[venta.pk])
+        ).content.decode()
+
+        apertura = html.index('<form method="post"')
+        casilla = html.index('name="eliminar_factura"')
+        cierre = html.index('</form>')
+        self.assertTrue(
+            apertura < casilla < cierre,
+            'La casilla debe estar dentro del formulario para enviarse',
+        )

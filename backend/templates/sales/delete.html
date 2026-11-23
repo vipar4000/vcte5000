@@ -42,24 +42,25 @@
             </div>
         </div>
         
-        {% if factura %}
-        <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
-            <p class="text-yellow-900 font-medium">
-                Esta venta tiene la factura <strong>{{ factura.codigo_factura }}</strong>.
-            </p>
-            <p class="text-yellow-800 text-sm mt-1">
-                En producción lo correcto es emitir una factura rectificativa. Para
-                corregir una prueba puede eliminarla también:
-            </p>
-            <label class="flex items-center gap-2 mt-3 text-sm text-yellow-900">
-                <input type="checkbox" name="eliminar_factura" value="on" required>
-                Eliminar también la factura {{ factura.codigo_factura }}
-            </label>
-        </div>
-        {% endif %}
-
         <form method="post">
             {% csrf_token %}
+
+            {% if factura %}
+            <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
+                <p class="text-yellow-900 font-medium">
+                    Esta venta tiene la factura <strong>{{ factura.codigo_factura }}</strong>.
+                </p>
+                <p class="text-yellow-800 text-sm mt-1">
+                    En producción lo correcto es emitir una factura rectificativa. Para
+                    corregir una prueba puede eliminarla también:
+                </p>
+                <label class="flex items-center gap-2 mt-3 text-sm text-yellow-900">
+                    <input type="checkbox" name="eliminar_factura" value="on" required>
+                    Eliminar también la factura {{ factura.codigo_factura }}
+                </label>
+            </div>
+            {% endif %}
+
             <div class="flex justify-end gap-4">
                 <a href="{% url 'sales:detail' venta.pk %}" 
                    class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
