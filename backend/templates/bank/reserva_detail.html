@@ -98,20 +98,15 @@
 
         <!-- Desglose contable interno -->
         <div class="border-t mt-6 pt-4">
-            <h2 class="text-lg font-semibold mb-2">📊 Desglose contable interno</h2>
-            <p class="text-xs text-gray-500 mb-2">
-                Uso interno: no aparece en la factura de anticipo (REBU).
+            <h2 class="text-lg font-semibold mb-2">📊 Registro contable</h2>
+            <p class="text-sm text-gray-700">
+                Entrega a cuenta en <strong>438 (Anticipos de clientes)</strong> por
+                <strong>{{ reserva.importe_reserva|floatformat:2 }} €</strong>.
             </p>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <p class="text-gray-600">Base imponible</p>
-                    <p class="font-medium">{{ base_imponible|floatformat:2 }} €</p>
-                </div>
-                <div>
-                    <p class="text-gray-600">Cuota IVA</p>
-                    <p class="font-medium">{{ cuota_iva|floatformat:2 }} €</p>
-                </div>
-            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                REBU: la señal no lleva IVA propio. Se cancela en el asiento de la venta
+                final, donde el IVA se calcula sobre el margen.
+            </p>
         </div>
 
         {% if reserva.banco_movimiento %}

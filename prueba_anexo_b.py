@@ -129,10 +129,18 @@ def main():
         print('\n[B2] Reserva de 1.000 €')
         resp = cliente.post(reverse('bank:reserva_create'), {
             'vehiculo': vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
             'cliente_nombre': 'Carlos Ruiz',
             'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
             'fecha_reserva': '2026-11-20',
             'importe_reserva': '1000.00',
+            'metodo_pago': 'TRANSFERENCIA',
             'notas': '',
         })
         reserva = Reserva.objects.filter(vehiculo=vehiculo).first()
@@ -152,10 +160,10 @@ def main():
         check('Movimiento enlazado con su asiento',
               reserva.banco_movimiento.asiento_asociado_id == asiento_reserva.pk)
         check('DEBE 572 1.000', saldos.get('572') == Decimal('1000.00'))
-        check('HABER 438 826,45', saldos.get('438') == Decimal('-826.45'),
-              str(saldos.get('438')))
-        check('HABER 477 173,55', saldos.get('477') == Decimal('-173.55'),
-              str(saldos.get('477')))
+        check('HABER 438 1.000 (entrega a cuenta REBU, sin IVA)',
+              saldos.get('438') == Decimal('-1000.00'), str(saldos.get('438')))
+        check('Sin IVA propio en el anticipo',
+              '477' not in saldos, str(saldos.get('477')))
 
         print('\n[B3] Venta de 11.500 descontando la señal')
         resp = cliente.post(reverse('sales:create'), {
@@ -196,10 +204,11 @@ def main():
         check('Venta: DEBE 572 10.500',
               saldos_venta.get('572') == Decimal('10500.00'),
               str(saldos_venta.get('572')))
-        check('Venta: 438 cancelado (826,45)',
-              saldos_venta.get('438') == Decimal('826.45'), str(saldos_venta.get('438')))
-        check('Venta: 477 cancelado (173,55)',
-              saldos_venta.get('477') == Decimal('173.55'), str(saldos_venta.get('477')))
+        check('Venta: 438 cancelado (1.000)',
+              saldos_venta.get('438') == Decimal('1000.00'), str(saldos_venta.get('438')))
+        check('Venta: sin 477 del anticipo',
+              saldos_venta.get('477', Decimal('0')) == Decimal('0'),
+              str(saldos_venta.get('477')))
 
         print('\n[B4] Trabajador sin acceso y fichaje por PIN')
         resp = cliente.post(reverse('usuarios:create'), {

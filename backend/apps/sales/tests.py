@@ -115,10 +115,9 @@ class VentaConReservaTests(TestCase):
                 total += mov.debe - mov.haber
             return total
 
-        # 438 y 477 del anticipo quedan cancelados por el debe
-        base_anticipo = (Decimal('1000.00') / Decimal('1.21')).quantize(Decimal('0.01'))
-        self.assertEqual(saldo('438'), base_anticipo)
-        self.assertEqual(saldo('477'), Decimal('1000.00') - base_anticipo)
+        # La entrega a cuenta (sin IVA) queda cancelada por completo
+        self.assertEqual(saldo('438'), Decimal('1000.00'))
+        self.assertEqual(saldo('477'), Decimal('0'))
         # El banco solo recibe el resto
         self.assertEqual(saldo('572'), Decimal('10500.00'))
 

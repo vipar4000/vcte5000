@@ -250,14 +250,14 @@ class Reserva(models.Model):
         return f"Reserva {self.vehiculo} - {self.cliente_nombre} ({format_euros(self.importe_reserva)})"
 
     @property
-    def base_imponible(self):
-        """Base imponible del anticipo (IVA 21%)."""
-        return (self.importe_reserva / Decimal('1.21')).quantize(Decimal('0.01'))
+    def es_entrega_a_cuenta_rebu(self):
+        """La señal es una entrega a cuenta REBU: no lleva IVA propio.
 
-    @property
-    def cuota_iva(self):
-        """IVA del anticipo."""
-        return (self.base_imponible * Decimal('0.21')).quantize(Decimal('0.01'))
+        El importe completo se registra en la cuenta 438 (anticipos de
+        clientes) y se cancela en el asiento de la venta final, donde el IVA
+        se liquida sobre el margen.
+        """
+        return True
 
 
 class FacturaReserva(models.Model):

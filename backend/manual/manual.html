@@ -2671,9 +2671,10 @@ PyG: 611 refleja la variacion de existencias
 </div>
 
 <div class="info-box">
-    <strong>Calculo del IVA:</strong> La reserva es un anticipo sujeto a IVA al 21%.
-    La base imponible se calcula dividiendo el importe entre 1.21.
-    El IVA repercutido se registra en cuenta 477 (HP IVA Repercutido).
+    <strong>IVA de la entrega a cuenta (REBU):</strong> al ser vehículos en régimen REBU,
+    la senal <strong>no lleva IVA propio</strong>: el importe integro se registra como anticipo
+    de clientes (<strong>438</strong>) y se cancela en el asiento de la venta final, donde el IVA
+    se calcula sobre el margen de beneficio.
 </div>
 
 <h2 id="capitulo-10-2">10.2 Convertir en Venta</h2>
@@ -2700,15 +2701,17 @@ PyG: 611 refleja la variacion de existencias
 <h3>Efecto contable al convertir</h3>
 <table class="mt-4">
     <tr><th>Operacion</th><th>DEBE</th><th>HABER</th><th>Importe</th></tr>
-    <tr><td>Asiento de la venta (senal aplicada)</td><td>572 Banco (resto) + 438 + 477</td><td>700 + 471 + 310</td><td>18.000 EUR</td></tr>
+    <tr><td>Asiento de la senal (entrega a cuenta)</td><td>572 Banco</td><td>438 Anticipos</td><td>500 EUR</td></tr>
+    <tr><td>Asiento de la venta (senal aplicada)</td><td>572 Banco (resto) + 438 (anticipo)</td><td>700 + 471 + 310</td><td>18.000 EUR</td></tr>
     <tr><td>Ingreso bancario de la venta</td><td>572 Banco</td><td>&mdash;</td><td>17.500 EUR</td></tr>
     <tr><td>Ingreso de la senal (ya registrado)</td><td>572 Banco</td><td>&mdash;</td><td>500 EUR</td></tr>
 </table>
 
 <div class="warning-box">
     <strong>Importante:</strong> la senal no se cobra dos veces. El banco suma la senal (500) mas el resto
-    (17.500) = 18.000 EUR, que es el precio. En el asiento de la venta se cancelan el anticipo
-    (438) y su IVA (477) de la reserva, de modo que no queda ningun saldo pendiente en esas cuentas.
+    (17.500) = 18.000 EUR, que es el precio. En el asiento de la venta se cancela el anticipo completo
+    (<strong>438</strong>); como la entrega a cuenta es REBU, <strong>no hay IVA propio</strong> que cancelar:
+    el IVA va en la cuenta 471 sobre el margen de la venta.
 </div>
 
 <div class="info-box">
@@ -2790,6 +2793,8 @@ PyG: 611 refleja la variacion de existencias
     <li><strong>Importe recibido</strong> y <strong>método de pago</strong> (transferencia, efectivo o tarjeta).</li>
     <li><strong>Nota fiscal REBU</strong>: la entrega a cuenta no desglosa cuota de IVA; el IVA se liquidará
         sobre el margen en la factura final de la venta.</li>
+    <li><strong>Contabilidad</strong>: el importe íntegro se registra como anticipo de clientes
+        (<strong>438</strong>, DEBE 572 / HABER 438) y se cancela en el asiento de la venta final.</li>
 </ul>
 
 <div class="warning-box">

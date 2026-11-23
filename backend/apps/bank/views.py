@@ -582,8 +582,6 @@ def reserva_detail(request, pk):
 
     context = {
         'reserva': reserva,
-        'base_imponible': reserva.base_imponible,
-        'cuota_iva': reserva.cuota_iva,
     }
     return render(request, 'bank/reserva_detail.html', context)
 
@@ -743,7 +741,6 @@ def _crear_asiento_reserva(reserva, user):
 
     cuenta_banco = CuentaContable.objects.get(codigo='572')
     cuenta_anticipos = CuentaContable.objects.get(codigo='438')
-    cuenta_iva = CuentaContable.objects.get(codigo='477')
 
     asiento = AsientoContable.objects.create(
         numero=generar_numero_asiento(),
@@ -761,16 +758,12 @@ def _crear_asiento_reserva(reserva, user):
         descripcion=f"Cobro reserva {reserva.cliente_nombre}",
     )
 
+    # Entrega a cuenta REBU: el importe íntegro queda como anticipo (438).
+    # El IVA se liquidará sobre el margen en la factura final de la venta.
     MovimientoContable.objects.create(
         asiento=asiento, cuenta=cuenta_anticipos,
-        debe=Decimal('0'), haber=reserva.base_imponible,
-        descripcion=f"Anticipo cliente (base)",
-    )
-
-    MovimientoContable.objects.create(
-        asiento=asiento, cuenta=cuenta_iva,
-        debe=Decimal('0'), haber=reserva.cuota_iva,
-        descripcion=f"IVA repercutido 21% anticipo",
+        debe=Decimal('0'), haber=reserva.importe_reserva,
+        descripcion="Entrega a cuenta (anticipo cliente)",
     )
 
     return asiento

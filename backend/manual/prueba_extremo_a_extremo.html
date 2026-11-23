@@ -957,7 +957,7 @@ y vendido en <strong>11.500 €</strong>. Si usa otro vehículo, cambie solo eso
   <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
   <tr><td>Estado de la reserva</td><td><strong>ACTIVA</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Movimiento en Banco</td><td><strong>INGRESO +1.000,00</strong> «Reserva/Señal…»</td><td class="check">☐</td><td class="check">☐</td></tr>
-  <tr><td>Asiento del anticipo — cuentas</td><td>DEBE <code>572</code> 1.000,00 · HABER <code>438</code> 826,45 · HABER <code>477</code> 173,55</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento del anticipo — cuentas</td><td>DEBE <code>572</code> 1.000,00 · HABER <code>438</code> 1.000,00 (sin IVA: entrega a cuenta REBU)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>El asiento está</td><td>POSTEADO y cuadrado</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Intentar una segunda reserva del mismo coche</td><td>avisa «ya tiene una reserva activa» y no la crea</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>En la ficha, botón <strong>🧾 Emitir factura de anticipo</strong></td><td>genera un PDF con número <strong>A-2026-000X</strong>, datos fiscales del comprador y nota REBU sin desglose de IVA</td><td class="check">☐</td><td class="check">☐</td></tr>
@@ -985,9 +985,9 @@ y vendido en <strong>11.500 €</strong>. Si usa otro vehículo, cambie solo eso
   <tr><td>Ingreso bancario de la venta</td><td><strong>+10.500,00</strong> (no 11.500,00)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Total cobrado en banco por este coche</td><td><strong>11.500,00</strong> (1.000 + 10.500)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Estado de la reserva</td><td><strong>CONVERTIDA</strong> y enlazada con la venta</td><td class="check">☐</td><td class="check">☐</td></tr>
-  <tr><td>Asiento de la venta — DEBE</td><td><code>572</code> 10.500,00 + <code>438</code> 826,45 + <code>477</code> 173,55</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Asiento de la venta — DEBE</td><td><code>572</code> 10.500,00 + <code>438</code> 1.000,00</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>Asiento de la venta — HABER</td><td><code>700</code> 2.768,60 + <code>471</code> 581,40 + <code>310</code> 8.150,00</td><td class="check">☐</td><td class="check">☐</td></tr>
-  <tr><td>Saldo de <code>438</code> y <code>477</code> de esta reserva</td><td><strong>0,00</strong> (anticipo cancelado)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Saldo de <code>438</code> de esta reserva</td><td><strong>0,00</strong> (anticipo cancelado; sin IVA en el anticipo)</td><td class="check">☐</td><td class="check">☐</td></tr>
   <tr><td>El asiento está</td><td>POSTEADO y cuadrado (11.500 = 11.500)</td><td class="check">☐</td><td class="check">☐</td></tr>
 </table>
 
