@@ -52,7 +52,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div v-for="vehiculo in vehiculosDestacados" :key="vehiculo.id" 
                class="bg-white rounded-lg shadow-lg overflow-hidden card-hover transition-all duration-300">
-            <div class="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div class="relative aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
+              <span v-if="vehiculo.vendido"
+                    class="absolute top-3 left-3 z-20 bg-red-600 text-white text-xs font-extrabold tracking-wider px-3 py-1.5 rounded shadow-lg uppercase">
+                Vendido
+              </span>
               <img v-if="vehiculo.imagen_url" :src="vehiculo.imagen_url" :alt="vehiculo.marca + ' ' + vehiculo.modelo"
                    width="800" height="600" loading="lazy" decoding="async"
                    class="w-full h-full object-cover">

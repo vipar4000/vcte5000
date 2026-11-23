@@ -19,6 +19,10 @@ los avisos como fallo.
 
 ## 1. Almacenamiento de archivos (bloqueante) [manual]
 
+> **Paso a paso detallado (con capturas del panel): [`GUIA_R2.md`](GUIA_R2.md).**
+> Resumen aquí: crear bucket, hacerlo público, crear token y poner las seis variables en Render.
+
+
 Sin almacenamiento remoto, **las facturas, fotos de vehículos y contratos se
 borran en cada despliegue**: el sistema de archivos de Render es efímero.
 

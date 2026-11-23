@@ -532,3 +532,89 @@ class CorregirCosteVehiculoCommandTests(TestCase):
                 '--precio-subasta', '1', '--tasas', '1', '--grua', '1',
                 verbosity=0,
             )
+
+
+class CatalogoVendidosTests(TestCase):
+    """El catálogo público muestra los vendidos 30 días con la etiqueta."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf 1.6 TDI', anio=2020,
+            combustible='DIESEL', kilometraje=95000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), precio_venta=Decimal('11500.00'),
+            created_by=self.admin,
+        )
+
+    def _ids_catalogo(self):
+        respuesta = self.client.get('/api/vehiculos/')
+        self.assertEqual(respuesta.status_code, 200)
+        return [v['id'] for v in respuesta.json()['vehiculos']]
+
+    def test_en_venta_aparece_sin_etiqueta_de_vendido(self):
+        respuesta = self.client.get('/api/vehiculos/')
+        datos = {v['id']: v for v in respuesta.json()['vehiculos']}
+        self.assertIn(self.vehiculo.pk, datos)
+        self.assertFalse(datos[self.vehiculo.pk]['vendido'])
+
+    def test_vendido_hoy_sigue_visible_con_etiqueta(self):
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+
+        self.vehiculo.refresh_from_db()
+        self.assertIsNotNone(self.vehiculo.fecha_vendido)
+
+        respuesta = self.client.get('/api/vehiculos/')
+        datos = {v['id']: v for v in respuesta.json()['vehiculos']}
+        self.assertIn(self.vehiculo.pk, datos)
+        self.assertTrue(datos[self.vehiculo.pk]['vendido'])
+
+    def test_vendido_hace_31_dias_ya_no_aparece(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+        Vehiculo.objects.filter(pk=self.vehiculo.pk).update(
+            fecha_vendido=timezone.localdate() - timedelta(days=31)
+        )
+
+        self.assertNotIn(self.vehiculo.pk, self._ids_catalogo())
+        detalle = self.client.get(f'/api/vehiculos/{self.vehiculo.pk}/')
+        self.assertEqual(detalle.status_code, 404)
+
+    def test_el_detalle_de_un_vendido_reciente_responde_con_la_etiqueta(self):
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+
+        respuesta = self.client.get(f'/api/vehiculos/{self.vehiculo.pk}/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.json()['vendido'])
+
+    def test_volver_a_publicar_limpia_la_fecha_de_venta(self):
+        from django.utils import timezone
+
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.fecha_vendido, timezone.localdate())
+
+        self.vehiculo.estado = 'EN_VENTA'
+        self.vehiculo.save(update_fields=['estado'])
+        self.vehiculo.refresh_from_db()
+        self.assertIsNone(self.vehiculo.fecha_vendido)

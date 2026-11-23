@@ -41,19 +41,19 @@ def api_ping(request):
 
 def api_vehiculos_public(request):
     """API pública para listar vehículos en venta."""
-    vehiculos = Vehiculo.objects.filter(
-        estado='EN_VENTA',
-        precio_venta__gt=0
-    ).values(
+    # EN_VENTA + los vendidos de los últimos 30 días (con etiqueta VENDIDO)
+    vehiculos = Vehiculo.visibles_en_web().values(
         'id', 'marca', 'modelo', 'anio', 'kilometraje', 
         'combustible', 'etiqueta_ambiental', 'imagen_principal',
-        'precio_venta', 'descripcion_dano', 'tipo_dano'
+        'precio_venta', 'descripcion_dano', 'tipo_dano',
+        'estado', 'fecha_vendido'
     )
     
     # Agregar URL de imagen principal e imágenes adicionales
     vehiculos_list = []
     for v in vehiculos:
         vehiculo_data = dict(v)
+        vehiculo_data['vendido'] = vehiculo_data['estado'] == 'VENDIDO'
         # Agregar URLs de imágenes adicionales
         imagenes_adicionales = list(
             ImagenVehiculo.objects.filter(vehiculo_id=v['id'])
@@ -130,7 +130,7 @@ def api_vehiculos_public(request):
 def api_vehiculo_detalle(request, pk):
     """API pública para detalle de un vehículo."""
     try:
-        vehiculo = Vehiculo.objects.get(pk=pk, estado='EN_VENTA', precio_venta__gt=0)
+        vehiculo = Vehiculo.visibles_en_web().get(pk=pk)
         imagen_url = None
         if vehiculo.imagen_principal:
             imagen_url = vehiculo.imagen_principal.url
@@ -158,6 +158,8 @@ def api_vehiculo_detalle(request, pk):
             'imagen': imagen_url,
             'imagenes': imagenes,
             'precio_venta': float(vehiculo.precio_venta),
+            'vendido': vehiculo.estado == 'VENDIDO',
+            'fecha_vendido': vehiculo.fecha_vendido.isoformat() if vehiculo.fecha_vendido else None,
         }
         
         if is_html_request(request):
@@ -180,10 +182,12 @@ def api_vehiculo_detalle(request, pk):
 
 def api_marcas(request):
     """API pública para listar marcas disponibles."""
-    marcas = Vehiculo.objects.filter(
-        estado='EN_VENTA',
-        precio_venta__gt=0
-    ).values_list('marca', flat=True).distinct().order_by('marca')
+    marcas = (
+        Vehiculo.visibles_en_web()
+        .values_list('marca', flat=True)
+        .distinct()
+        .order_by('marca')
+    )
     
     marcas_list = list(marcas)
     

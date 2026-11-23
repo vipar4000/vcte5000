@@ -20,7 +20,11 @@
         <!-- Bloque 1: Galería Interactiva -->
         <div class="product-gallery">
           <!-- Imagen principal -->
-          <div class="main-display">
+          <div class="main-display" style="position: relative;">
+            <span v-if="vehiculo.vendido"
+                  style="position: absolute; top: 14px; left: 14px; z-index: 20; background: #dc2626; color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 1px; padding: 8px 16px; border-radius: 6px; text-transform: uppercase; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+              Vendido
+            </span>
             <img v-if="todasImagenes[0]"
                  :src="todasImagenes[0]"
                  :alt="vehiculo.marca + ' ' + vehiculo.modelo"
@@ -70,10 +74,20 @@
             </div>
           </div>
 
-          <!-- Pedir cita -->
-          <router-link :to="{ path: '/cita', query: { vehiculo: route.params.id } }" class="btn-contact">
+          <!-- Cita: desactivada si ya está vendido -->
+          <router-link v-if="!vehiculo.vendido"
+                       :to="{ path: '/cita', query: { vehiculo: route.params.id } }"
+                       class="btn-contact">
             📅 Pedir cita para verlo
           </router-link>
+          <div v-else>
+            <p class="car-subtitle" style="margin-bottom: 10px; color: #b91c1c; font-weight: 600;">
+              Este vehículo ya está vendido.
+            </p>
+            <router-link to="/contacto" class="btn-contact">
+              🔎 Consultar disponibilidad de similares
+            </router-link>
+          </div>
 
           <!-- Garantía -->
           <div class="guarantee-badge">

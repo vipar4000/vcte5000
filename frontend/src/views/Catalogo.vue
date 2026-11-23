@@ -53,6 +53,11 @@
              class="bg-white rounded-lg shadow-lg overflow-hidden card-hover transition-all duration-300">
           <!-- Carousel de imágenes -->
           <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden group">
+            <!-- Cintillo de vendido (sigue visible 30 días) -->
+            <span v-if="vehiculo.vendido"
+                  class="absolute top-3 left-3 z-20 bg-red-600 text-white text-xs font-extrabold tracking-wider px-3 py-1.5 rounded shadow-lg uppercase">
+              Vendido
+            </span>
             <div :ref="el => { if (el) carouselRefs[vehiculo.id] = el }"
                  class="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
                  style="-ms-overflow-style:none; scrollbar-width:none;">
@@ -102,7 +107,13 @@
             </div>
             <p class="text-gray-500 text-sm mb-4">{{ vehiculo.anio }} | {{ formatKm(vehiculo.kilometraje) }} | {{ vehiculo.combustible }}</p>
             <div class="flex justify-between items-center">
-              <span class="text-2xl font-bold text-eurocar-blue">{{ formatEUR(vehiculo.precio_venta) }}</span>
+              <span class="text-2xl font-bold"
+                    :class="vehiculo.vendido ? 'text-gray-400' : 'text-eurocar-blue'">
+                {{ formatEUR(vehiculo.precio_venta) }}
+              </span>
+              <span v-if="vehiculo.vendido" class="block text-xs text-red-600 font-semibold mt-1">
+                Este coche ya se vendió · Consulta similares
+              </span>
               <router-link :to="`/vehiculo/${vehiculo.id}`" class="text-eurocar-light hover:underline">
                 Ver detalles →
               </router-link>

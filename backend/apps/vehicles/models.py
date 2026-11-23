@@ -1,10 +1,15 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+# Días que un vehículo vendido sigue visible en el catálogo público
+DIAS_VISIBLE_VENDIDO = 30
 
 
 class Vehiculo(models.Model):
@@ -181,6 +186,13 @@ class Vehiculo(models.Model):
         verbose_name='precio de venta'
     )
 
+    # Día en que se vendió (para mantenerlo visible 30 días en la web)
+    fecha_vendido = models.DateField(
+        null=True, blank=True,
+        verbose_name='fecha de venta',
+        help_text='Día en que pasó a VENDIDO (se muestra 30 días en la web).',
+    )
+
     # Día desde el que está expuesto a la venta (se fija al pasar a EN_VENTA)
     fecha_publicacion = models.DateField(
         null=True, blank=True,
@@ -223,6 +235,19 @@ class Vehiculo(models.Model):
         # Al pasar a EN_VENTA sin fecha, se registra el día de publicación
         if self.estado == 'EN_VENTA' and not self.fecha_publicacion:
             self.fecha_publicacion = timezone.localdate()
+
+        # Fecha de venta: se fija al pasar a VENDIDO y se limpia al volver a
+        # publicarse (así el catálogo sabe cuándo ocultarlo).
+        update_fields = kwargs.get('update_fields')
+        if self.estado == 'VENDIDO':
+            if not self.fecha_vendido:
+                self.fecha_vendido = timezone.localdate()
+                if update_fields is not None:
+                    kwargs['update_fields'] = set(update_fields) | {'fecha_vendido'}
+        elif self.fecha_vendido:
+            self.fecha_vendido = None
+            if update_fields is not None:
+                kwargs['update_fields'] = set(update_fields) | {'fecha_vendido'}
         # Tolerante a valores vacíos (filas antiguas o importaciones): un None
         # aquí reventaba cualquier guardado con un TypeError.
         precio_subasta = self.precio_subasta or Decimal('0')
@@ -236,6 +261,32 @@ class Vehiculo(models.Model):
         self.cuota_iva = self.tipo_iva or Decimal('0')
         super().save(*args, **kwargs)
     
+    @classmethod
+    def visibles_en_web(cls):
+        """Vehículos que el catálogo público debe mostrar.
+
+        - EN_VENTA con precio.
+        - VENDIDO durante los `DIAS_VISIBLE_VENDIDO` días siguientes a la venta
+          (prueba social), después se ocultan solos.
+        """
+        from datetime import timedelta
+
+        limite = timezone.localdate() - timedelta(days=DIAS_VISIBLE_VENDIDO)
+        return cls.objects.filter(
+            Q(estado='EN_VENTA', precio_venta__gt=0)
+            | Q(estado='VENDIDO', fecha_vendido__gte=limite)
+        )
+
+    @property
+    def vendido_reciente(self):
+        """True si está vendido y aún debe verse en la web."""
+        from datetime import timedelta
+
+        if self.estado != 'VENDIDO' or not self.fecha_vendido:
+            return False
+        limite = timezone.localdate() - timedelta(days=DIAS_VISIBLE_VENDIDO)
+        return self.fecha_vendido >= limite
+
     def crear_asiento_contable(self):
         """Genera el asiento contable de compra del vehículo.
         
