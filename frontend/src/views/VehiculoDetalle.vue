@@ -58,7 +58,7 @@
             </div>
             <div class="spec-item">
               <span class="spec-label">Kilometraje</span>
-              <span class="spec-value">{{ vehiculo.kilometraje?.toLocaleString('es-ES') }} km</span>
+              <span class="spec-value">{{ formatKm(vehiculo.kilometraje) }}</span>
             </div>
             <div class="spec-item">
               <span class="spec-label">Combustible</span>
@@ -121,7 +121,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { formatEUR } from '../utils/format'
+import { formatEUR, formatKm } from '../utils/format'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()

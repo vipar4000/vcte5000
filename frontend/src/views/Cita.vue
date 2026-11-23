@@ -14,7 +14,7 @@
             <p class="font-medium text-gray-800">
               {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.anio }})
             </p>
-            <p class="text-sm text-gray-500">{{ vehiculo.kilometraje?.toLocaleString('es-ES') }} km ·
+            <p class="text-sm text-gray-500">{{ formatKm(vehiculo.kilometraje) }} ·
               {{ vehiculo.combustible }}</p>
           </div>
           <p class="text-xl font-bold text-blue-800">{{ formatEUR(vehiculo.precio_venta) }}</p>
@@ -124,7 +124,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { formatEUR } from '../utils/format'
+import { formatEUR, formatKm } from '../utils/format'
 
 const route = useRoute()
 

@@ -430,6 +430,20 @@ class VehiculoHojaComercialTests(TestCase):
             reverse('vehicles:publicar', args=[self.vehiculo.pk]),
         )
 
+
+    def test_el_comando_detecta_y_limpia_fotos_perdidas(self):
+        from django.core.files.storage import default_storage
+        from django.core.management import call_command
+
+        foto = self._foto()
+        default_storage.delete(foto.imagen.name)
+
+        call_command('comprobar_imagenes_vehiculos', verbosity=0)
+        self.assertTrue(ImagenVehiculo.objects.filter(pk=foto.pk).exists())
+
+        call_command('comprobar_imagenes_vehiculos', '--borrar-huerfanas', verbosity=0)
+        self.assertFalse(ImagenVehiculo.objects.filter(pk=foto.pk).exists())
+
     def test_la_hoja_comercial_no_tiene_campos_de_compra(self):
         respuesta = self.client.get(
             reverse('vehicles:publicar', args=[self.vehiculo.pk])

@@ -100,7 +100,7 @@
                 {{ vehiculo.etiqueta_ambiental }}
               </span>
             </div>
-            <p class="text-gray-500 text-sm mb-4">{{ vehiculo.anio }} | {{ vehiculo.kilometraje }} km | {{ vehiculo.combustible }}</p>
+            <p class="text-gray-500 text-sm mb-4">{{ vehiculo.anio }} | {{ formatKm(vehiculo.kilometraje) }} | {{ vehiculo.combustible }}</p>
             <div class="flex justify-between items-center">
               <span class="text-2xl font-bold text-eurocar-blue">{{ formatEUR(vehiculo.precio_venta) }}</span>
               <router-link :to="`/vehiculo/${vehiculo.id}`" class="text-eurocar-light hover:underline">
@@ -116,7 +116,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { formatEUR } from '../utils/format'
+import { formatEUR, formatKm } from '../utils/format'
 
 const busqueda = ref('')
 const filtroMarca = ref('')

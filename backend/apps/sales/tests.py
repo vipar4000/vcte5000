@@ -511,3 +511,111 @@ class VentaConReservaTests(TestCase):
         self.assertIn('Calle Mayor 1', html)
         self.assertIn('28001', html)
         self.assertIn('612345678', html)
+
+
+class ImagenesAlVenderYAnularTests(TestCase):
+    """Las fotos del vehículo no se tocan al vender ni al anular la venta."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        from datetime import date
+        from decimal import Decimal
+        from io import BytesIO
+
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+
+        from apps.accounting.models import CuentaContable, PlanContableDefault
+        from apps.bank.models import BancoCuenta
+        from apps.sales.models import VentaVehiculo
+        from apps.vehicles.models import ImagenVehiculo
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf 1.6 TDI', anio=2020,
+            combustible='DIESEL', kilometraje=95000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), precio_venta=Decimal('11500.00'),
+            created_by=self.admin,
+        )
+
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        self._media = override_settings(MEDIA_ROOT=media)
+        self._media.enable()
+        self.addCleanup(self._media.disable)
+
+        def png(nombre):
+            buf = BytesIO()
+            Image.new('RGB', (30, 20), color='blue').save(buf, 'PNG')
+            return SimpleUploadedFile(nombre, buf.getvalue(), content_type='image/png')
+
+        self.vehiculo.imagen_principal = png('portada.png')
+        self.vehiculo.save(update_fields=['imagen_principal'])
+
+        self.fotos = [
+            ImagenVehiculo.objects.create(
+                vehiculo=self.vehiculo, orden=n + 1, imagen=png(f'foto{n + 1}.png')
+            )
+            for n in range(3)
+        ]
+        self.rutas = [self.vehiculo.imagen_principal.name] + [
+            foto.imagen.name for foto in self.fotos
+        ]
+
+    def _existen_todos_los_archivos(self):
+        from django.core.files.storage import default_storage
+
+        return all(default_storage.exists(ruta) for ruta in self.rutas)
+
+    def test_las_fotos_sobreviven_a_la_venta_y_a_la_anulacion(self):
+        from apps.sales.models import VentaVehiculo
+        from apps.vehicles.models import ImagenVehiculo
+
+        self.assertTrue(self._existen_todos_los_archivos())
+
+        respuesta = self.client.post(reverse('sales:create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'TRANSFERENCIA',
+            'precio_venta': '11500.00',
+        })
+        self.assertEqual(respuesta.status_code, 302)
+
+        # Al vender: siguen los registros y los archivos
+        self.assertEqual(ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 3)
+        self.assertTrue(self._existen_todos_los_archivos())
+
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+        self.assertEqual(respuesta.status_code, 302)
+
+        # Al anular: el coche vuelve a la venta con sus 5 fotos intactas
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+        self.assertEqual(ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 3)
+        self.assertTrue(self.vehiculo.imagen_principal)
+        self.assertTrue(self._existen_todos_los_archivos())

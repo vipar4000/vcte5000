@@ -1,0 +1,1 @@
+function o(r){const t=Number(r);if(isNaN(t))return"0,00 EUR";const n=t.toFixed(2).split(".");return n[0].replace(/\B(?=(\d{3})+(?!\d))/g,".")+","+n[1]+" EUR"}function a(r){const t=Number(r);return isNaN(t)?"0 km":Math.round(t).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".")+" km"}export{o as a,a as f};
