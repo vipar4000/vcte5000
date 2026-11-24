@@ -257,3 +257,99 @@ class NominaProporcionalTests(TestCase):
         self.assertEqual(self.trabajador.periodicidad_pago, 'SEMANAL')
         self.assertEqual(self.trabajador.porcentaje_irpf, Decimal('8.00'))
         self.assertEqual(self.trabajador.porcentaje_ss_obrera, Decimal('6.40'))
+
+
+class ReciboNominaTests(TestCase):
+    """Recibo imprimible de la nómina (botón + hoja formal)."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.trabajador = User.objects.create_user(
+            username='mecanico1', email='mecanico1@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+            first_name='Manuel', last_name='García',
+            puesto_trabajo='Mecánico',
+            salario_base_mensual=Decimal('1500.00'),
+            porcentaje_ss_patronal=Decimal('31.50'),
+            porcentaje_irpf=Decimal('6.00'),
+            porcentaje_ss_obrera=Decimal('6.35'),
+        )
+        self.nomina = NominaEstructura.objects.create(
+            empleado=self.trabajador,
+            fecha_nomina=date(2026, 11, 30),
+            periodo='MENSUAL',
+            salario_bruto=Decimal('1500.00'),
+            ss_patronal=Decimal('472.50'),
+            retencion_irpf=Decimal('90.00'),
+            ss_obrera=Decimal('95.25'),
+            liquido_percibir=Decimal('1314.75'),
+            created_by=self.admin,
+        )
+
+    def test_la_ficha_muestra_el_boton_de_imprimir(self):
+        respuesta = self.client.get(
+            reverse('payroll:detail', args=[self.nomina.pk])
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'btn-imprimir-recibo')
+        self.assertContains(respuesta, 'Imprimir Recibo')
+        self.assertContains(respuesta, 'js/recibo-nomina.js')
+        self.assertContains(respuesta, 'css/recibo-nomina.css')
+
+    def test_el_recibo_tiene_los_datos_formales(self):
+        respuesta = self.client.get(
+            reverse('payroll:detail', args=[self.nomina.pk])
+        )
+        html = respuesta.content.decode()
+
+        self.assertIn('id="recibo-nomina"', html)
+        self.assertIn('Recibo de Salario', html)
+        # Empresa
+        self.assertIn('R Car Rogil', html)
+        self.assertIn('B26729731', html)
+        # Trabajador, puesto y periodo
+        self.assertIn('Manuel García', html)
+        self.assertIn('Mecánico', html)
+        self.assertIn('Mensual', html)
+        self.assertIn('30/11/2026', html)
+        # Devengos, deducciones y líquido
+        self.assertIn('Total devengos (A)', html)
+        self.assertIn('Total deducciones (B)', html)
+        self.assertIn('1.314,75', html)
+        # Firmas
+        self.assertIn('Firma de la Empresa', html)
+        self.assertIn('Recibí del Trabajador', html)
+
+    def test_el_css_de_impresion_oculta_la_interfaz_y_muestra_el_recibo(self):
+        from django.contrib.staticfiles import finders
+
+        ruta_css = finders.find('css/recibo-nomina.css')
+        self.assertIsNotNone(ruta_css)
+
+        with open(ruta_css, encoding='utf-8') as archivo:
+            css = archivo.read()
+
+        self.assertIn('@media print', css)
+        self.assertIn('#recibo-nomina', css)
+        self.assertIn('visibility: hidden', css)
+        self.assertIn('visibility: visible', css)
+
+    def test_sin_puesto_configurado_se_muestra_el_rol(self):
+        User.objects.filter(pk=self.trabajador.pk).update(puesto_trabajo='')
+
+        respuesta = self.client.get(
+            reverse('payroll:detail', args=[self.nomina.pk])
+        )
+
+        self.assertContains(respuesta, 'Operario de Taller')

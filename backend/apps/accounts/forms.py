@@ -44,6 +44,7 @@ class UsuarioForm(forms.ModelForm):
         model = User
         fields = [
             'username', 'first_name', 'last_name', 'email', 'movil',
+            'puesto_trabajo',
             'rol', 'pin_kiosco', 'is_active', 'puede_eliminar',
             'salario_base_mensual', 'porcentaje_ss_patronal',
             'sin_acceso', 'periodicidad_pago', 'porcentaje_irpf',
@@ -55,6 +56,7 @@ class UsuarioForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': CLASE_INPUT}),
             'email': forms.EmailInput(attrs={'class': CLASE_INPUT}),
             'movil': forms.TextInput(attrs={'class': CLASE_INPUT, 'placeholder': '600123456'}),
+            'puesto_trabajo': forms.TextInput(attrs={'class': CLASE_INPUT}),
             'rol': forms.Select(attrs={'class': CLASE_SELECT}),
             'pin_kiosco': forms.TextInput(attrs={
                 'class': CLASE_INPUT, 'maxlength': '4', 'placeholder': '1234',

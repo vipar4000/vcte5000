@@ -1,11 +1,21 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recibo-nomina.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <div class="mb-6">
+
+    <!-- Acciones: volver e imprimir recibo -->
+    <div class="recibo-acciones mb-6">
         <a href="{% url 'payroll:list' %}" class="text-eurocar-blue hover:underline text-sm">
             ← Volver a Nóminas
         </a>
+        <button type="button" id="btn-imprimir-recibo" class="btn-imprimir">
+            🖨️ Imprimir Recibo
+        </button>
     </div>
 
     <h1 class="text-2xl font-bold text-eurocar-blue mb-6">Nómina de {{ nomina.empleado.nombre_completo }}</h1>
@@ -17,6 +27,10 @@
             <div>
                 <span class="text-gray-500">Empleado:</span>
                 <span class="font-medium ml-2">{{ nomina.empleado.nombre_completo }}</span>
+            </div>
+            <div>
+                <span class="text-gray-500">Puesto:</span>
+                <span class="font-medium ml-2">{{ nomina.empleado.puesto_trabajo|default:nomina.empleado.get_rol_display }}</span>
             </div>
             <div>
                 <span class="text-gray-500">Fecha:</span>
@@ -35,13 +49,9 @@
                     <span class="text-gray-600">Salario Bruto (640)</span>
                     <span class="font-mono font-medium">€{{ nomina.salario_bruto|floatformat:2 }}</span>
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">SS Patronal (642)</span>
-                    <span class="font-mono font-medium">€{{ nomina.ss_patronal|floatformat:2 }}</span>
-                </div>
                 <div class="border-t pt-2 flex justify-between text-sm font-bold">
                     <span>Total Devengos</span>
-                    <span class="font-mono">€{{ nomina.total_devengos|floatformat:2 }}</span>
+                    <span class="font-mono">€{{ nomina.salario_bruto|floatformat:2 }}</span>
                 </div>
             </div>
         </div>
@@ -72,6 +82,11 @@
             <span class="text-lg font-semibold">Líquido a Percibir (465)</span>
             <span class="text-2xl font-bold font-mono">€{{ nomina.liquido_percibir|floatformat:2 }}</span>
         </div>
+    </div>
+
+    <!-- Coste de empresa (informativo, no se descuenta al trabajador) -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6 text-sm text-gray-600">
+        Seguridad Social a cargo de la empresa (642): <span class="font-mono font-medium">€{{ nomina.ss_patronal|floatformat:2 }}</span>
     </div>
 
     <!-- Asiento contable -->
@@ -133,5 +148,115 @@
             <div>Última actualización: <span class="font-medium">{{ nomina.updated_at|date:"d/m/Y H:i" }}</span></div>
         </div>
     </div>
+
+    <!-- ============================================================
+         RECIBO FORMAL: solo se ve al imprimir o guardar como PDF.
+         El CSS de impresión oculta el resto de la pantalla.
+         ============================================================ -->
+    <div id="recibo-nomina">
+
+        <div class="recibo-cabecera">
+            <div class="recibo-empresa">
+                <h1>{{ empresa.nombre }}</h1>
+                <div>CIF: {{ empresa.cif }}</div>
+                <div>{{ empresa.direccion }}</div>
+                <div>{{ empresa.cp }} {{ empresa.poblacion }} ({{ empresa.provincia }})</div>
+                <div>Tel. {{ empresa.telefono }} · {{ empresa.email }}</div>
+            </div>
+            <div class="recibo-titulo">
+                <h2>Recibo de Salario</h2>
+                <p><span class="recibo-etiqueta">Periodo:</span> <strong>{{ nomina.get_periodo_display }}</strong></p>
+                <p><span class="recibo-etiqueta">Fecha:</span> <strong>{{ nomina.fecha_nomina|date:"d/m/Y" }}</strong></p>
+                <p><span class="recibo-etiqueta">Nº:</span> {{ nomina.pk }}</p>
+            </div>
+        </div>
+
+        <div class="recibo-datos">
+            <div class="recibo-caja">
+                <p><span class="recibo-etiqueta">Trabajador:</span> <strong>{{ nomina.empleado.nombre_completo }}</strong></p>
+                <p><span class="recibo-etiqueta">Puesto:</span> {{ nomina.empleado.puesto_trabajo|default:nomina.empleado.get_rol_display }}</p>
+                <p><span class="recibo-etiqueta">Periodicidad:</span> {{ nomina.get_periodo_display }}</p>
+            </div>
+            <div class="recibo-caja">
+                <p><span class="recibo-etiqueta">Fecha del recibo:</span> {{ nomina.fecha_nomina|date:"d/m/Y" }}</p>
+                <p><span class="recibo-etiqueta">Empresa:</span> {{ empresa.nombre }} ({{ empresa.cif }})</p>
+                <p><span class="recibo-etiqueta">Centro de trabajo:</span> {{ empresa.poblacion }} ({{ empresa.provincia }})</p>
+            </div>
+        </div>
+
+        <table class="recibo-tabla">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">I. Devengos</th>
+                    <th style="width: 40%; text-align: right;">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Salario bruto del periodo</td>
+                    <td class="num">{{ nomina.salario_bruto|floatformat:2 }} €</td>
+                </tr>
+                <tr class="recibo-total">
+                    <td>Total devengos (A)</td>
+                    <td class="num">{{ nomina.salario_bruto|floatformat:2 }} €</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="recibo-tabla">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">II. Deducciones</th>
+                    <th style="width: 40%; text-align: right;">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Contingencias comunes (aportación del trabajador)</td>
+                    <td class="num">{{ nomina.ss_obrera|floatformat:2 }} €</td>
+                </tr>
+                <tr>
+                    <td>Retención a cuenta del IRPF</td>
+                    <td class="num">{{ nomina.retencion_irpf|floatformat:2 }} €</td>
+                </tr>
+                <tr class="recibo-total">
+                    <td>Total deducciones (B)</td>
+                    <td class="num">{{ nomina.total_deducciones|floatformat:2 }} €</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="recibo-liquido">
+            <span><strong>Líquido a percibir (A − B)</strong></span>
+            <span class="importe">{{ nomina.liquido_percibir|floatformat:2 }} €</span>
+        </div>
+
+        <p class="recibo-nota">
+            La Seguridad Social a cargo de la empresa asciende a
+            <strong>{{ nomina.ss_patronal|floatformat:2 }} €</strong> y no se descuenta del
+            líquido a percibir del trabajador. El importe se abona por transferencia en la cuenta
+            indicada por el trabajador.
+        </p>
+
+        <div class="recibo-firmas">
+            <div class="recibo-firma">
+                <div class="linea"></div>
+                <strong>Firma de la Empresa</strong>
+            </div>
+            <div class="recibo-firma">
+                <div class="linea"></div>
+                <strong>Recibí del Trabajador</strong>
+            </div>
+        </div>
+
+        <div class="recibo-pie">
+            {{ empresa.nombre }} · CIF {{ empresa.cif }} · {{ empresa.direccion }},
+            {{ empresa.cp }} {{ empresa.poblacion }} ({{ empresa.provincia }})
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/recibo-nomina.js' %}"></script>
 {% endblock %}

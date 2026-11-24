@@ -1,0 +1,236 @@
+/*
+ * Recibo de nómina: estilos de pantalla e impresión.
+ *
+ * En pantalla el recibo formal está oculto: se ve la ficha normal del ERP.
+ * Al imprimir (o «Guardar como PDF») se oculta TODO lo demás —menú lateral,
+ * botones, asiento contable y datos de registro— y se deja solo el recibo.
+ */
+
+/* En pantalla no se muestra el recibo: solo se usa al imprimir */
+#recibo-nomina {
+    display: none;
+}
+
+/* ---------- Vista normal: ficha del ERP ---------- */
+
+.recibo-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.recibo-acciones .btn-imprimir {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #1e40af;
+    color: #fff;
+    border: 0;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.recibo-acciones .btn-imprimir:hover {
+    background: #1e3a8a;
+}
+
+/* ---------- Impresión ---------- */
+
+@media print {
+    /* Ocultar la interfaz del ERP (sidebar, cabecera, botones, tarjetas) */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* Mostrar solo el recibo y su contenido */
+    #recibo-nomina,
+    #recibo-nomina * {
+        visibility: visible !important;
+    }
+
+    #recibo-nomina {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 11pt;
+        color: #111;
+        background: #fff;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 16mm 14mm;
+    }
+
+    /* Nada de sombras ni colores de fondo al imprimir */
+    #recibo-nomina .recibo-caja {
+        border: 1px solid #333 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+    }
+
+    #recibo-nomina .recibo-marca {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* ---------- Maquetación del recibo (sirve para el PDF) ---------- */
+
+#recibo-nomina .recibo-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #111;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+
+#recibo-nomina .recibo-empresa {
+    font-size: 10pt;
+    line-height: 1.45;
+}
+
+#recibo-nomina .recibo-empresa h1 {
+    font-size: 17pt;
+    margin: 0 0 4px 0;
+    letter-spacing: 0.3px;
+}
+
+#recibo-nomina .recibo-titulo {
+    text-align: right;
+}
+
+#recibo-nomina .recibo-titulo h2 {
+    font-size: 13pt;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#recibo-nomina .recibo-titulo p {
+    margin: 2px 0;
+    font-size: 10pt;
+}
+
+#recibo-nomina .recibo-datos {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+#recibo-nomina .recibo-caja {
+    border: 1px solid #9ca3af;
+    border-radius: 4px;
+    padding: 8px 10px;
+    flex: 1;
+}
+
+#recibo-nomina .recibo-caja p {
+    margin: 2px 0;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+#recibo-nomina .recibo-etiqueta {
+    color: #555;
+}
+
+#recibo-nomina table.recibo-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+#recibo-nomina table.recibo-tabla th,
+#recibo-nomina table.recibo-tabla td {
+    border: 1px solid #9ca3af;
+    padding: 6px 8px;
+    font-size: 10pt;
+    text-align: left;
+}
+
+#recibo-nomina table.recibo-tabla th {
+    background: #e5e7eb;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 10pt;
+}
+
+#recibo-nomina table.recibo-tabla td.num {
+    text-align: right;
+    font-family: "Courier New", monospace;
+    white-space: nowrap;
+}
+
+#recibo-nomina .recibo-total td {
+    font-weight: bold;
+    background: #f3f4f6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+#recibo-nomina .recibo-liquido {
+    border: 2px solid #111;
+    padding: 10px 12px;
+    margin: 12px 0 16px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#recibo-nomina .recibo-liquido .importe {
+    font-size: 16pt;
+    font-weight: bold;
+    font-family: "Courier New", monospace;
+}
+
+#recibo-nomina .recibo-nota {
+    font-size: 8.5pt;
+    color: #444;
+    line-height: 1.45;
+    margin-bottom: 18px;
+}
+
+#recibo-nomina .recibo-firmas {
+    display: flex;
+    gap: 40px;
+    margin-top: 34px;
+}
+
+#recibo-nomina .recibo-firma {
+    flex: 1;
+    text-align: center;
+    font-size: 10pt;
+}
+
+#recibo-nomina .recibo-firma .linea {
+    border-top: 1px solid #111;
+    margin-bottom: 6px;
+    height: 52px;
+}
+
+#recibo-nomina .recibo-pie {
+    margin-top: 18px;
+    border-top: 1px solid #9ca3af;
+    padding-top: 6px;
+    font-size: 8pt;
+    color: #555;
+    text-align: center;
+}
+
+/* En pantalla no se ven las utilidades de impresión */
+@media screen {
+    .solo-impresion {
+        display: none !important;
+    }
+}

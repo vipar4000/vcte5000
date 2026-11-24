@@ -83,9 +83,12 @@ def nomina_detail(request, pk):
 
     asiento = nomina.asiento_contable
 
+    from apps.sales.services import EMPRESA
+
     context = {
         'nomina': nomina,
         'asiento': asiento,
+        'empresa': EMPRESA,
     }
     return render(request, 'payroll/detail.html', context)
 
