@@ -244,3 +244,119 @@ class DepositoInicialConFechaTests(TestCase):
         self.assertEqual(deposito.fecha, date(2026, 6, 30))
         self.assertEqual(deposito.importe, Decimal('50000.00'))
         self.assertEqual(banco.saldo_a_fecha(date(2026, 6, 30)), Decimal('50000.00'))
+
+
+class AltaCuentaConDepositoTests(TestCase):
+    """Crear cuenta bancaria con depósito inicial: todo o nada y sin 500.
+
+    Regresión de la prueba del 24/11: el primer intento daba error 500 y la
+    cuenta quedaba creada a medias (el segundo intento avisaba de IBAN
+    duplicado). Causa: `crear_movimiento_banco()` hacía `select_for_update()`
+    fuera de una transacción, lo que en PostgreSQL lanza
+    `TransactionManagementError`.
+    """
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.cuenta_572 = CuentaContable.objects.get(codigo='572')
+
+    def _post(self, **extra):
+        datos = {
+            'nombre': 'Santander Empresa',
+            'iban': 'ES9121000418450200051332',
+            'swift': 'BSCHESMM',
+            'cuenta_contable': self.cuenta_572.pk,
+            'activa': 'on',
+        }
+        datos.update(extra)
+        return self.client.post(reverse('bank:cuenta_create'), datos)
+
+    def test_crear_cuenta_con_deposito_registra_movimiento_y_asiento(self):
+        from apps.accounting.models import AsientoContable
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        respuesta = self._post(
+            deposito_inicial='10000.00',
+            fecha_deposito='2026-11-24',
+            notas_deposito='Aportación inicial',
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        cuenta = BancoCuenta.objects.get()
+        self.assertEqual(cuenta.iban, 'ES9121000418450200051332')
+
+        movimiento = BancoMovimiento.objects.get(banco_cuenta=cuenta)
+        self.assertEqual(movimiento.tipo, 'INGRESO')
+        self.assertEqual(movimiento.importe, 10000)
+        self.assertEqual(movimiento.fecha, date(2026, 11, 24))
+        self.assertIsNotNone(movimiento.asiento_asociado)
+
+        asiento = AsientoContable.objects.get(pk=movimiento.asiento_asociado.pk)
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        debe = sum((m.debe for m in asiento.movimientos.all()), 0)
+        haber = sum((m.haber for m in asiento.movimientos.all()), 0)
+        self.assertEqual(debe, haber)
+
+    def test_si_falla_el_asiento_no_queda_la_cuenta_creada(self):
+        from unittest import mock
+
+        from django.core.exceptions import ValidationError
+
+        from apps.bank.models import BancoCuenta
+
+        with mock.patch(
+            'apps.bank.views._crear_asiento_deposito',
+            side_effect=ValidationError('No se pudo crear el asiento.'),
+        ):
+            respuesta = self._post(deposito_inicial='10000.00')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(BancoCuenta.objects.count(), 0)
+        self.assertContains(respuesta, 'No se pudo crear el asiento')
+
+    def test_crear_cuenta_sin_deposito_no_genera_movimientos(self):
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        respuesta = self._post()
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(BancoCuenta.objects.count(), 1)
+        self.assertEqual(BancoMovimiento.objects.count(), 0)
+
+
+    def test_el_deposito_manual_tambien_enlaza_su_asiento(self):
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        self._post()
+        cuenta = BancoCuenta.objects.get()
+
+        respuesta = self.client.post(
+            reverse('bank:deposito_create', args=[cuenta.pk]),
+            {
+                'fecha': '2026-11-25',
+                'concepto': 'Aportación de socio',
+                'importe': '5000.00',
+                'notas': '',
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        movimiento = BancoMovimiento.objects.get(banco_cuenta=cuenta)
+        self.assertEqual(movimiento.importe, 5000)
+        self.assertIsNotNone(movimiento.asiento_asociado)
+
+    def test_crear_movimiento_banco_abre_su_propia_transaccion(self):
+        """En PostgreSQL, select_for_update() exige una transacción activa."""
+        from apps.bank import services
+
+        self.assertIsNotNone(
+            getattr(services.crear_movimiento_banco, '__wrapped__', None),
+            'crear_movimiento_banco debe ir decorada con @transaction.atomic',
+        )

@@ -45,11 +45,18 @@ def cuenta_banco_para_pago(cuenta_contable=None):
     return cuenta or obtener_cuenta_banco_default()
 
 
+@transaction.atomic
 def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
                             asiento=None, vehiculo=None, notas=''):
     """
     Crea un movimiento bancario y lo vincula a un asiento contable.
+
     Prohibido insertar movimientos de banco manuales — solo vía servicios.
+
+    La función abre **su propia transacción**: el `select_for_update()` de la
+    cuenta necesita estar dentro de una (en PostgreSQL, fuera de una
+    transacción lanza `TransactionManagementError`, que era el 500 al crear
+    una cuenta bancaria con depósito inicial desde una vista sin atomic).
     """
     from .models import BancoMovimiento, BancoCuenta
 

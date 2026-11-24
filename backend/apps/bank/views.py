@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
 from datetime import date
@@ -88,34 +89,61 @@ def cuenta_create(request):
     if request.method == 'POST':
         form = BancoCuentaForm(request.POST, request.FILES)
         if form.is_valid():
-            cuenta = form.save()
-            deposito = form.cleaned_data.get('deposito_inicial')
-            if deposito and deposito > 0:
-                notas = form.cleaned_data.get('notas_deposito', '')
-                # La fecha real del abono: si el banco ingreso el dinero dias
-                # antes de darse de alta la cuenta, hay que respetarla.
-                fecha_deposito = (
-                    form.cleaned_data.get('fecha_deposito') or date.today()
+            try:
+                with transaction.atomic():
+                    cuenta = _crear_cuenta_con_deposito(
+                        form, request
+                    )
+            except ValidationError as error:
+                messages.error(request, ' '.join(error.messages))
+                return render(
+                    request, 'bank/cuenta_form.html',
+                    {'form': form, 'action': 'crear'},
                 )
-                movimiento = crear_movimiento_banco(
-                    banco_cuenta=cuenta,
-                    fecha=fecha_deposito,
-                    concepto='Deposito inicial',
-                    tipo='INGRESO',
-                    importe=deposito,
-                    notas=notas,
-                )
-                soporte = form.cleaned_data.get('soporte_deposito')
-                if soporte:
-                    movimiento.soporte = soporte
-                    movimiento.save()
-                _crear_asiento_deposito(cuenta, deposito, 'Deposito inicial', fecha_deposito, request.user)
-                messages.success(request, f'Deposito inicial de {deposito} registrado.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
     else:
         form = BancoCuentaForm()
 
     return render(request, 'bank/cuenta_form.html', {'form': form, 'action': 'crear'})
+
+
+def _crear_cuenta_con_deposito(form, request):
+    """Crea la cuenta y, si hay depósito inicial, su movimiento y asiento.
+
+    Se ejecuta dentro de una transacción (ver `cuenta_create`): si el depósito
+    o el asiento fallan, la cuenta **no** se queda creada a medias.
+    """
+    cuenta = form.save()
+    deposito = form.cleaned_data.get('deposito_inicial')
+    if deposito and deposito > 0:
+        notas = form.cleaned_data.get('notas_deposito', '')
+        # La fecha real del abono: si el banco ingreso el dinero dias
+        # antes de darse de alta la cuenta, hay que respetarla.
+        fecha_deposito = (
+            form.cleaned_data.get('fecha_deposito') or date.today()
+        )
+        asiento = _crear_asiento_deposito(
+            cuenta, deposito, 'Deposito inicial', fecha_deposito, request.user
+        )
+        movimiento = crear_movimiento_banco(
+            banco_cuenta=cuenta,
+            fecha=fecha_deposito,
+            concepto='Deposito inicial',
+            tipo='INGRESO',
+            importe=deposito,
+            asiento=asiento,
+            notas=notas,
+        )
+        soporte = form.cleaned_data.get('soporte_deposito')
+        if soporte:
+            movimiento.soporte = soporte
+            movimiento.save()
+
+        messages.success(
+            request, f'Deposito inicial de {deposito} registrado.'
+        )
+
+    return cuenta
 
 
 @login_required
@@ -149,20 +177,33 @@ def deposito_create(request, cuenta_pk):
     if request.method == 'POST':
         form = DepositoForm(request.POST, request.FILES)
         if form.is_valid():
-            movimiento = crear_movimiento_banco(
-                banco_cuenta=cuenta,
-                fecha=form.cleaned_data['fecha'],
-                concepto=form.cleaned_data['concepto'],
-                tipo='INGRESO',
-                importe=form.cleaned_data['importe'],
-                notas=form.cleaned_data.get('notas', ''),
-            )
-            _crear_asiento_deposito(cuenta, form.cleaned_data['importe'], form.cleaned_data['concepto'], form.cleaned_data['fecha'], request.user)
-            soporte = request.FILES.get('soporte')
-            if soporte:
-                movimiento.soporte = soporte
-                movimiento.save()
-            messages.success(request, f'Deposito de {form.cleaned_data["importe"]} registrado.')
+            importe = form.cleaned_data['importe']
+            fecha = form.cleaned_data['fecha']
+            concepto = form.cleaned_data['concepto']
+            try:
+                with transaction.atomic():
+                    asiento = _crear_asiento_deposito(
+                        cuenta, importe, concepto, fecha, request.user
+                    )
+                    movimiento = crear_movimiento_banco(
+                        banco_cuenta=cuenta,
+                        fecha=fecha,
+                        concepto=concepto,
+                        tipo='INGRESO',
+                        importe=importe,
+                        asiento=asiento,
+                        notas=form.cleaned_data.get('notas', ''),
+                    )
+                    soporte = request.FILES.get('soporte')
+                    if soporte:
+                        movimiento.soporte = soporte
+                        movimiento.save()
+            except ValidationError as error:
+                messages.error(request, ' '.join(error.messages))
+                return render(request, 'bank/deposito_form.html', {
+                    'form': form, 'cuenta': cuenta, 'action': 'crear',
+                })
+            messages.success(request, f'Deposito de {importe} registrado.')
             return redirect('bank:cuenta_detail', pk=cuenta.pk)
     else:
         form = DepositoForm()
