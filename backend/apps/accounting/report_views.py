@@ -99,12 +99,40 @@ def iva_view(request):
     
     # Acumulado anual para Modelo 390
     libro_iva_anual = calcular_libro_iva(date(anio, 1, 1), date(anio, 12, 31))
+
+    # Resumen de los cuatro trimestres: evita la sensación de «informe vacío»
+    # cuando la actividad del año está en otro trimestre.
+    resumen_trimestres = []
+    for numero in (1, 2, 3, 4):
+        desde_t, hasta_t = calcular_trimestre(numero, anio)
+        libro_t = calcular_libro_iva(desde_t, hasta_t)
+        resumen_trimestres.append({
+            'numero': numero,
+            'repercutido': libro_t['iva_repercutido']['total'],
+            'soportado': libro_t['iva_soportado']['total'],
+            'cuota': libro_t['cuota_liquidar'],
+            'con_datos': any([
+                libro_t['iva_repercutido']['total'],
+                libro_t['iva_soportado']['total'],
+            ]),
+        })
+
+    trimestre_actual = next(
+        (d for d in resumen_trimestres if d['numero'] == trimestre), None
+    )
     
     context = {
         'libro_iva': libro_iva,
         'libro_iva_anual': libro_iva_anual,
         'anio': anio,
         'trimestre': trimestre,
+        'resumen_trimestres': resumen_trimestres,
+        'trimestre_sin_datos': bool(
+            trimestre_actual and not trimestre_actual['con_datos']
+        ),
+        'trimestres_con_datos': [
+            d['numero'] for d in resumen_trimestres if d['con_datos']
+        ],
         'anios_disponibles': range(date.today().year, date.today().year - 5, -1),
     }
     return render(request, 'accounting/reports/iva.html', context)

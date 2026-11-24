@@ -3941,8 +3941,8 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     <tr><th>Concepto</th><th>Cuenta</th><th>Formula</th></tr>
     <tr><td>IVA Repercutido</td><td>471</td><td>HABER - DEBE</td></tr>
     <tr><td>IVA Soportado</td><td>472</td><td>DEBE - HABER</td></tr>
-    <tr><td>Base Imponible Ventas</td><td>700</td><td>Suma HABER</td></tr>
-    <tr><td>Base Imponible Compras</td><td>600</td><td>Suma DEBE</td></tr>
+    <tr><td>Base Imponible Ventas</td><td>grupo 70</td><td>HABER - DEBE de los asientos que llevan IVA repercutido (471)</td></tr>
+    <tr><td>Base Imponible Compras</td><td>grupos 60 y 62</td><td>DEBE - HABER de los asientos que llevan IVA soportado (472)</td></tr>
     <tr><td><strong>Cuota a Liquidar</strong></td><td>-</td><td>IVA Repercutido - IVA Soportado</td></tr>
 </table>
 
@@ -3959,6 +3959,26 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     - <strong>Total: 2.500 EUR</strong><br><br>
     <strong>Cuota a Liquidar = 9.000 - 2.500 = 6.500 EUR</strong><br>
     (Se debe 6.500 EUR a Hacienda)
+</div>
+
+<div class="info-box">
+    <strong>Bases imponibles:</strong> se calculan solo sobre las operaciones que llevan IVA
+    (asientos con movimiento en 471 o 472), sumando el grupo 70 en ventas y los grupos 60 y 62
+    en compras y gastos. Asi un servicio de limpieza (629) suma su base y no aparece con
+    «base 0 y cuota 567».
+</div>
+
+<div class="info-box">
+    <strong>¿El trimestre sale a cero?</strong> El 303 muestra el trimestre seleccionado.
+    Si no hay asientos con IVA en ese trimestre, el informe lo avisa y enlaza al trimestre que
+    sí tiene actividad. Debajo hay una tabla con <em>Resumen del año por trimestres</em> (T1-T4)
+    para localizarla de un vistazo.
+</div>
+
+<div class="warning-box">
+    <strong>Ojo con la fecha del gasto:</strong> el asiento usa la <strong>fecha de factura</strong>
+    del gasto. Un gasto con fecha 30/06/2026 cae en el T2, aunque se registre en noviembre.
+    Si el 303 del trimestre actual aparece vacío, revise la fecha de la factura.
 </div>
 
 <h3>15.3.3 Acceder al Informe</h3>

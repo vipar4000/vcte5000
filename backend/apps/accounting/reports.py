@@ -297,30 +297,45 @@ def calcular_libro_iva(fecha_desde, fecha_hasta):
     
     iva_soportado_total = iva_soportado['debe'] - iva_soportado['haber']
     
-    # Base imponible (ventas 700)
+    # Base imponible: solo las operaciones que llevan IVA, es decir, los
+    # asientos que tienen un movimiento en 471 (ventas) o 472 (compras).
+    # Así las bases cuadran con las cuotas y no se cuelan gastos sin IVA
+    # (nóminas, tributos...). Se mira el grupo 70 completo para las ventas y
+    # los grupos 60 y 62 para compras y gastos (p. ej. servicios 629).
+    asientos_ventas = MovimientoContable.objects.filter(
+        cuenta__codigo='471',
+        asiento__fecha__gte=fecha_desde,
+        asiento__fecha__lte=fecha_hasta,
+        asiento__estado='POSTEADO',
+    ).values_list('asiento_id', flat=True)
+
     ventas = MovimientoContable.objects.filter(
-        cuenta__codigo__startswith='700',
-        asiento__fecha__gte=fecha_desde,
-        asiento__fecha__lte=fecha_hasta,
-        asiento__estado='POSTEADO',
-    ).aggregate(
-        haber=Coalesce(Sum('haber'), Decimal('0')),
-    )
-    
-    base_imponible_ventas = ventas['haber']
-    
-    # Base imponible (compras 600)
-    compras = MovimientoContable.objects.filter(
-        cuenta__codigo__startswith='600',
-        asiento__fecha__gte=fecha_desde,
-        asiento__fecha__lte=fecha_hasta,
-        asiento__estado='POSTEADO',
+        asiento_id__in=asientos_ventas,
+        cuenta__codigo__startswith='70',
     ).aggregate(
         debe=Coalesce(Sum('debe'), Decimal('0')),
+        haber=Coalesce(Sum('haber'), Decimal('0')),
     )
-    
-    base_imponible_compras = compras['debe']
-    
+
+    base_imponible_ventas = ventas['haber'] - ventas['debe']
+
+    asientos_compras = MovimientoContable.objects.filter(
+        cuenta__codigo='472',
+        asiento__fecha__gte=fecha_desde,
+        asiento__fecha__lte=fecha_hasta,
+        asiento__estado='POSTEADO',
+    ).values_list('asiento_id', flat=True)
+
+    compras = MovimientoContable.objects.filter(
+        Q(asiento_id__in=asientos_compras),
+        Q(cuenta__codigo__startswith='60') | Q(cuenta__codigo__startswith='62'),
+    ).aggregate(
+        debe=Coalesce(Sum('debe'), Decimal('0')),
+        haber=Coalesce(Sum('haber'), Decimal('0')),
+    )
+
+    base_imponible_compras = compras['debe'] - compras['haber']
+
     # Cuota a liquidar
     cuota_liquidar = iva_repercido_total - iva_soportado_total
     

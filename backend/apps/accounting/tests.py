@@ -438,3 +438,81 @@ class BotonInicializarEliminadoTest(TestCase):
     def test_el_endpoint_sigue_disponible_para_mantenimiento(self):
         respuesta = self.client.get(reverse('accounting:inicializar_plan'))
         self.assertEqual(respuesta.status_code, 302)
+
+
+class IvaBasesYGastoConIvaTests(BaseReportesTestCase):
+    """Bases imponibles del 303: incluyen servicios (629) y solo con IVA."""
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_un_gasto_con_iva_entra_en_la_base_y_en_la_cuota(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting import reports
+
+        self.crear_asiento('90', date(2026, 11, 10), 'Servicio de limpieza', [
+            ('629', Decimal('2700.00'), Decimal('0')),
+            ('472', Decimal('567.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('3267.00')),
+        ])
+
+        libro_t4 = reports.calcular_libro_iva(date(2026, 10, 1), date(2026, 12, 31))
+
+        self.assertEqual(libro_t4['iva_soportado']['base_imponible'], Decimal('2700.00'))
+        self.assertEqual(libro_t4['iva_soportado']['total'], Decimal('567.00'))
+        self.assertEqual(libro_t4['cuota_liquidar'], Decimal('-567.00'))
+        self.assertTrue(libro_t4['a_favor_cliente'])
+
+        anual = reports.calcular_libro_iva(date(2026, 1, 1), date(2026, 12, 31))
+        self.assertEqual(anual['iva_soportado']['base_imponible'], Decimal('8700.00'))
+        self.assertEqual(anual['iva_soportado']['total'], Decimal('1827.00'))
+
+    def test_un_gasto_sin_iva_no_infla_la_base(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting import reports
+
+        self.crear_asiento('91', date(2026, 11, 12), 'Recibo sin IVA', [
+            ('629', Decimal('500.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('500.00')),
+        ])
+
+        libro_t4 = reports.calcular_libro_iva(date(2026, 10, 1), date(2026, 12, 31))
+
+        self.assertEqual(libro_t4['iva_soportado']['base_imponible'], Decimal('0'))
+        self.assertEqual(libro_t4['iva_soportado']['total'], Decimal('0'))
+
+    def test_la_vista_avisa_cuando_el_trimestre_esta_vacio(self):
+        from datetime import date
+        from decimal import Decimal
+
+        self.crear_asiento('92', date(2026, 11, 15), 'Servicio con IVA', [
+            ('629', Decimal('1000.00'), Decimal('0')),
+            ('472', Decimal('210.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('1210.00')),
+        ])
+
+        respuesta = self.client.get(
+            reverse('accounting:iva'), {'anio': 2026, 'trimestre': 2}
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.context['trimestre_sin_datos'])
+        self.assertIn(4, respuesta.context['trimestres_con_datos'])
+        self.assertContains(respuesta, 'no tiene movimientos de IVA')
+        self.assertContains(respuesta, 'Resumen del año')
+
+    def test_la_vista_muestra_los_cuatro_trimestres(self):
+        respuesta = self.client.get(
+            reverse('accounting:iva'), {'anio': 2026, 'trimestre': 1}
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(len(respuesta.context['resumen_trimestres']), 4)
+        self.assertFalse(respuesta.context['trimestre_sin_datos'])
+        t1 = respuesta.context['resumen_trimestres'][0]
+        self.assertEqual(t1['numero'], 1)
+        self.assertEqual(t1['cuota'], 840)

@@ -32,6 +32,25 @@
         {% endfor %}
     </div>
     
+    {% if trimestre_sin_datos %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 text-sm text-yellow-900">
+        <p class="font-medium">
+            El trimestre T{{ trimestre }} de {{ anio }} no tiene movimientos de IVA.
+        </p>
+        {% if trimestres_con_datos %}
+        <p class="mt-1">
+            La actividad del año está en
+            {% for numero in trimestres_con_datos %}
+            <a href="?anio={{ anio }}&trimestre={{ numero }}"
+               class="font-semibold underline">T{{ numero }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}.
+        </p>
+        {% else %}
+        <p class="mt-1">No hay ningún asiento con IVA en todo el año {{ anio }}.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- TRIMESTRAL -->
     <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
         <div class="bg-blue-600 text-white px-6 py-3">
@@ -75,6 +94,40 @@
         {% endif %}
     </div>
     
+    <!-- RESUMEN POR TRIMESTRES -->
+    <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+        <div class="bg-gray-700 text-white px-6 py-3">
+            <h2 class="font-bold">Resumen del año {{ anio }} por trimestres</h2>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trimestre</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">IVA Repercutido</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">IVA Soportado</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Cuota a liquidar</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for fila in resumen_trimestres %}
+                <tr class="{% if fila.numero == trimestre %}bg-blue-50{% endif %}">
+                    <td class="px-4 py-2">
+                        <a href="?anio={{ anio }}&trimestre={{ fila.numero }}"
+                           class="text-blue-700 hover:underline font-medium">T{{ fila.numero }}</a>
+                        {% if fila.numero == trimestre %}
+                        <span class="text-xs text-blue-700">(viendo)</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ fila.repercutido|floatformat:2 }}</td>
+                    <td class="px-4 py-2 text-right font-mono">€{{ fila.soportado|floatformat:2 }}</td>
+                    <td class="px-4 py-2 text-right font-mono font-medium
+                        {% if fila.cuota < 0 %}text-green-700{% endif %}">€{{ fila.cuota|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     <!-- ANUAL (Modelo 390) -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-purple-600 text-white px-6 py-3">
