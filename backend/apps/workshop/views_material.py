@@ -88,8 +88,11 @@ def _resolver_forma_pago(header_form):
 
 def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_pago_code, fecha=None):
     """Valida el saldo del banco antes de pagar al contado. Devuelve texto o None."""
-    paga_con_banco = pagar_ahora and (not cuenta_pago_code or cuenta_pago_code == '572')
-    if forma_pago_code != '572' and not paga_con_banco:
+    codigos_tesoreria = ('570', '572')
+    paga_con_tesoreria = pagar_ahora and (
+        not cuenta_pago_code or cuenta_pago_code in codigos_tesoreria
+    )
+    if forma_pago_code not in codigos_tesoreria and not paga_con_tesoreria:
         return None
 
     total = Decimal('0')
@@ -102,8 +105,14 @@ def _error_saldo_banco(formset, tipo_iva, forma_pago_code, pagar_ahora, cuenta_p
             Decimal('1') + Decimal(tipo_iva) / Decimal('100')
         )
 
-    banco_cuenta = BancoCuenta.objects.filter(cuenta_contable__codigo='572').first()
-    if not banco_cuenta:
+    codigo_tesoreria = (
+        cuenta_pago_code if cuenta_pago_code in ('570', '572')
+        else forma_pago_code
+    )
+    banco_cuenta = BancoCuenta.objects.filter(
+        cuenta_contable__codigo=codigo_tesoreria
+    ).first()
+    if not banco_cuenta and codigo_tesoreria != '570':
         banco_cuenta = obtener_cuenta_banco_default()
     if not banco_cuenta:
         return None

@@ -194,13 +194,12 @@ class GastoEstructura(models.Model):
             asiento.estado = 'POSTEADO' if asiento.esta_cuadrado else 'BORRADOR'
             asiento.save()
 
-            # Movimiento bancario EGRESO vinculado al asiento (solo pagos por banco 572;
-            # la caja 570 no genera movimientos en el módulo Banco)
-            if cuenta_pago.codigo == '572':
+            # EGRESO en tesorería vinculado al asiento: banco (572) o caja (570).
+            if cuenta_pago.codigo in ('570', '572'):
                 banco_cuenta = BancoCuenta.objects.filter(
                     cuenta_contable=cuenta_pago
                 ).first()
-                if not banco_cuenta:
+                if not banco_cuenta and cuenta_pago.codigo == '572':
                     banco_cuenta = obtener_cuenta_banco_default()
                 if banco_cuenta:
                     crear_movimiento_banco(

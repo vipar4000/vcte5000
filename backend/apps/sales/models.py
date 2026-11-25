@@ -284,12 +284,24 @@ class VentaVehiculo(models.Model):
         """
         from django.core.exceptions import ValidationError
 
-        from apps.bank.services import crear_movimiento_banco, obtener_cuenta_banco_default
+        from apps.bank.services import (
+            crear_movimiento_banco, cuenta_banco_para_pago,
+            obtener_cuenta_banco_default,
+        )
 
         if self.metodo_pago == 'FINANCIADO':
             return None
 
-        cuenta = obtener_cuenta_banco_default()
+        if self.metodo_pago == 'EFECTIVO':
+            # El dinero entra en el cajón: se registra en la caja (570) si hay.
+            from apps.accounting.models import CuentaContable
+
+            cuenta_570 = CuentaContable.objects.filter(codigo='570').first()
+            cuenta = (
+                cuenta_banco_para_pago(cuenta_570) if cuenta_570 else None
+            ) or obtener_cuenta_banco_default()
+        else:
+            cuenta = obtener_cuenta_banco_default()
         if not cuenta:
             raise ValidationError(
                 'No hay ninguna cuenta bancaria activa: el cobro no se puede '

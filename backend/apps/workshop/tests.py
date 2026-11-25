@@ -418,6 +418,35 @@ class CompraMaterialTests(TestCase):
         )
 
 
+
+    def test_compra_contado_por_caja_genera_egreso_en_la_caja(self):
+        """Caja (570): la compra pagada en efectivo sale del cajón."""
+        from decimal import Decimal
+
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+        from apps.workshop.models import CompraMaterial
+
+        caja = BancoCuenta.objects.create(
+            nombre='Caja', cuenta_contable=CuentaContable.objects.get(codigo='570'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=caja, fecha='2026-06-30', concepto='Fondo de caja',
+            tipo='INGRESO', importe=Decimal('1000.00'),
+        )
+
+        self._post_compra(forma_pago='570', cantidad='20')
+
+        compra = CompraMaterial.objects.get()
+        self.assertEqual(compra.asiento_contable.estado, 'POSTEADO')
+
+        egreso = BancoMovimiento.objects.get(banco_cuenta=caja, tipo='EGRESO')
+        self.assertEqual(egreso.importe, Decimal('205.70'))
+        self.assertEqual(
+            egreso.asiento_asociado_id, compra.asiento_contable_id
+        )
+        self.assertEqual(caja.saldo, Decimal('794.30'))
+
     def test_anular_compra_contado_devuelve_stock_y_compensa_banco(self):
         """H4: abono de una compra — stock, contra-asiento y banco compensado."""
         from apps.accounting.models import AsientoContable

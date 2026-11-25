@@ -444,6 +444,41 @@ class VentaConReservaTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
 
+
+    def test_una_venta_cobrada_en_efectivo_entra_en_la_caja(self):
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        caja = BancoCuenta.objects.create(
+            nombre='Caja', cuenta_contable=CuentaContable.objects.get(codigo='570'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=caja, fecha='2026-11-01', concepto='Fondo de caja',
+            tipo='INGRESO', importe=Decimal('500.00'),
+        )
+
+        self.client.post(reverse('sales:create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'EFECTIVO',
+            'precio_venta': '11500.00',
+        })
+
+        ingreso = BancoMovimiento.objects.get(
+            banco_cuenta=caja, tipo='INGRESO', concepto__startswith='Cobro venta'
+        )
+        self.assertEqual(ingreso.importe, Decimal('11500.00'))
+        self.assertEqual(caja.saldo, Decimal('12000.00'))
+
     def test_la_ficha_ofrece_anular_venta(self):
         self._vender()
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)

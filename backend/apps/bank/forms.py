@@ -36,11 +36,35 @@ class BancoCuentaForm(forms.ModelForm):
 
     def __init__(self, *args, editing=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['iban'].required = False
+        self.fields['iban'].label = 'IBAN (no aplica a la caja)'
+        self.fields['cuenta_contable'].label = (
+            'Cuenta contable (570 Caja / 572 Banco)'
+        )
         if editing:
             del self.fields['deposito_inicial']
             del self.fields['fecha_deposito']
             del self.fields['notas_deposito']
             del self.fields['soporte_deposito']
+
+    def clean(self):
+        datos = super().clean()
+        cuenta = datos.get('cuenta_contable')
+        iban = (datos.get('iban') or '').strip()
+
+        if cuenta is not None and cuenta.codigo.startswith('570'):
+            # Caja de efectivo: no tiene IBAN ni SWIFT.
+            datos['iban'] = None
+            datos['swift'] = ''
+            if not (datos.get('nombre') or '').strip():
+                datos['nombre'] = 'Caja'
+        elif not iban:
+            self.add_error(
+                'iban',
+                'El IBAN es obligatorio para una cuenta bancaria. '
+                'Solo la caja (570) puede quedar sin IBAN.',
+            )
+        return datos
 
 
 class BancoMovimientoFilterForm(forms.Form):

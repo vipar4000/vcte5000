@@ -570,10 +570,20 @@ def reserva_create(request):
                     'form': form, 'action': 'crear',
                 })
 
-            # La cuenta bancaria por defecto
-            banco_cuenta = obtener_cuenta_banco_default()
+            # Tesorería: caja (570) si la señal se cobra en efectivo; si no,
+            # la cuenta bancaria por defecto.
+            if reserva.metodo_pago == 'EFECTIVO':
+                from apps.accounting.models import CuentaContable
+                from apps.bank.services import cuenta_banco_para_pago
+
+                cuenta_570 = CuentaContable.objects.filter(codigo='570').first()
+                banco_cuenta = (
+                    cuenta_banco_para_pago(cuenta_570) if cuenta_570 else None
+                ) or obtener_cuenta_banco_default()
+            else:
+                banco_cuenta = obtener_cuenta_banco_default()
             if not banco_cuenta:
-                messages.error(request, 'No hay cuentas bancarias configuradas.')
+                messages.error(request, 'No hay cuentas de tesorería configuradas.')
                 return redirect('bank:reserva_list')
 
             # Crear movimiento bancario de ingreso

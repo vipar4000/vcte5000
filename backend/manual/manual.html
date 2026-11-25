@@ -72,6 +72,7 @@
                 <li><a href="#capitulo-9-2"><span class="chapter-num">9.2</span> Movimientos Bancarios</a></li>
                 <li><a href="#capitulo-9-3"><span class="chapter-num">9.3</span> Conciliacion Bancaria</a></li>
                 <li><a href="#capitulo-9-4"><span class="chapter-num">9.4</span> Depositos Bancarios</a></li>
+                <li><a href="#capitulo-9-5"><span class="chapter-num">9.5</span> Caja de efectivo (570)</a></li>
             </ul>
         </li>
         <li><a href="#capitulo-10"><span class="chapter-num">10.</span> Reservas (Arras / Senales)</a>
@@ -1156,7 +1157,7 @@ Base imponible = 20 x 8,50 = <strong>170,00 EUR</strong> &middot; Cuota IVA = 17
 </div>
 
 <h4>C) Compra al Contado con Caja (570)</h4>
-<p>Igual que la variante B, pero la contrapartida es la cuenta <strong>570 (Caja)</strong>: HABER 570 por 205,70. <strong>No genera movimiento bancario</strong> (la caja no se registra en el modulo Banco). Use esta opcion cuando el pago se haga en efectivo.</p>
+<p>Igual que la variante B, pero la contrapartida es la cuenta <strong>570 (Caja)</strong>: HABER 570 por 205,70. Si existe una <strong>caja de efectivo</strong> dada de alta (Banco &gt; Cuentas, cuenta 570), se registra el <strong>EGRESO en la caja</strong> y su saldo baja. Use esta opcion cuando el pago se haga en efectivo.</p>
 
 <h4>Tabla comparativa</h4>
 <table>
@@ -2059,7 +2060,7 @@ Siguiente ano comienza con balances limpios
     <strong>Pago automatico (v3.1):</strong> Al marcar <code>Pagado</code> (al crear o al editar un gasto), el sistema genera automaticamente:
     <ol>
         <li>El asiento de pago <code>PagoGastoEstructura</code> (DEBE 410 / HABER 570-572) por el total de la factura, POSTEADO si cuadra.</li>
-        <li>El movimiento bancario <strong>EGRESO</strong> vinculado (solo pagos desde 572; la caja 570 no genera movimiento bancario).</li>
+        <li>El movimiento <strong>EGRESO</strong> vinculado a la tesorería: banco (572) o <strong>caja (570)</strong> si existe la caja de efectivo.</li>
     </ol>
     Si se desmarca <code>Pagado</code> al editar, el asiento de pago se anula mediante contrapartida (Ley Antifraude) y el EGRESO vinculado se elimina, restaurando el saldo del banco.
 </div>
@@ -2334,7 +2335,7 @@ Cuenta: Santander, fecha 01/07/2026.</code></pre>
 <div class="info-box">
     <strong>Que se valida:</strong> saldo = ingresos de la cuenta con fecha &le; fecha del pago, menos
     egresos con fecha &le; esa fecha. Los ingresos con fecha anterior si se permiten (es dinero que ya
-    existia). El pago en efectivo (caja 570) no pasa por banco y no se valida.
+    existia). El pago en efectivo (caja 570) se valida contra el <strong>saldo de la caja</strong> de efectivo.
 </div>
 
 <h2 id="capitulo-9-1">9.1 Cuentas Bancarias</h2>
@@ -2870,12 +2871,54 @@ PyG: 611 refleja la variacion de existencias
     <tr><td>Cobro ext. (comision)</td><td>572 + 626</td><td>430</td><td>INGRESO</td></tr>
     <tr><td>Reserva</td><td>572</td><td>438 + 477</td><td>INGRESO</td></tr>
     <tr><td>Compra inventario (credito)</td><td>300 + 472</td><td>410</td><td>&mdash;</td></tr>
-    <tr><td>Compra inventario (contado)</td><td>300 + 472</td><td>572 o 570</td><td>EGRESO (solo 572)</td></tr>
+    <tr><td>Compra inventario (contado)</td><td>300 + 472</td><td>572 o 570</td><td>EGRESO (572 o caja 570)</td></tr>
     <tr><td>Gasto estructura</td><td>6xx + 472</td><td>410 (+ 4751.115)</td><td>&mdash;</td></tr>
     <tr><td>Devolucion reserva</td><td>438 + 477</td><td>572</td><td>EGRESO</td></tr>
 </table>
 
 <!-- ==================== CAPITULO 10 ==================== -->
+<h2 id="capitulo-9-5">9.5 Caja de efectivo (cuenta 570)</h2>
+
+<p>Ademas de las cuentas bancarias (572), el ERP permite operar con una <strong>caja de efectivo</strong>
+vinculada a la cuenta contable <strong>570 Caja</strong>, como exige el Plan General Contable para el dinero
+en metálico.</p>
+
+<h3 id="capitulo-9-5-1">9.5.1 Darla de alta</h3>
+<ol class="steps">
+    <li>Vaya a <strong>&#127974; Banco &gt; + Nueva Cuenta</strong>.</li>
+    <li>Nombre: <code>Caja</code>.</li>
+    <li>Cuenta contable: <strong>570 - Caja</strong>.</li>
+    <li>Deje el <strong>IBAN vacio</strong>: la caja no tiene IBAN (solo se exige a las cuentas bancarias).</li>
+    <li>Si ya habia dinero en el cajón, indique el <strong>deposito inicial</strong> y su fecha: se registra un
+        INGRESO de apertura con su asiento (DEBE 570 / HABER 110).</li>
+</ol>
+
+<h3 id="capitulo-9-5-2">9.5.2 Como se comporta</h3>
+<table>
+    <tr><th>Operacion</th><th>Efecto en la caja</th></tr>
+    <tr><td>Compra de recambios pagada en efectivo (forma de pago Caja 570)</td>
+        <td>Asiento HABER 570 y <strong>EGRESO</strong> en la caja por base + IVA</td></tr>
+    <tr><td>Venta cobrada en efectivo (metodo de pago Efectivo)</td>
+        <td><strong>INGRESO</strong> en la caja por el precio (o por el resto, si hubo senal)</td></tr>
+    <tr><td>Senal de reserva cobrada en efectivo</td>
+        <td><strong>INGRESO</strong> en la caja</td></tr>
+    <tr><td>Gasto pagado con cuenta de pago Caja (570)</td>
+        <td><strong>EGRESO</strong> en la caja vinculado al asiento de pago</td></tr>
+    <tr><td>Deposito / retirada de efectivo</td>
+        <td>Use <strong>Registrar deposito</strong> en la ficha de la caja</td></tr>
+</table>
+
+<div class="info-box">
+    <strong>Sin conciliacion bancaria:</strong> la caja no se concilia con extractos (no los tiene). Su
+    <strong>saldo</strong> suma todos sus movimientos, conciliados o no. La validacion de saldo al pagar en
+    efectivo se hace contra ese saldo de caja.
+</div>
+
+<div class="warning-box">
+    <strong>No mezcle caja y banco:</strong> si paga en efectivo, elija la caja; si paga por transferencia,
+    el banco. El asiento y el movimiento deben apuntar a la misma cuenta de tesoreria.
+</div>
+
 <h1 id="capitulo-10">10. Reservas (Arras / Senales)</h1>
 
 <p>El sistema de reservas permite apartar un vehiculo cobrando una senal (arras) al cliente. La reserva genera automaticamente un movimiento bancario y un asiento contable de anticipo con IVA. Al convertirse en venta, el anticipo se compensa contablemente.</p>
@@ -5177,7 +5220,7 @@ USUARIO REGISTRA OPERACION
     <tr><th>Efecto</th><th>Detalle</th></tr>
     <tr><td><strong>Stock</strong></td><td>El <code>stock_actual</code> del material se incrementa en la cantidad comprada.</td></tr>
     <tr><td><strong>Asiento contable</strong></td><td>DEBE cuenta de inventario (300 por defecto, o 310/320/330) + DEBE 472 (IVA) / HABER la contrapartida segun la <strong>forma de pago</strong>: <strong>Credito</strong> (por defecto) &rarr; HABER 410 (Acreedores); <strong>Contado Banco</strong> &rarr; HABER 572; <strong>Contado Caja</strong> &rarr; HABER 570. Se crea y <strong>postea automaticamente</strong> (estado POSTEADO).</td></tr>
-    <tr><td><strong>Movimiento bancario</strong></td><td>Solo con forma de pago <strong>Contado Banco (572)</strong>: EGRESO por el total de la compra (base + IVA). Credito y caja (570) no generan movimiento; quedan pendientes en 410 o se pagan por caja.</td></tr>
+    <tr><td><strong>Movimiento de tesorería</strong></td><td>Con forma de pago <strong>Contado Banco (572)</strong> o <strong>Contado Caja (570)</strong>: EGRESO por el total de la compra (base + IVA) en la cuenta correspondiente. A credito queda pendiente en 410.</td></tr>
     <tr><td><strong>PDF factura</strong></td><td>Se guarda en <code>media/facturas_gastos/</code> (o R2).</td></tr>
 </table>
 
@@ -5228,7 +5271,7 @@ USUARIO REGISTRA OPERACION
     <tr><th>Efecto</th><th>Detalle</th></tr>
     <tr><td><strong>Asiento del gasto</strong></td><td>Se anula el anterior y se regenera identico (Ley Antifraude, tipo <code>AnulacionGasto</code> + nuevo <code>GastoEstructura</code>).</td></tr>
     <tr><td><strong>Asiento de pago</strong></td><td>Nuevo asiento <code>PagoGastoEstructura</code> (idempotente): <strong>DEBE 410</strong> (Acreedores) / <strong>HABER 570 o 572</strong> (tesoreria) por el <strong>total de la factura</strong>. Se postea automaticamente si cuadra.</td></tr>
-    <tr><td><strong>Movimiento bancario</strong></td><td>EGRESO por el total de la factura, vinculado al asiento de pago (solo si se paga desde <strong>572</strong>; la caja 570 no genera movimiento bancario).</td></tr>
+    <tr><td><strong>Movimiento de tesorería</strong></td><td>EGRESO por el total de la factura, vinculado al asiento de pago. Se registra tanto si se paga desde <strong>572 (banco)</strong> como desde <strong>570 (caja)</strong> si existe la caja de efectivo.</td></tr>
     <tr><td><strong>Desmarcar Pagado</strong></td><td>El asiento de pago se <strong>anula</strong> (contrapartida <code>AnulacionPagoGasto</code>, Ley Antifraude) y el EGRESO vinculado se <strong>elimina</strong>, restaurando el saldo del banco.</td></tr>
 </table>
 

@@ -33,16 +33,36 @@ def validar_saldo_egreso(banco_cuenta, fecha, importe):
         )
 
 
-def cuenta_banco_para_pago(cuenta_contable=None):
-    """Cuenta bancaria con la que se paga: la de la forma de pago o la de defecto."""
+def obtener_cuenta_tesoreria(codigo):
+    """Cuenta de tesorería activa para un código contable: 570 caja o 572 banco."""
     from .models import BancoCuenta
 
-    cuenta = None
+    return (
+        BancoCuenta.objects.filter(
+            activa=True, cuenta_contable__codigo__startswith=codigo
+        )
+        .select_related('cuenta_contable')
+        .first()
+    )
+
+
+def cuenta_banco_para_pago(cuenta_contable=None):
+    """Cuenta de tesorería con la que se paga: la de la forma de pago o la de defecto.
+
+    Si la forma de pago es la caja (570), devuelve la caja; si no existe, None
+    (no se cae a una cuenta bancaria: el dinero sale del cajón, no del banco).
+    """
+    from .models import BancoCuenta
+
     if cuenta_contable is not None:
+        if cuenta_contable.codigo.startswith('570'):
+            return obtener_cuenta_tesoreria('570')
         cuenta = BancoCuenta.objects.filter(
             cuenta_contable=cuenta_contable
         ).first()
-    return cuenta or obtener_cuenta_banco_default()
+        return cuenta or obtener_cuenta_banco_default()
+
+    return obtener_cuenta_banco_default()
 
 
 @transaction.atomic
@@ -83,9 +103,15 @@ def crear_movimiento_banco(banco_cuenta, fecha, concepto, tipo, importe,
 
 
 def obtener_cuenta_banco_default():
-    """Obtiene la cuenta bancaria activa por defecto."""
+    """Cuenta de tesorería por defecto: primero banco (572), luego caja (570)."""
     from .models import BancoCuenta
-    return BancoCuenta.objects.filter(activa=True).first()
+
+    return (
+        BancoCuenta.objects.filter(
+            activa=True, cuenta_contable__codigo__startswith='572'
+        ).first()
+        or BancoCuenta.objects.filter(activa=True).first()
+    )
 
 
 # Margen de días para emparejar una línea del extracto con el movimiento del

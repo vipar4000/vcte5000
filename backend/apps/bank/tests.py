@@ -360,3 +360,64 @@ class AltaCuentaConDepositoTests(TestCase):
             getattr(services.crear_movimiento_banco, '__wrapped__', None),
             'crear_movimiento_banco debe ir decorada con @transaction.atomic',
         )
+
+
+class CajaEfectivoTests(TestCase):
+    """Caja de efectivo: cuenta 570 sin IBAN y su saldo."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+
+    def _post_cuenta(self, **extra):
+        datos = {
+            'nombre': 'Caja',
+            'cuenta_contable': CuentaContable.objects.get(codigo='570').pk,
+            'activa': 'on',
+        }
+        datos.update(extra)
+        return self.client.post(reverse('bank:cuenta_create'), datos)
+
+    def test_se_puede_crear_la_caja_sin_iban(self):
+        from apps.bank.models import BancoCuenta
+
+        respuesta = self._post_cuenta(deposito_inicial='500.00',
+                                      fecha_deposito='2026-11-20')
+
+        self.assertEqual(respuesta.status_code, 302)
+        caja = BancoCuenta.objects.get()
+        self.assertTrue(caja.es_caja)
+        self.assertIn('Caja', str(caja))
+
+    def test_un_banco_sigue_exigiendo_iban(self):
+        from apps.bank.models import BancoCuenta
+
+        respuesta = self._post_cuenta(
+            nombre='Banco sin IBAN',
+            cuenta_contable=CuentaContable.objects.get(codigo='572').pk,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(BancoCuenta.objects.count(), 0)
+
+    def test_el_saldo_de_la_caja_cuenta_sus_movimientos(self):
+        from decimal import Decimal
+
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        self._post_cuenta(deposito_inicial='500.00', fecha_deposito='2026-11-20')
+        caja = BancoCuenta.objects.get()
+
+        # Los movimientos de caja no se concilian con extracto: cuentan igual
+        BancoMovimiento.objects.create(
+            banco_cuenta=caja, fecha='2026-11-21', concepto='Compra menor',
+            tipo='EGRESO', importe=Decimal('120.00'), conciliado=False,
+        )
+
+        self.assertEqual(caja.saldo, Decimal('380.00'))

@@ -12,14 +12,19 @@ class BancoCuenta(models.Model):
         max_length=100, verbose_name='nombre',
         help_text='Ej: BBVA Empresa'
     )
-    iban = models.CharField(max_length=34, unique=True, verbose_name='IBAN')
+    iban = models.CharField(
+        max_length=34, unique=True, blank=True, null=True,
+        verbose_name='IBAN',
+        help_text='Obligatorio en cuentas bancarias. La caja de efectivo (570) '
+                  'no tiene IBAN: déjelo vacío.',
+    )
     swift = models.CharField(max_length=11, blank=True, verbose_name='SWIFT/BIC')
     cuenta_contable = models.ForeignKey(
         'accounting.CuentaContable',
         on_delete=models.PROTECT,
         related_name='cuentas_bancarias',
-        verbose_name='cuenta contable (572)',
-        limit_choices_to={'codigo__startswith': '572'},
+        verbose_name='cuenta contable (570 caja / 572 banco)',
+        limit_choices_to={'codigo__in': ['570', '572']},
     )
     activa = models.BooleanField(default=True, verbose_name='activa')
     soporte_deposito = models.FileField(
@@ -36,16 +41,33 @@ class BancoCuenta(models.Model):
         ordering = ['nombre']
 
     def __str__(self):
+        if self.es_caja:
+            return f"{self.nombre} (Caja)"
         return f"{self.nombre} (*{self.iban[-4:]})"
 
     @property
+    def es_caja(self):
+        """True si es la caja de efectivo (cuenta contable 570)."""
+        return bool(
+            self.cuenta_contable_id
+            and self.cuenta_contable.codigo.startswith('570')
+        )
+
+    @property
     def saldo(self):
-        """Saldo calculado on-the-fly desde movimientos."""
-        ingresos = self.movimientos.filter(
-            tipo='INGRESO', conciliado=True
+        """Saldo calculado on-the-fly desde movimientos.
+
+        En el banco solo cuentan los movimientos conciliados con el extracto.
+        La caja no tiene extracto: se toman todos sus movimientos.
+        """
+        movimientos = self.movimientos.all()
+        if not self.es_caja:
+            movimientos = movimientos.filter(conciliado=True)
+        ingresos = movimientos.filter(
+            tipo='INGRESO'
         ).aggregate(total=models.Sum('importe'))['total'] or Decimal('0')
-        egresos = self.movimientos.filter(
-            tipo='EGRESO', conciliado=True
+        egresos = movimientos.filter(
+            tipo='EGRESO'
         ).aggregate(total=models.Sum('importe'))['total'] or Decimal('0')
         return ingresos - egresos
 
