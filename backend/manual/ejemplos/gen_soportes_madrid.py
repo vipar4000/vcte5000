@@ -666,5 +666,5 @@ if __name__ == '__main__':
 
     # --- Soporte del fondeo de la caja: retirada de efectivo ---
     generar_resguardo_retirada(
-        os.path.join(BASE, '12_RESGUARDO_retirada_efectivo_01072026.pdf')
+        os.path.join(BASE, '13_RESGUARDO_retirada_efectivo_01072026.pdf')
     )
