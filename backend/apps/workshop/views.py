@@ -133,6 +133,17 @@ def orden_trabajo_create(request):
                     vehiculo.estado = 'TALLER'
                     vehiculo.save(update_fields=['estado'])
 
+            # Si la OT se crea ya completada, capitalizar su coste.
+            if ot.estado == 'COMPLETADA':
+                try:
+                    ot.capitalizar(request.user)
+                except Exception as error:
+                    messages.warning(
+                        request,
+                        'OT completada, pero no se pudo capitalizar el coste: '
+                        f'{error}',
+                    )
+
             messages.success(
                 request,
                 f'Orden de trabajo OT-{ot.pk} creada correctamente.'
@@ -193,10 +204,11 @@ def orden_trabajo_update(request, pk):
             if formset.is_valid():
                 formset.save()
             
-            # Si se completó la OT desde este formulario, capitalizar reparación
-            if ot.estado == 'COMPLETADA' and estado_anterior != 'COMPLETADA':
+            # Capitalizar al completar y también si cambia el coste de una OT
+            # ya completada (se anula el asiento anterior con contrapartida).
+            if ot.estado == 'COMPLETADA':
                 try:
-                    ot.crear_asiento_contable()
+                    ot.capitalizar(request.user)
                 except Exception as e:
                     messages.warning(
                         request,
@@ -306,7 +318,7 @@ def orden_trabajo_cambiar_estado(request, pk):
             # Capitalizar coste de reparación en inventario (310)
             if nuevo_estado == 'COMPLETADA':
                 try:
-                    ot.crear_asiento_contable()
+                    ot.capitalizar(request.user)
                 except Exception as e:
                     messages.warning(
                         request,

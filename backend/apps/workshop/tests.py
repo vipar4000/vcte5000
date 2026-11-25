@@ -484,7 +484,16 @@ class CompraMaterialTests(TestCase):
             tipo_documento='AnulacionCompra', documento_id=compra.pk
         ).first()
         self.assertIsNotNone(reversion)
-        self.assertEqual(reversion.estado, 'POSTEADO')
+        # La reversión es documental (BORRADOR): el original ANULADO deja de
+        # contar en los saldos, como en el resto del ERP.
+        self.assertEqual(reversion.estado, 'BORRADOR')
+        self.assertEqual(
+            AsientoContable.objects.filter(
+                tipo_documento='CompraMaterial', documento_id=compra.pk,
+                estado='POSTEADO',
+            ).count(),
+            0,
+        )
         # Banco: no se borra nada; hay EGRESO + INGRESO de compensación
         self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
         self.assertEqual(BancoMovimiento.objects.filter(tipo='INGRESO').count(), 2)
@@ -1351,3 +1360,122 @@ class BorradoOTProtegidoTests(TestCase):
 
         self.assertTrue(type(self.ot).objects.filter(pk=self.ot.pk).exists())
         self.assertContains(respuesta, 'materiales consumidos')
+
+
+class CapitalizacionAutomaticaOTTests(TestCase):
+    """La OT completada capitaliza su coste (materiales + mano de obra)."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+        from apps.vehicles.models import Vehiculo
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.operario = User.objects.create_user(
+            username='mecanico1', email='m@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+            salario_base_mensual=Decimal('1800.00'),
+            porcentaje_ss_patronal=Decimal('31.50'),
+        )
+        self.client.force_login(self.admin)
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='TALLER',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), created_by=self.admin,
+        )
+        self.material = Material.objects.create(
+            nombre='Parachoques', unidad='ud',
+            stock_actual=10, stock_minimo=1, precio_unitario=Decimal('63.125'),
+        )
+
+    def _post_ot(self, estado, horas='1.5'):
+        return self.client.post(reverse('workshop:create_ot'), {
+            'vehiculo': self.vehiculo.pk,
+            'operario': self.operario.pk,
+            'titulo': 'Cambio de parachoques',
+            'descripcion': 'Reparación',
+            'estado': estado,
+            'horas_estimadas': horas,
+            'horas_reales': horas,
+            'materiales_usados-TOTAL_FORMS': '1',
+            'materiales_usados-INITIAL_FORMS': '0',
+            'materiales_usados-MIN_NUM_FORMS': '0',
+            'materiales_usados-MAX_NUM_FORMS': '1000',
+            'materiales_usados-0-material': self.material.pk,
+            'materiales_usados-0-cantidad': '4',
+        })
+
+    def test_ot_creada_ya_completada_se_capitaliza(self):
+        from apps.accounting.models import AsientoContable
+        from apps.workshop.models import OrdenTrabajo
+
+        respuesta = self._post_ot('COMPLETADA')
+        self.assertEqual(respuesta.status_code, 302)
+
+        ot = OrdenTrabajo.objects.get()
+        asiento = AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo', documento_id=ot.pk
+        ).first()
+        self.assertIsNotNone(asiento)
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.assertEqual(asiento.total_debe, ot.coste_total)
+        self.assertGreater(ot.coste_mano_obra, 0)
+        self.assertGreater(ot.coste_materiales, 0)
+
+    def test_una_ot_pendiente_no_se_capitaliza(self):
+        from apps.accounting.models import AsientoContable
+
+        self._post_ot('PENDIENTE')
+
+        self.assertFalse(AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo'
+        ).exists())
+
+    def test_cambiar_el_coste_de_una_ot_completada_rehace_el_asiento(self):
+        from apps.accounting.models import AsientoContable
+        from apps.workshop.models import OrdenTrabajo
+
+        self._post_ot('COMPLETADA')
+        ot = OrdenTrabajo.objects.get()
+        primer_asiento = AsientoContable.objects.get(
+            tipo_documento='OrdenTrabajo', documento_id=ot.pk
+        )
+        coste_inicial = ot.coste_total
+
+        # Más horas: el asiento anterior se anula y se crea uno nuevo
+        respuesta = self.client.post(
+            reverse('workshop:update_ot', args=[ot.pk]), {
+                'vehiculo': self.vehiculo.pk,
+                'operario': self.operario.pk,
+                'titulo': 'Cambio de parachoques',
+                'descripcion': 'Reparación',
+                'estado': 'COMPLETADA',
+                'horas_estimadas': '3',
+                'horas_reales': '3',
+                'materiales_usados-TOTAL_FORMS': '0',
+                'materiales_usados-INITIAL_FORMS': '0',
+                'materiales_usados-MIN_NUM_FORMS': '0',
+                'materiales_usados-MAX_NUM_FORMS': '1000',
+            },
+        )
+        self.assertEqual(respuesta.status_code, 302)
+
+        ot.refresh_from_db()
+        self.assertGreater(ot.coste_total, coste_inicial)
+        primer_asiento.refresh_from_db()
+        self.assertEqual(primer_asiento.estado, 'ANULADO')
+        activo = AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo', documento_id=ot.pk
+        ).exclude(estado='ANULADO').get()
+        self.assertEqual(activo.estado, 'POSTEADO')
+        self.assertEqual(activo.total_debe, ot.coste_total)

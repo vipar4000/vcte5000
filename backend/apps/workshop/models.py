@@ -106,6 +106,55 @@ class OrdenTrabajo(models.Model):
             Decimal('0.01'), rounding=ROUND_HALF_UP
         )
 
+    def capitalizar(self, user=None):
+        """Crea o actualiza la capitalización de la OT (idempotente).
+
+        Si la OT cambió de coste (horas o materiales) después de estar
+        completada, el asiento anterior se **anula con contrapartida** y se
+        genera uno nuevo con los importes actuales. Devuelve el asiento activo
+        (o None si no hay coste).
+        """
+        from django.db import transaction
+
+        from apps.accounting.models import AsientoContable, MovimientoContable
+        from apps.accounting.views import generar_numero_asiento
+
+        if self.coste_total <= 0:
+            return None
+
+        activo = AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo', documento_id=self.pk
+        ).exclude(estado='ANULADO').first()
+
+        if activo and activo.total_debe == self.coste_total:
+            return activo
+
+        with transaction.atomic():
+            if activo:
+                reversion = AsientoContable.objects.create(
+                    numero=generar_numero_asiento(),
+                    fecha=self.fecha_fin or self.updated_at.date(),
+                    concepto=f'ANULACIÓN: {activo.concepto}',
+                    estado='BORRADOR',
+                    tipo_documento='AnulacionOrdenTrabajo',
+                    documento_id=self.pk,
+                    created_by=user or self.created_by,
+                )
+                for movimiento in activo.movimientos.all():
+                    MovimientoContable.objects.create(
+                        asiento=reversion,
+                        cuenta=movimiento.cuenta,
+                        debe=movimiento.haber,
+                        haber=movimiento.debe,
+                        descripcion=f'Reversión: {movimiento.descripcion}',
+                    )
+                # Convención del ERP: el asiento original queda ANULADO y deja
+                # de contar en los saldos; la reversión es documental (BORRADOR).
+                activo.estado = 'ANULADO'
+                activo.save(update_fields=['estado'])
+
+            return self.crear_asiento_contable()
+
     def crear_asiento_contable(self):
         """Capitaliza el coste de reparación en inventario al completar la OT.
 
@@ -123,7 +172,7 @@ class OrdenTrabajo(models.Model):
             return None
         if AsientoContable.objects.filter(
             tipo_documento='OrdenTrabajo', documento_id=self.pk
-        ).exists():
+        ).exclude(estado='ANULADO').exists():
             return None
 
         with transaction.atomic():
@@ -472,9 +521,8 @@ class CompraMaterial(models.Model):
                 haber=mov.debe,
                 descripcion=f'Reversión: {mov.descripcion}',
             )
-        if reversion.esta_cuadrado:
-            reversion.estado = 'POSTEADO'
-            reversion.save(update_fields=['estado'])
+        # La reversión es documental (se queda en BORRADOR): el original queda
+        # ANULADO y deja de contar en los saldos, igual que en el resto del ERP.
 
         # Compensar el banco (nunca borrar el movimiento original)
         for movimiento in BancoMovimiento.objects.filter(asiento_asociado=asiento):

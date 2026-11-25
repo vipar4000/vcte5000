@@ -677,3 +677,88 @@ class BorradoVehiculoProtegidoTests(TestCase):
 
         self.assertTrue(Vehiculo.objects.filter(pk=self.vehiculo.pk).exists())
         self.assertContains(respuesta, 'vendido')
+
+
+class RepararAsientosVehiculoTests(TestCase):
+    """Doble contabilización en 310: se anula el duplicado con contrapartida."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='TALLER',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), created_by=self.admin,
+        )
+        # Simular el bug: dos asientos POSTEADOS de compra del mismo coche
+        self._asiento(Decimal('8150.00'), 'Compra original')
+        self._asiento(Decimal('8436.13'), 'Compra duplicada con taller')
+
+    def _asiento(self, importe, concepto):
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-10-01',
+            concepto=concepto, estado='POSTEADO',
+            tipo_documento='CompraVehiculo', documento_id=self.vehiculo.pk,
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='310'),
+            debe=importe, haber=0,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='572'),
+            debe=0, haber=importe,
+        )
+        return asiento
+
+    def _saldo_310(self):
+        from apps.accounting.models import MovimientoContable
+
+        return sum(
+            (m.debe - m.haber for m in MovimientoContable.objects.filter(
+                cuenta__codigo='310', asiento__estado='POSTEADO'
+            )), Decimal('0')
+        )
+
+    def test_el_comando_detecta_y_corrige_el_duplicado(self):
+        from django.core.management import call_command
+
+        from apps.accounting.models import AsientoContable
+
+        self.assertEqual(self._saldo_310(), Decimal('16586.13'))
+
+        call_command('reparar_asientos_vehiculos', '--dry-run', verbosity=0)
+        self.assertEqual(self._saldo_310(), Decimal('16586.13'))
+
+        call_command('reparar_asientos_vehiculos', '--corregir', verbosity=0)
+
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self._saldo_310(), Decimal('8150.00'))
+        self.assertEqual(
+            AsientoContable.objects.filter(
+                tipo_documento='CompraVehiculo',
+                documento_id=self.vehiculo.pk,
+                estado='POSTEADO',
+            ).count(),
+            1,
+        )
+        self.assertTrue(AsientoContable.objects.filter(
+            tipo_documento='AnulacionVehiculo'
+        ).exists())

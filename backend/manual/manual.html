@@ -405,6 +405,14 @@ extremo a extremo. Todos ellos ya estan en produccion y cubiertos por pruebas au
         <td>4.1</td>
     </tr>
     <tr>
+        <td><strong>Capitalizacion automatica de la OT</strong></td>
+        <td>Al completar una OT (tambien si se crea ya completada) se postea su asiento:
+            DEBE 310 por materiales + mano de obra, HABER 300 por los materiales consumidos y
+            HABER 611 por la mano de obra. Si luego cambian las horas o los materiales, el asiento
+            anterior se anula con contrapartida y se rehace con el coste nuevo.</td>
+        <td>4.1, 15.7</td>
+    </tr>
+    <tr>
         <td><strong>Recibo de nomina imprimible</strong></td>
         <td>Boton «Imprimir Recibo»: hoja A4 solo con el recibo (empresa, trabajador, puesto, devengos,
             deducciones, liquido y firmas).</td>
@@ -4453,6 +4461,14 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
 </div>
 
 <div class="warning-box">
+    <strong>Si la 310 tiene el coche dos veces</strong> (importes duplicados), ejecute primero
+    <code>python manage.py reparar_asientos_vehiculos --dry-run</code> y luego
+    <code>--corregir</code>; después <code>reparar_capitalizacion_ot</code>. El resultado correcto es
+    <strong>310 = coste de adquisición + OT capitalizadas</strong> y
+    <strong>300 = materiales comprados − consumidos</strong>.
+</div>
+
+<div class="warning-box">
     <strong>Si aparece «sin contabilizar»:</strong> hay OT con coste cuyo asiento de capitalización
     quedó en borrador o no se creó. El informe lo avisa y muestra el importe pendiente.
     Se corrige en Render Shell con:<br>
@@ -6977,6 +6993,14 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
         <td>Lista las fotos cuyo archivo ya no esta en el almacenamiento. Con
             <code>--borrar-huerfanas</code> limpia esas referencias rotas</td>
         <td>Tras un despliegue en staging (disco efimero) o si la web muestra imagenes rotas</td>
+    </tr>
+    <tr>
+        <td><code>reparar_asientos_vehiculos</code></td>
+        <td>Detecta vehículos con el asiento de compra duplicado (importe contado dos veces en 310).
+            Con <code>--corregir</code> anula los duplicados con contrapartida y deja un asiento nuevo
+            por el coste de adquisición</td>
+        <td>Cuando la 310 no cuadra con el valor del stock; después ejecute
+            <code>reparar_capitalizacion_ot</code></td>
     </tr>
     <tr>
         <td><code>reparar_capitalizacion_ot</code></td>
