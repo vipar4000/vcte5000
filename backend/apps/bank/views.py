@@ -167,6 +167,58 @@ def cuenta_edit(request, pk):
 
 
 @login_required
+def traspaso_create(request, pk):
+    """Traspaso de efectivo entre dos cuentas de tesorería (banco <-> caja)."""
+    cuenta_origen = get_object_or_404(BancoCuenta, pk=pk)
+
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para registrar traspasos.')
+        return redirect('bank:cuenta_detail', pk=cuenta_origen.pk)
+
+    from django.core.exceptions import ValidationError as DjangoValidationError
+
+    from .forms import TraspasoForm
+    from .services import crear_traspaso_tesoreria
+
+    if request.method == 'POST':
+        form = TraspasoForm(request.POST, request.FILES, origen=cuenta_origen)
+        if form.is_valid():
+            datos = form.cleaned_data
+            try:
+                with transaction.atomic():
+                    crear_traspaso_tesoreria(
+                        origen=datos['origen'],
+                        destino=datos['destino'],
+                        fecha=datos['fecha'],
+                        importe=datos['importe'],
+                        concepto=datos['concepto'],
+                        soporte=datos.get('soporte'),
+                        user=request.user,
+                    )
+            except (DjangoValidationError, ValueError) as error:
+                mensaje = (
+                    ' '.join(error.messages)
+                    if hasattr(error, 'messages') else str(error)
+                )
+                messages.error(request, mensaje)
+                return render(request, 'bank/traspaso_form.html', {
+                    'form': form, 'cuenta_origen': cuenta_origen,
+                })
+            messages.success(
+                request,
+                f'Traspaso de {datos["importe"]} EUR registrado: '
+                f'{datos["origen"].nombre} → {datos["destino"].nombre}.',
+            )
+            return redirect('bank:cuenta_detail', pk=datos['origen'].pk)
+    else:
+        form = TraspasoForm(origen=cuenta_origen)
+
+    return render(request, 'bank/traspaso_form.html', {
+        'form': form, 'cuenta_origen': cuenta_origen,
+    })
+
+
+@login_required
 def deposito_create(request, cuenta_pk):
     """Agregar un deposito (INGRESO) a una cuenta bancaria existente."""
     cuenta = get_object_or_404(BancoCuenta, pk=cuenta_pk)

@@ -135,11 +135,13 @@ class BancoMovimiento(models.Model):
     conciliado = models.BooleanField(default=False, verbose_name='conciliado')
 
     # Referencias cruzadas
-    asiento_asociado = models.OneToOneField(
+    # FK (no OneToOne): un traspaso de tesorería genera dos movimientos
+    # (salida y entrada) sobre el mismo asiento contable.
+    asiento_asociado = models.ForeignKey(
         'accounting.AsientoContable',
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='movimiento_banco',
+        related_name='movimientos_banco',
         verbose_name='asiento contable',
     )
     vehiculo_asociado = models.ForeignKey(

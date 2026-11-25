@@ -67,6 +67,63 @@ class BancoCuentaForm(forms.ModelForm):
         return datos
 
 
+class TraspasoForm(forms.Form):
+    """Traspaso de efectivo entre dos cuentas de tesorería (banco <-> caja)."""
+
+    origen = forms.ModelChoiceField(
+        queryset=BancoCuenta.objects.filter(activa=True),
+        label='Cuenta de origen *',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    destino = forms.ModelChoiceField(
+        queryset=BancoCuenta.objects.filter(activa=True),
+        label='Cuenta de destino *',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    fecha = forms.DateField(
+        label='Fecha del traspaso *',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    importe = forms.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0.01,
+        label='Importe *',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+    )
+    concepto = forms.CharField(
+        max_length=150, required=False,
+        label='Concepto',
+        help_text='Por defecto: «Traspaso de tesorería».',
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+    )
+    soporte = forms.FileField(
+        required=False,
+        label='Resguardo (PDF o imagen)',
+        help_text='Por ejemplo, el resguardo de retirada de efectivo del banco.',
+        widget=forms.ClearableFileInput(
+            attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        origen = kwargs.pop('origen', None)
+        super().__init__(*args, **kwargs)
+        if origen is not None:
+            self.fields['origen'].initial = origen
+            self.fields['origen'].queryset = BancoCuenta.objects.filter(
+                activa=True
+            )
+
+    def clean(self):
+        datos = super().clean()
+        origen = datos.get('origen')
+        destino = datos.get('destino')
+        if origen and destino and origen.pk == destino.pk:
+            raise forms.ValidationError(
+                'La cuenta de origen y la de destino deben ser distintas.'
+            )
+        return datos
+
+
 class BancoMovimientoFilterForm(forms.Form):
     fecha_desde = forms.DateField(
         required=False, label='Desde',

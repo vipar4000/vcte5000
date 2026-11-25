@@ -287,3 +287,87 @@ def generar_pdf_factura_reserva(factura):
         factura.save(update_fields=['pdf'])
 
     return pdf_bytes
+
+
+@transaction.atomic
+def crear_traspaso_tesoreria(origen, destino, fecha, importe, concepto='',
+                             soporte=None, user=None):
+    """Traspaso real de efectivo entre dos cuentas de tesorería.
+
+    - Asiento único: DEBE cuenta destino / HABER cuenta origen.
+    - EGRESO en la cuenta de origen (validando su saldo) e INGRESO en la de
+      destino, ambos vinculados al asiento.
+    - El soporte (resguardo de retirada) se adjunta a los dos movimientos.
+    """
+    from datetime import date
+
+    from django.core.files.uploadedfile import UploadedFile
+
+    from apps.accounting.models import (
+        AsientoContable, MovimientoContable,
+    )
+    from apps.accounting.views import generar_numero_asiento
+
+    from .models import BancoMovimiento
+
+    if origen.pk == destino.pk:
+        raise ValueError('La cuenta de origen y la de destino deben ser distintas.')
+
+    importe = Decimal(str(importe)).quantize(Decimal('0.01'))
+    if importe <= 0:
+        raise ValueError('El importe del traspaso debe ser mayor que cero.')
+
+    fecha = fecha or date.today()
+    concepto = (concepto or 'Traspaso de tesorería').strip()
+    texto = f'{concepto}: {origen.nombre} → {destino.nombre}'
+
+    asiento = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=fecha,
+        concepto=texto,
+        estado='BORRADOR',
+        tipo_documento='TraspasoTesoreria',
+        created_by=user,
+    )
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=destino.cuenta_contable,
+        debe=importe, haber=Decimal('0'),
+        descripcion=f'Entrada de efectivo desde {origen.nombre}',
+    )
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=origen.cuenta_contable,
+        debe=Decimal('0'), haber=importe,
+        descripcion=f'Salida de efectivo hacia {destino.nombre}',
+    )
+    if asiento.esta_cuadrado:
+        asiento.estado = 'POSTEADO'
+        asiento.save(update_fields=['estado'])
+
+    salida = crear_movimiento_banco(
+        banco_cuenta=origen,
+        fecha=fecha,
+        concepto=texto,
+        tipo='EGRESO',
+        importe=importe,
+        asiento=asiento,
+        notas='Traspaso de tesorería (salida)',
+    )
+    entrada = crear_movimiento_banco(
+        banco_cuenta=destino,
+        fecha=fecha,
+        concepto=texto,
+        tipo='INGRESO',
+        importe=importe,
+        asiento=asiento,
+        notas='Traspaso de tesorería (entrada)',
+    )
+
+    if soporte is not None:
+        for movimiento in (salida, entrada):
+            if isinstance(soporte, UploadedFile):
+                movimiento.soporte.save(soporte.name, soporte, save=True)
+            else:
+                movimiento.soporte = soporte
+                movimiento.save(update_fields=['soporte'])
+
+    return asiento

@@ -419,6 +419,59 @@ def generar_certificado_apertura(path):
     )
 
 
+
+def generar_resguardo_retirada(path):
+    """Resguardo de retirada de efectivo en oficina (fondeo de la caja).
+
+    Documento realista del Banco Santander por 1.000,00 EUR con fecha
+    01/07/2026: es el soporte que se adjunta al traspaso Banco (572) -> Caja
+    (570) antes del gasto en efectivo del 02/07/2026.
+    """
+    generar_pdf(
+        path,
+        'BANCO SANTANDER, S.A. - RESGUARDO DE OPERACION EN EFECTIVO',
+        [
+            'Oficina 0049 - Calle Mayor 12, 28801 Alcalá de Henares (Madrid)',
+            'Teléfono de atención: 915 123 456   |   www.bancosantander.es',
+            '',
+            '--------------------------------------------------------------',
+            'DATOS DE LA OPERACIÓN',
+            '--------------------------------------------------------------',
+            'Tipo de operación .............. REINTEGRO DE EFECTIVO EN VENTANILLA',
+            'Fecha de la operación .......... 01/07/2026     Hora: 10:42',
+            'Número de justificante ......... 0049-2026-0701-018734',
+            'Canal .......................... Oficina / Ventanilla 3',
+            '',
+            '--------------------------------------------------------------',
+            'CUENTA DE CARGO',
+            '--------------------------------------------------------------',
+            'Titular ........................ R CAR ROGIL, S.L.',
+            'CIF ............................ B26729731',
+            'IBAN ........................... ES14 0049 1234 5678 9012 3456',
+            'Entidad / Oficina .............. 0049 / 0049',
+            '',
+            '--------------------------------------------------------------',
+            'IMPORTE ENTREGADO',
+            '--------------------------------------------------------------',
+            '**Efectivo entregado ............ 1.000,00 EUR',
+            'Comisión de la operación ....... 0,00 EUR',
+            'Total adeudado en cuenta ....... 1.000,00 EUR',
+            '',
+            'Concepto: Fondeo de caja para gastos de taller.',
+            '',
+            '--------------------------------------------------------------',
+            '',
+            'El cliente declara haber recibido el importe indicado en efectivo.',
+            'Conserve este resguardo como justificante de la retirada.',
+            '',
+            '',
+            'Firma del cliente                        Sello y firma de la entidad',
+            '_______________________                 _______________________',
+            '',
+            'Documento de ejemplo para la prueba del sistema - R Car Rogil ERP',
+        ],
+    )
+
 def main():
     os.makedirs(BASE, exist_ok=True)
 
@@ -610,3 +663,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    # --- Soporte del fondeo de la caja: retirada de efectivo ---
+    generar_resguardo_retirada(
+        os.path.join(BASE, '12_RESGUARDO_retirada_efectivo_01072026.pdf')
+    )

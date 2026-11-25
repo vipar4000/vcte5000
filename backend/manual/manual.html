@@ -73,6 +73,7 @@
                 <li><a href="#capitulo-9-3"><span class="chapter-num">9.3</span> Conciliacion Bancaria</a></li>
                 <li><a href="#capitulo-9-4"><span class="chapter-num">9.4</span> Depositos Bancarios</a></li>
                 <li><a href="#capitulo-9-5"><span class="chapter-num">9.5</span> Caja de efectivo (570)</a></li>
+                <li><a href="#capitulo-9-5-3"><span class="chapter-num">9.5.3</span> Traspaso banco &rarr; caja</a></li>
             </ul>
         </li>
         <li><a href="#capitulo-10"><span class="chapter-num">10.</span> Reservas (Arras / Senales)</a>
@@ -2907,6 +2908,34 @@ en metálico.</p>
     <tr><td>Deposito / retirada de efectivo</td>
         <td>Use <strong>Registrar deposito</strong> en la ficha de la caja</td></tr>
 </table>
+
+<h3 id="capitulo-9-5-3">9.5.3 Traspaso de efectivo banco &rarr; caja (retirada real)</h3>
+
+<p>El dinero de la caja no aparece por generacion espontanea: en la operativa real se <strong>retira del banco</strong>.
+Para que las dos cuentas y la contabilidad reflejen ese movimiento, use el <strong>traspaso</strong>, no un
+deposito normal.</p>
+
+<ol class="steps">
+    <li>Abra la ficha de la cuenta de <strong>origen</strong> (por ejemplo, Santander) en &#127974; Banco &gt; Cuentas.</li>
+    <li>Pulse <strong>&#128257; Traspaso a otra cuenta</strong>.</li>
+    <li>Cuenta de destino: <strong>Caja</strong>. Fecha: la de la retirada. Importe: por ejemplo <code>1.000,00</code>.</li>
+    <li>Adjunte el <strong>resguardo de retirada</strong> del banco (PDF o foto).</li>
+    <li>Pulse <strong>Registrar traspaso</strong>.</li>
+</ol>
+
+<table>
+    <tr><th>Que ocurre</th><th>Detalle</th></tr>
+    <tr><td>Asiento unico</td><td><strong>DEBE 570 Caja</strong> / <strong>HABER 572 Banco</strong> por el importe</td></tr>
+    <tr><td>Banco (origen)</td><td><strong>EGRESO</strong> por el importe; el saldo baja. No se puede traspasar mas de lo disponible</td></tr>
+    <tr><td>Caja (destino)</td><td><strong>INGRESO</strong> por el importe; el saldo sube</td></tr>
+    <tr><td>Soporte</td><td>El resguardo queda adjunto a los dos movimientos</td></tr>
+</table>
+
+<div class="warning-box">
+    <strong>No use «+ Agregar Deposito» para fondear la caja desde el banco:</strong> el deposito crea un
+    ingreso con contrapartida 110 (aportacion) y <strong>no descuenta</strong> el dinero del banco. Para mover
+    efectivo entre cuentas, use siempre <strong>Traspaso</strong>.
+</div>
 
 <div class="info-box">
     <strong>Sin conciliacion bancaria:</strong> la caja no se concilia con extractos (no los tiene). Su

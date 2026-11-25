@@ -40,6 +40,10 @@
                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
                 + Agregar Deposito
             </a>
+            <a href="{% url 'bank:traspaso_create' pk=cuenta.pk %}"
+               class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                🔁 Traspaso a otra cuenta
+            </a>
             <a href="{% url 'bank:cuenta_list' %}" class="text-eurocar-blue hover:underline">← Volver</a>
         </div>
     </div>

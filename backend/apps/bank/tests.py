@@ -4,6 +4,7 @@ Regresión detectada en la prueba de Madrid: al crear la primera cuenta bancaria
 («Banco → Nueva cuenta»), el desplegable «Cuenta contable» aparecía vacío porque
 nadie había pulsado todavía «Inicializar PGC», y el formulario no dejaba guardar.
 """
+from decimal import Decimal
 from datetime import date
 
 from django.test import TestCase
@@ -421,3 +422,113 @@ class CajaEfectivoTests(TestCase):
         )
 
         self.assertEqual(caja.saldo, Decimal('380.00'))
+
+
+class TraspasoTesoreriaTests(TestCase):
+    """Traspaso real Banco (572) -> Caja (570) con asiento único."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=self.banco, fecha='2026-06-30',
+            concepto='Depósito inicial', tipo='INGRESO',
+            importe=Decimal('5000.00'),
+        )
+        self.caja = BancoCuenta.objects.create(
+            nombre='Caja', cuenta_contable=CuentaContable.objects.get(codigo='570'),
+        )
+
+    def _post(self, **extra):
+        datos = {
+            'origen': self.banco.pk,
+            'destino': self.caja.pk,
+            'fecha': '2026-07-01',
+            'importe': '1000.00',
+            'concepto': 'Fondeo de caja',
+        }
+        datos.update(extra)
+        return self.client.post(
+            reverse('bank:traspaso_create', args=[self.banco.pk]), datos
+        )
+
+    def test_el_traspaso_mueve_el_dinero_y_cuadra_la_contabilidad(self):
+        from apps.accounting.models import AsientoContable
+        from apps.bank.models import BancoMovimiento
+
+        respuesta = self._post()
+
+        self.assertEqual(respuesta.status_code, 302)
+
+        salida = BancoMovimiento.objects.get(
+            banco_cuenta=self.banco, tipo='EGRESO'
+        )
+        entrada = BancoMovimiento.objects.get(
+            banco_cuenta=self.caja, tipo='INGRESO'
+        )
+        self.assertEqual(salida.importe, Decimal('1000.00'))
+        self.assertEqual(entrada.importe, Decimal('1000.00'))
+        self.assertEqual(salida.asiento_asociado_id, entrada.asiento_asociado_id)
+
+        asiento = AsientoContable.objects.get(tipo_documento='TraspasoTesoreria')
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.assertTrue(asiento.esta_cuadrado)
+        debe = {m.cuenta.codigo: m.debe for m in asiento.movimientos.all()}
+        haber = {m.cuenta.codigo: m.haber for m in asiento.movimientos.all()}
+        self.assertEqual(debe['570'], Decimal('1000.00'))
+        self.assertEqual(haber['572'], Decimal('1000.00'))
+
+        # En banco el «saldo» solo cuenta lo conciliado; el total es
+        # saldo_pendiente. La caja cuenta todos sus movimientos.
+        self.assertEqual(self.banco.saldo_pendiente, Decimal('4000.00'))
+        self.assertEqual(self.caja.saldo, Decimal('1000.00'))
+
+    def test_no_se_permite_traspasar_mas_que_el_saldo(self):
+        from apps.bank.models import BancoMovimiento
+
+        respuesta = self._post(importe='9000.00')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Saldo insuficiente')
+        self.assertFalse(
+            BancoMovimiento.objects.filter(banco_cuenta=self.caja).exists()
+        )
+
+    def test_origen_y_destino_no_pueden_ser_la_misma_cuenta(self):
+        respuesta = self._post(destino=self.banco.pk)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'deben ser distintas')
+
+    def test_el_resguardo_se_adjunta_a_los_dos_movimientos(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.bank.models import BancoMovimiento
+
+        resguardo = SimpleUploadedFile(
+            'resguardo.pdf', b'%PDF-1.4 prueba', content_type='application/pdf'
+        )
+
+        respuesta = self._post(soporte=resguardo)
+
+        self.assertEqual(respuesta.status_code, 302)
+        traspaso = BancoMovimiento.objects.filter(
+            concepto__startswith='Fondeo de caja'
+        )
+        self.assertEqual(traspaso.count(), 2)
+        for movimiento in traspaso:
+            self.assertTrue(movimiento.soporte)

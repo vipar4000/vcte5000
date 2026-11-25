@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Traspaso de tesorería{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'bank:cuenta_detail' pk=cuenta_origen.pk %}"
+           class="text-eurocar-blue hover:underline text-sm">← Volver a {{ cuenta_origen.nombre }}</a>
+        <h1 class="text-2xl font-bold text-gray-800 mt-2">🔁 Traspaso de tesorería</h1>
+    </div>
+
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 text-sm text-blue-800">
+        <p>
+            <strong>Movimiento real de efectivo:</strong> el importe sale de la cuenta de origen
+            (EGRESO) y entra en la de destino (INGRESO) con un único asiento
+            <code>DEBE destino / HABER origen</code>.
+        </p>
+        <p class="mt-1">
+            Ejemplo típico: retirada de 1.000,00 € del banco para fondear la caja antes de pagar en
+            efectivo. Adjunte el resguardo de la retirada.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border-l-4 border-red-400 p-3 mb-4 text-sm text-red-800">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            {% for campo in form %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ campo.label }}</label>
+                {{ campo }}
+                {% if campo.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ campo.help_text }}</p>
+                {% endif %}
+                {% if campo.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ campo.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-end gap-4 mt-6">
+                <a href="{% url 'bank:cuenta_detail' pk=cuenta_origen.pk %}"
+                   class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+                <button type="submit"
+                        class="px-6 py-2 bg-eurocar-blue text-white rounded-lg hover:bg-blue-800 transition">
+                    🔁 Registrar traspaso
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
