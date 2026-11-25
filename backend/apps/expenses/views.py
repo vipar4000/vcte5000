@@ -235,6 +235,13 @@ def gasto_delete(request, pk):
 
     gasto = get_object_or_404(GastoEstructura, pk=pk)
 
+    from apps.core.protecciones import motivo_no_borrar_gasto
+
+    motivo = motivo_no_borrar_gasto(gasto)
+    if motivo:
+        messages.error(request, motivo)
+        return redirect('expenses:detail', pk=pk)
+
     if request.method == 'POST':
         gasto.delete()
         messages.success(request, 'Gasto eliminado correctamente.')

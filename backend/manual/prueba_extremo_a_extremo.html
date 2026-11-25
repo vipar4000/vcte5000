@@ -1099,59 +1099,62 @@ y vendido en <strong>11.500 €</strong>. Si usa otro vehículo, cambie solo eso
 
 <h1 id="hallazgos">6. Hallazgos conocidos</h1>
 
-<p>Estos comportamientos están verificados sobre el sistema actual. <strong>No los reporte como fallos
-nuevos</strong>: están aquí para que la prueba los confirme y para decidir si se corrigen antes de producción.</p>
+<p>Estos comportamientos estaban verificados en la versión de pruebas. <strong>Tras la
+revisión contable y la decisión de pase a producción ya están resueltos</strong>: el sistema
+bloquea el borrado con un mensaje claro cuando hay operaciones asociadas y las compras de
+recambios se anulan con abono. Los movimientos de banco <strong>no se borran nunca</strong>
+(normativa contable española): se compensan.</p>
 
 <table>
-  <tr><th>#</th><th>Hallazgo</th><th>Efecto</th><th>Gravedad</th></tr>
+  <tr><th>#</th><th>Hallazgo original</th><th>Cómo está ahora</th></tr>
   <tr>
     <td>H1</td>
-    <td>Anular el asiento de un depósito no descuadra el módulo Banco</td>
-    <td>El saldo del banco sigue mostrando el dinero aunque la contabilidad ya no lo recoja</td>
-    <td>Media</td>
+    <td>Anular el asiento de un depósito dejaba el módulo Banco descuadrado</td>
+    <td><strong>Bloqueado:</strong> un asiento vinculado a un movimiento de banco no se
+        puede anular; el aviso pide registrar el movimiento de compensación</td>
   </tr>
   <tr>
     <td>H2</td>
-    <td>Eliminar un gasto no anula su asiento</td>
-    <td>El gasto desaparece del listado pero sigue en la contabilidad</td>
-    <td><strong>Alta</strong></td>
+    <td>Eliminar un gasto no anulaba su asiento</td>
+    <td><strong>Bloqueado:</strong> un gasto con asiento o pago no se puede eliminar;
+        el aviso indica deshacer primero el pago o anular el asiento</td>
   </tr>
   <tr>
     <td>H3</td>
-    <td>Eliminar una OT no devuelve el material al stock</td>
-    <td>El inventario queda inflado tras la anulación</td>
-    <td>Media</td>
+    <td>Eliminar una OT no devolvía el material al stock</td>
+    <td><strong>Bloqueado:</strong> una OT con materiales consumidos o capitalización
+        contable no se puede eliminar</td>
   </tr>
   <tr>
     <td>H4</td>
-    <td>Las compras de material no se pueden eliminar</td>
-    <td>Un error de compra solo se corrige anulando asientos y ajustando el stock a mano</td>
-    <td><strong>Alta</strong></td>
+    <td>Las compras de material no se podían corregir</td>
+    <td><strong>Resuelto:</strong> botón <strong>↩️ Anular compra / Abono</strong> en la
+        factura: devuelve el stock, genera el contra-asiento y compensa el banco</td>
   </tr>
   <tr>
     <td>H5</td>
-    <td>Eliminar un vehículo no revierte su pago bancario</td>
-    <td>Queda un EGRESO huérfano y el banco no coincide con la contabilidad</td>
-    <td><strong>Alta</strong></td>
+    <td>Eliminar un vehículo no revertía su pago bancario</td>
+    <td><strong>Bloqueado:</strong> un vehículo con OT, asiento de compra o pago en banco
+        no se puede eliminar</td>
   </tr>
   <tr>
     <td>H6</td>
-    <td>Anular una venta desde «Eliminar» deja el cobro en el banco</td>
-    <td>El INGRESO del cliente permanece aunque la venta desaparezca</td>
-    <td><strong>Alta</strong></td>
+    <td>Anular una venta desde «Eliminar» dejaba el cobro en el banco</td>
+    <td><strong>Resuelto:</strong> la venta se deshace entera (asiento anulado con
+        contrapartida, reserva y vehículo liberados) y el cobro se <strong>compensa</strong>
+        con un EGRESO; el movimiento original se conserva</td>
   </tr>
   <tr>
     <td>H7</td>
     <td>No hay forma de borrar movimientos bancarios</td>
-    <td>Los movimientos erróneos solo se compensan con otro movimiento</td>
-    <td>Media</td>
+    <td><strong>Aceptado tal cual:</strong> los movimientos de banco no se borran,
+        se compensan</td>
   </tr>
-
   <tr>
     <td>H9</td>
-    <td>Eliminar un vehículo con venta asociada lanza un error interno</td>
-    <td>Los datos se protegen correctamente, pero el usuario ve un error 500 en vez de un aviso</td>
-    <td>Media</td>
+    <td>Eliminar un vehículo con venta asociada lanzaba un error 500</td>
+    <td><strong>Resuelto:</strong> mensaje estándar («no se puede eliminar un vehículo con
+        una venta asociada»), sin error interno</td>
   </tr>
 </table>
 
@@ -1189,6 +1192,23 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
     <td>El generador automático de nóminas no encontraba administrador y no generaba nada</td>
     <td>Genera las nóminas del periodo sin duplicarlas (paso B6)</td>
   </tr>
+  <tr>
+    <td>C7</td>
+    <td>Borrar una cuenta bancaria con depósito daba error 500 (PostgreSQL)</td>
+    <td>La cuenta, el depósito y su asiento se guardan juntos o nada</td>
+  </tr>
+  <tr>
+    <td>C8</td>
+    <td>Valoración de existencias: diferencia por la mano de obra de taller</td>
+    <td>El vehículo se valora con las OT contabilizadas y las pendientes se avisan como
+        «sin contabilizar» (diferencia 0)</td>
+  </tr>
+  <tr>
+    <td>C9</td>
+    <td>Modelo 303 con base imponible 0 y cuota distinta de 0</td>
+    <td>La base incluye servicios (62x) y solo operaciones con IVA; avisa si el trimestre
+        está vacío y enlaza al que tiene actividad</td>
+  </tr>
 </table>
 
 <h1 id="acta">7. Acta de la prueba</h1>
@@ -1204,7 +1224,7 @@ nuevos</strong>: están aquí para que la prueba los confirme y para decidir si 
   <tr><td>Copia de seguridad restaurada</td><td>Sí ☐ &nbsp;&nbsp; No ☐</td></tr>
   <tr><td>Pruebas automáticas del capítulo 20 (<code>test_pipeline_capitulo20.py</code>)</td><td class="fill">93 / 93 OK</td></tr>
   <tr><td>Pruebas automáticas del Anexo B (<code>prueba_anexo_b.py</code>)</td><td class="fill">46 / 46 OK</td></tr>
-  <tr><td>Suite de pruebas del sistema (<code>manage.py test</code>)</td><td class="fill">160 OK, 1 omitida</td></tr>
+  <tr><td>Suite de pruebas del sistema (<code>manage.py test</code>)</td><td class="fill">226 OK, 1 omitida</td></tr>
 </table>
 
 <h3>Fallos encontrados</h3>

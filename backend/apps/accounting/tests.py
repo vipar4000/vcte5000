@@ -624,3 +624,55 @@ class ExistenciasCapitalizacionOTTests(TestCase):
         self.assertFalse(AsientoContable.objects.filter(
             tipo_documento='OrdenTrabajo'
         ).exists())
+
+
+class AsientoConBancoNoSeAnulaTests(TestCase):
+    """H1: anular un asiento con movimiento de banco dejaría el banco descuadrado."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+            PlanContableDefault,
+        )
+        from apps.bank.models import BancoCuenta, BancoMovimiento
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.asiento = AsientoContable.objects.create(
+            numero='000950', fecha='2026-11-20',
+            concepto='Depósito inicial', estado='POSTEADO',
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=self.asiento, cuenta=CuentaContable.objects.get(codigo='572'),
+            debe=Decimal('1000.00'), haber=Decimal('0'),
+        )
+        MovimientoContable.objects.create(
+            asiento=self.asiento, cuenta=CuentaContable.objects.get(codigo='110'),
+            debe=Decimal('0'), haber=Decimal('1000.00'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=self.banco, fecha='2026-11-20',
+            concepto='Depósito inicial', tipo='INGRESO',
+            importe=Decimal('1000.00'), asiento_asociado=self.asiento,
+        )
+
+    def test_no_se_anula_un_asiento_vinculado_a_banco(self):
+        respuesta = self.client.post(
+            reverse('accounting:asiento_anular', args=[self.asiento.pk]),
+            follow=True,
+        )
+
+        self.asiento.refresh_from_db()
+        self.assertEqual(self.asiento.estado, 'POSTEADO')
+        self.assertContains(respuesta, 'movimientos de banco no se borran')

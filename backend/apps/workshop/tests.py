@@ -417,6 +417,68 @@ class CompraMaterialTests(TestCase):
             precio_unitario=35.00,
         )
 
+
+    def test_anular_compra_contado_devuelve_stock_y_compensa_banco(self):
+        """H4: abono de una compra — stock, contra-asiento y banco compensado."""
+        from apps.accounting.models import AsientoContable
+        from apps.bank.models import BancoMovimiento
+        from apps.workshop.models import CompraMaterial
+
+        self._banco_con_saldo(saldo='2000.00')
+        self._post_compra(forma_pago='572', cantidad='20')
+
+        compra = CompraMaterial.objects.get()
+        self.aceite.refresh_from_db()
+        self.assertEqual(self.aceite.stock_actual, 20)
+        self.assertFalse(compra.anulada)
+
+        egreso_inicial = BancoMovimiento.objects.filter(tipo='EGRESO').count()
+        self.assertEqual(egreso_inicial, 1)
+
+        respuesta = self.client.post(
+            reverse('workshop:compra_anular', args=[compra.factura_grupo])
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        compra.refresh_from_db()
+        self.aceite.refresh_from_db()
+
+        # Stock devuelto
+        self.assertEqual(self.aceite.stock_actual, 0)
+        # Línea marcada (el histórico se conserva)
+        self.assertTrue(compra.anulada)
+        self.assertIsNotNone(compra.fecha_anulacion)
+        # Asiento de compra anulado con contrapartida posteada
+        compra_asiento = AsientoContable.objects.get(pk=compra.asiento_contable_id)
+        self.assertEqual(compra_asiento.estado, 'ANULADO')
+        reversion = AsientoContable.objects.filter(
+            tipo_documento='AnulacionCompra', documento_id=compra.pk
+        ).first()
+        self.assertIsNotNone(reversion)
+        self.assertEqual(reversion.estado, 'POSTEADO')
+        # Banco: no se borra nada; hay EGRESO + INGRESO de compensación
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='EGRESO').count(), 1)
+        self.assertEqual(BancoMovimiento.objects.filter(tipo='INGRESO').count(), 2)
+        compensacion = BancoMovimiento.objects.filter(
+            tipo='INGRESO', notas__icontains='Compensación por anulación'
+        ).first()
+        self.assertIsNotNone(compensacion)
+
+    def test_no_se_puede_anular_dos_veces_la_misma_compra(self):
+        from apps.workshop.models import CompraMaterial
+
+        self._crear_compra_credito()
+        compra = CompraMaterial.objects.get()
+
+        self.client.post(reverse('workshop:compra_anular', args=[compra.factura_grupo]))
+        respuesta = self.client.post(
+            reverse('workshop:compra_anular', args=[compra.factura_grupo]),
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'ya estaba anulada')
+
     def test_compra_material_con_linea_vacia_no_falla(self):
         """Una línea rellena y otra vacía debe procesar solo la rellena."""
         self.client.force_login(self.admin)
@@ -1210,3 +1272,53 @@ class CompraFacturaFlujoTest(TestCase):
             )
             self.assertIn('corregida', nueva.documento_pdf.name)
             self.assertNotContains(respuesta, 'PDF no disponible')
+
+
+class BorradoOTProtegidoTests(TestCase):
+    """H3: una OT con materiales no se borra (el stock quedaría inflado)."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from django.urls import reverse
+
+        from apps.accounting.models import PlanContableDefault
+        from apps.vehicles.models import Vehiculo
+        from apps.workshop.models import MaterialUsado, OrdenTrabajo
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='TALLER',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('1000.00'), tasas_sala=Decimal('0'),
+            logistica_grua=Decimal('0'), created_by=self.admin,
+        )
+        self.material = Material.objects.create(
+            nombre='Aceite 5W30', unidad='litros',
+            stock_actual=10, stock_minimo=1, precio_unitario=Decimal('8.50'),
+        )
+        self.ot = OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo, operario=self.admin,
+            titulo='Cambio de aceite', descripcion='Prueba',
+            estado='COMPLETADA', horas_reales=1, created_by=self.admin,
+        )
+        MaterialUsado.objects.create(
+            orden_trabajo=self.ot, material=self.material, cantidad=4,
+        )
+
+    def test_no_se_borra_una_ot_con_materiales(self):
+        respuesta = self.client.post(
+            reverse('workshop:delete_ot', args=[self.ot.pk]), follow=True
+        )
+
+        self.assertTrue(type(self.ot).objects.filter(pk=self.ot.pk).exists())
+        self.assertContains(respuesta, 'materiales consumidos')

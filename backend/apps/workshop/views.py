@@ -250,6 +250,13 @@ def orden_trabajo_update(request, pk):
 def orden_trabajo_delete(request, pk):
     """Eliminar una orden de trabajo (confirmación)."""
     ot = get_object_or_404(OrdenTrabajo, pk=pk)
+
+    from apps.core.protecciones import motivo_no_borrar_ot
+
+    motivo = motivo_no_borrar_ot(ot)
+    if motivo:
+        messages.error(request, motivo)
+        return redirect('workshop:detail_ot', pk=pk)
     
     if not request.user.is_admin:
         messages.error(request, 'No tiene permisos para eliminar OTs.')

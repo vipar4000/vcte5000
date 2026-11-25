@@ -1989,6 +1989,42 @@ Asiento contable generado:
 
 Verificacion: DEBE (544,50) = HABER (544,50) -> CUADRADO</code></pre>
 
+<h2>4.5 Borrados protegidos y anulacion de compras</h2>
+
+<p>Para no descuadrar banco, contabilidad ni stock, el ERP <strong>no permite borrar</strong>
+registros que ya tienen operaciones asociadas. En su lugar muestra un aviso claro y explica
+que hay que anular primero esas operaciones.</p>
+
+<table>
+    <tr><th>Registro</th><th>No se puede borrar si tiene...</th><th>Que hacer</th></tr>
+    <tr><td>Vehiculo</td><td>Venta, orden de trabajo, asiento de compra o pago en banco</td>
+        <td>Anule la venta / OT / asiento primero</td></tr>
+    <tr><td>Gasto</td><td>Asiento contable o pago registrado</td>
+        <td>Deshaga el pago y anule su asiento</td></tr>
+    <tr><td>Orden de trabajo</td><td>Materiales consumidos o asiento de capitalizacion</td>
+        <td>Anule el asiento de la OT</td></tr>
+    <tr><td>Asiento contable</td><td>Movimiento de banco vinculado</td>
+        <td>Registre el movimiento de banco contrario (los movimientos no se borran)</td></tr>
+    <tr><td>Movimiento de banco</td><td>Siempre</td>
+        <td>Se compensa con otro movimiento (normativa contable)</td></tr>
+</table>
+
+<h3>4.5.1 Anular una compra de recambios (abono)</h3>
+<ol class="steps">
+    <li>Vaya a <strong>Taller &gt; Compras</strong> y abra la factura.</li>
+    <li>Pulse <strong>&#8617;&#65039; Anular compra / Abono</strong> y confirme.</li>
+    <li>El sistema devuelve el stock al inventario, anula los asientos
+        <strong>con contrapartida</strong> y registra el movimiento de banco contrario.</li>
+    <li>La factura queda marcada como <strong>anulada</strong> y se conserva en el historico
+        (Ley Antifraude).</li>
+</ol>
+
+<div class="info-box">
+    <strong>Los movimientos de banco no se borran nunca:</strong> cuando se anula una venta o
+    una compra se registra el movimiento contrario. Asi el banco y la contabilidad siguen
+    cuadrando y queda la traza completa.
+</div>
+
 <h3>8.6.3.1 Modulo de Nominas (Payroll App)</h3>
 <div class="info-box">
     <strong>Importante (v3.0):</strong> Las nominas y la Seguridad Social patronal se han separado

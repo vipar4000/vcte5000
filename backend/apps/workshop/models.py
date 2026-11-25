@@ -261,6 +261,11 @@ class MaterialUsado(models.Model):
         super().save(*args, **kwargs)
 
 
+def tipo_documento_legible(asiento):
+    """Sufijo para el tipo de documento del contra-asiento."""
+    return 'PagoCompra' if asiento.tipo_documento == 'PagoCompraMaterial' else 'Compra'
+
+
 class CompraMaterial(models.Model):
     """Compra de material de inventario de taller con factura y asiento contable."""
 
@@ -388,6 +393,103 @@ class CompraMaterial(models.Model):
                 )
         else:
             super().save(*args, **kwargs)
+
+    # Anulación de la factura (abono): conserva el histórico, devuelve stock y
+    # compensa los asientos y el banco sin borrar nada.
+    anulada = models.BooleanField(default=False, verbose_name='anulada')
+    fecha_anulacion = models.DateField(
+        null=True, blank=True, verbose_name='fecha de anulación'
+    )
+    anulada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='compras_material_anuladas',
+        verbose_name='anulada por',
+    )
+
+    def anular(self, user):
+        """Anula esta línea de compra (abono).
+
+        Devuelve la cantidad al stock y revierte sus asientos **con
+        contrapartida**, compensando el banco con el movimiento contrario (los
+        movimientos de banco no se borran, H7). La línea queda marcada como
+        anulada y sigue en el histórico (Ley Antifraude).
+        """
+        from datetime import date
+
+        from django.db import transaction
+
+        from apps.accounting.models import AsientoContable
+
+        if self.anulada:
+            raise ValueError('Esta compra ya está anulada.')
+
+        with transaction.atomic():
+            material = Material.objects.select_for_update().get(pk=self.material_id)
+            material.stock_actual -= self.cantidad
+            material.alerta_stock = material.stock_actual <= material.stock_minimo
+            material.save(update_fields=['stock_actual', 'alerta_stock'])
+
+            for tipo in ('CompraMaterial', 'PagoCompraMaterial'):
+                asiento = AsientoContable.objects.filter(
+                    tipo_documento=tipo, documento_id=self.pk,
+                ).exclude(estado='ANULADO').first()
+                if asiento:
+                    self._revertir_asiento(asiento, user)
+
+            self.anulada = True
+            self.pagado = False
+            self.fecha_anulacion = date.today()
+            self.anulada_por = user
+            self.save(update_fields=[
+                'anulada', 'pagado', 'fecha_anulacion', 'anulada_por',
+            ])
+
+    def _revertir_asiento(self, asiento, user):
+        """Contra-asiento del asiento indicado + compensación bancaria."""
+        from datetime import date
+
+        from apps.accounting.models import AsientoContable, MovimientoContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoMovimiento
+        from apps.bank.services import crear_movimiento_banco
+
+        reversion = AsientoContable.objects.create(
+            numero=generar_numero_asiento(),
+            fecha=date.today(),
+            concepto=f'ANULACIÓN compra: {asiento.concepto}',
+            estado='BORRADOR',
+            tipo_documento=f'Anulacion{tipo_documento_legible(asiento)}',
+            documento_id=self.pk,
+            created_by=user,
+        )
+        for mov in asiento.movimientos.all():
+            MovimientoContable.objects.create(
+                asiento=reversion,
+                cuenta=mov.cuenta,
+                debe=mov.haber,
+                haber=mov.debe,
+                descripcion=f'Reversión: {mov.descripcion}',
+            )
+        if reversion.esta_cuadrado:
+            reversion.estado = 'POSTEADO'
+            reversion.save(update_fields=['estado'])
+
+        # Compensar el banco (nunca borrar el movimiento original)
+        for movimiento in BancoMovimiento.objects.filter(asiento_asociado=asiento):
+            crear_movimiento_banco(
+                banco_cuenta=movimiento.banco_cuenta,
+                fecha=date.today(),
+                concepto=f'Anulación compra: {asiento.concepto}',
+                tipo='INGRESO' if movimiento.tipo == 'EGRESO' else 'EGRESO',
+                importe=movimiento.importe,
+                asiento=reversion,
+                notas='Compensación por anulación de compra',
+            )
+
+        asiento.estado = 'ANULADO'
+        asiento.save(update_fields=['estado'])
 
     def revertir(self, user):
         """Deshace esta línea antes de corregirla.

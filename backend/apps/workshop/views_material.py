@@ -404,6 +404,50 @@ def compra_material_create(request):
 
 
 @login_required
+def compra_anular(request, grupo):
+    """Anula una factura de compra (abono): stock, contra-asiento y banco."""
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para anular compras.')
+        return redirect('workshop:compra_list')
+
+    lineas = _lineas_de_factura(grupo)
+    if not lineas:
+        raise Http404('Factura de compra no encontrada')
+
+    if request.method != 'POST':
+        return redirect('workshop:compra_detail', grupo=grupo)
+
+    anuladas = 0
+    errores = []
+    try:
+        with transaction.atomic():
+            for linea in lineas:
+                if linea.anulada:
+                    continue
+                try:
+                    linea.anular(request.user)
+                    anuladas += 1
+                except ValueError as error:
+                    errores.append(str(error))
+    except ValueError as error:
+        messages.error(request, str(error))
+        return redirect('workshop:compra_detail', grupo=grupo)
+
+    if anuladas:
+        messages.success(
+            request,
+            f'Compra anulada: {anuladas} línea(s). Se ha devuelto el stock y '
+            f'se ha generado el contra-asiento y la compensación en banco.',
+        )
+    for error in errores:
+        messages.warning(request, error)
+    if not anuladas:
+        messages.info(request, 'La compra ya estaba anulada.')
+
+    return redirect('workshop:compra_detail', grupo=grupo)
+
+
+@login_required
 def compra_list(request):
     """Historial de facturas de compra (agrupadas por factura)."""
     if not request.user.is_admin:
@@ -522,6 +566,7 @@ def compra_detail(request, grupo):
         'vencida': vencida,
         'hoy': hoy,
         'pdf_disponible': pdf_disponible,
+        'anulada': all(linea.anulada for linea in lineas),
     })
 
 

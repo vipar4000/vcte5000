@@ -618,3 +618,62 @@ class CatalogoVendidosTests(TestCase):
         self.vehiculo.save(update_fields=['estado'])
         self.vehiculo.refresh_from_db()
         self.assertIsNone(self.vehiculo.fecha_vendido)
+
+
+class BorradoVehiculoProtegidoTests(TestCase):
+    """H5/H9: no se borra un vehículo con operaciones; mensaje claro."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.operario = User.objects.create_user(
+            username='mecanico1', email='m@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+        )
+        self.client.force_login(self.admin)
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='ADQUIRIDO',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('1000.00'), tasas_sala=Decimal('0'),
+            logistica_grua=Decimal('0'), created_by=self.admin,
+        )
+
+    def test_no_se_borra_un_vehiculo_con_ot(self):
+        from apps.workshop.models import OrdenTrabajo
+
+        OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo, operario=self.operario,
+            titulo='Reparación', descripcion='Prueba',
+            estado='COMPLETADA', horas_reales=1, created_by=self.admin,
+        )
+
+        respuesta = self.client.post(
+            reverse('vehicles:delete', args=[self.vehiculo.pk]),
+            follow=True,
+        )
+
+        self.assertTrue(Vehiculo.objects.filter(pk=self.vehiculo.pk).exists())
+        self.assertContains(respuesta, 'órdenes de trabajo')
+
+    def test_no_se_borra_un_vehiculo_vendido(self):
+        self.vehiculo.estado = 'VENDIDO'
+        self.vehiculo.save(update_fields=['estado'])
+
+        respuesta = self.client.post(
+            reverse('vehicles:delete', args=[self.vehiculo.pk]),
+            follow=True,
+        )
+
+        self.assertTrue(Vehiculo.objects.filter(pk=self.vehiculo.pk).exists())
+        self.assertContains(respuesta, 'vendido')

@@ -319,14 +319,32 @@ def _deshacer_venta(venta, user):
         asiento.estado = 'ANULADO'
         asiento.save(update_fields=['estado'])
 
-        # 2) Quitar el cobro de esta venta en el banco
-        BancoMovimiento.objects.filter(asiento_asociado=asiento).delete()
+        # 2) Compensar el cobro de esta venta en el banco. Los movimientos de
+        # banco no se borran nunca (H7): se registra el contrario.
+        from apps.bank.services import crear_movimiento_banco
 
-    BancoMovimiento.objects.filter(
-        vehiculo_asociado=vehiculo,
-        tipo='INGRESO',
-        concepto__startswith='Cobro venta',
-    ).delete()
+        # Se unifican por id para no compensar dos veces el mismo movimiento.
+        movimientos_venta = {
+            m.pk: m
+            for m in BancoMovimiento.objects.filter(asiento_asociado=asiento)
+        }
+        for movimiento in BancoMovimiento.objects.filter(
+            vehiculo_asociado=vehiculo,
+            tipo='INGRESO',
+            concepto__startswith='Cobro venta',
+        ):
+            movimientos_venta.setdefault(movimiento.pk, movimiento)
+
+        for movimiento in movimientos_venta.values():
+            crear_movimiento_banco(
+                banco_cuenta=movimiento.banco_cuenta,
+                fecha=date.today(),
+                concepto=f'Anulación venta: {movimiento.concepto}',
+                tipo='EGRESO' if movimiento.tipo == 'INGRESO' else 'INGRESO',
+                importe=movimiento.importe,
+                asiento=reversion,
+                notas='Compensación por anulación de venta',
+            )
 
     # 3) La reserva vuelve a estar activa (el dinero de la señal sigue en banco)
     Reserva.objects.filter(venta=venta, estado='CONVERTIDA').update(

@@ -189,6 +189,13 @@ def asiento_anular(request, pk):
         messages.error(request, 'Solo administradores pueden anular asientos.')
         return redirect('accounting:detail', pk=pk)
     asiento = get_object_or_404(AsientoContable, pk=pk)
+
+    from apps.core.protecciones import motivo_no_anular_asiento
+
+    motivo = motivo_no_anular_asiento(asiento)
+    if motivo:
+        messages.error(request, motivo)
+        return redirect('accounting:detail', pk=asiento.pk)
     
     if asiento.estado == 'ANULADO':
         messages.error(request, 'El asiento ya está anulado')

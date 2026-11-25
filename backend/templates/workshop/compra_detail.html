@@ -24,6 +24,16 @@
                 📎 PDF no disponible
             </span>
             {% endif %}
+            {% if not anulada %}
+            <form method="post" action="{% url 'workshop:compra_anular' grupo %}"
+                  onsubmit="return confirm('¿Anular esta compra? Se devolverá el stock y se generará el contra-asiento. No se borra nada.');">
+                {% csrf_token %}
+                <button type="submit"
+                        class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition">
+                    ↩️ Anular compra / Abono
+                </button>
+            </form>
+            {% endif %}
             <a href="{% url 'workshop:compra_edit' grupo %}"
                class="px-4 py-2 border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition">
                 ✏️ Editar
@@ -34,6 +44,14 @@
             </a>
         </div>
     </div>
+
+    {% if anulada %}
+    <div class="bg-gray-100 border border-gray-300 text-gray-700 rounded-lg p-4">
+        <strong>Compra anulada.</strong> El stock se devolvió y se generó el
+        contra-asiento con su compensación en banco. El documento se conserva
+        en el histórico (Ley Antifraude).
+    </div>
+    {% endif %}
 
     <!-- Aviso de vencimiento -->
     {% if vencida %}

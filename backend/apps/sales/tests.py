@@ -356,11 +356,18 @@ class VentaConReservaTests(TestCase):
             AsientoContable.objects.filter(tipo_documento='AnulacionVenta').exists()
         )
 
-        # Cobro de la venta fuera del banco; la señal sigue
+        # El cobro no se borra: se compensa con un EGRESO del mismo importe.
+        # La señal de la reserva permanece intacta.
         self.assertEqual(
-            [m.importe for m in BancoMovimiento.objects.filter(tipo='INGRESO')],
-            [Decimal('1000.00')],
+            sorted(
+                m.importe
+                for m in BancoMovimiento.objects.filter(tipo='INGRESO')
+            ),
+            [Decimal('1000.00'), Decimal('10500.00')],
         )
+        self.assertTrue(BancoMovimiento.objects.filter(
+            tipo='EGRESO', concepto__startswith='Anulación venta'
+        ).exists())
 
         # Vehículo disponible y reserva activa otra vez
         self.vehiculo.refresh_from_db()

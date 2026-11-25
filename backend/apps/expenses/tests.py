@@ -1,6 +1,7 @@
 from decimal import Decimal
 from datetime import date
 from django.test import TestCase
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from apps.expenses.models import GastoEstructura
 from apps.expenses.forms import GastoEstructuraForm, _parse_decimal_spanish
@@ -385,3 +386,41 @@ class GastoEstructuraPagoViewTest(TestCase):
                 documento_id=self.gasto.pk,
             ).exists()
         )
+
+
+class BorradoGastoProtegidoTests(TestCase):
+    """H2: un gasto con asiento contable no se borra: mensaje claro."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        CuentaContable.objects.get_or_create(
+            codigo='4751.115',
+            defaults={'nombre': 'Retenciones IRPF', 'tipo': 'P'},
+        )
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        self.gasto = GastoEstructura.objects.create(
+            fecha_factura='2026-11-01',
+            proveedor_acreedor='Proveedor S.L.',
+            cif_nif='B12345678',
+            categoria='SUMINISTROS',
+            base_imponible=Decimal('100.00'),
+            tipo_iva=Decimal('21.00'),
+            created_by=self.admin,
+        )
+        self.gasto.crear_asiento_contable()
+
+    def test_no_se_borra_un_gasto_con_asiento(self):
+        respuesta = self.client.post(
+            reverse('expenses:delete', args=[self.gasto.pk]), follow=True
+        )
+
+        self.assertTrue(GastoEstructura.objects.filter(pk=self.gasto.pk).exists())
+        self.assertContains(respuesta, 'asiento contable')

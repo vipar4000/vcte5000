@@ -322,11 +322,28 @@ def vehiculo_delete(request, pk):
     if vehiculo.estado == 'VENDIDO':
         messages.error(request, 'No se puede eliminar un vehículo vendido.')
         return redirect('vehicles:detail', pk=pk)
+
+    from apps.core.protecciones import motivo_no_borrar_vehiculo
+
+    motivo = motivo_no_borrar_vehiculo(vehiculo)
+    if motivo:
+        messages.error(request, motivo)
+        return redirect('vehicles:detail', pk=pk)
     
     if request.method == 'POST':
         marca = vehiculo.marca
         modelo = vehiculo.modelo
-        vehiculo.delete()
+        from django.db.models.deletion import ProtectedError
+
+        try:
+            vehiculo.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                'No se puede eliminar este vehículo: tiene operaciones '
+                'asociadas (ventas, OT, asientos o pagos). Anúlelas primero.',
+            )
+            return redirect('vehicles:detail', pk=pk)
         messages.success(
             request, 
             f'Vehículo {marca} {modelo} eliminado correctamente.'
