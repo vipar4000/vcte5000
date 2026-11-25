@@ -255,6 +255,12 @@ def crear_factura_rectificativa(factura_original, tipo, motivo, usuario):
     """
     from .models import FacturaVenta, DetalleRebu
     from django.utils import timezone
+
+    if factura_original.tipo_factura in ('R1', 'R4'):
+        raise ValueError(
+            'No se puede rectificar una factura rectificativa. '
+            'Rectifique la factura original.'
+        )
     
     year = timezone.now().year
     ultima = FacturaVenta.objects.filter(
@@ -279,16 +285,18 @@ def crear_factura_rectificativa(factura_original, tipo, motivo, usuario):
         fecha_operacion=timezone.now().date(),
         cliente_nif=factura_original.cliente_nif,
         cliente_nombre=factura_original.cliente_nombre,
-        precio_venta_total=factura_original.precio_venta_total,
-        base_imponible_rebu=factura_original.base_imponible_rebu,
-        iva_repercutido=factura_original.iva_repercutido,
+        # Convención de abono: importes en negativo para distinguir la
+        # rectificativa de una factura de cargo.
+        precio_venta_total=-factura_original.precio_venta_total,
+        base_imponible_rebu=-factura_original.base_imponible_rebu,
+        iva_repercutido=-factura_original.iva_repercutido,
     )
     
     DetalleRebu.objects.create(
         factura=factura_rect,
         vehiculo=factura_original.venta.vehiculo,
         precio_adquisicion=factura_original.detalles_rebu.first().precio_adquisicion if factura_original.detalles_rebu.exists() else Decimal('0'),
-        precio_venta_final=factura_original.precio_venta_total,
+        precio_venta_final=-factura_original.precio_venta_total,
     )
     
     return factura_rect

@@ -214,7 +214,7 @@
                         {{ vehiculo.marca }} {{ vehiculo.modelo }} {{ vehiculo.anio }} — {{ vehiculo.matricula }}
                     </span>
                 </td>
-                <td style="text-align:right; font-weight:bold;">-€{{ factura.precio_venta_total|floatformat:2 }}</td>
+                <td style="text-align:right; font-weight:bold;">{{ factura.precio_venta_total|floatformat:2 }} €</td>
             </tr>
         </tbody>
     </table>
@@ -222,8 +222,16 @@
     <div class="totals">
         <table class="totals-table">
             <tr>
+                <td style="text-align:right;">Base imponible (margen REBU):</td>
+                <td style="text-align:right;">{{ factura.base_imponible_rebu|floatformat:2 }} €</td>
+            </tr>
+            <tr>
+                <td style="text-align:right;">Cuota IVA repercutido:</td>
+                <td style="text-align:right;">{{ factura.iva_repercutido|floatformat:2 }} €</td>
+            </tr>
+            <tr>
                 <td style="text-align:right;">Total rectificado (IVA incluido):</td>
-                <td style="text-align:right; font-weight:bold; font-size:14pt; color:#c62828;">-€{{ factura.precio_venta_total|floatformat:2 }}</td>
+                <td style="text-align:right; font-weight:bold; font-size:14pt; color:#c62828;">{{ factura.precio_venta_total|floatformat:2 }} €</td>
             </tr>
         </table>
     </div>

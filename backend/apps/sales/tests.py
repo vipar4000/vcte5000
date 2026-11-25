@@ -742,6 +742,40 @@ class DetalleRebuVariasFacturasTests(TestCase):
         )
 
 
+
+    def test_la_rectificativa_lleva_los_importes_en_negativo(self):
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R4', 'Devolución', self.admin
+        )
+
+        self.assertEqual(
+            rectificativa.precio_venta_total, -factura.precio_venta_total
+        )
+        self.assertEqual(
+            rectificativa.base_imponible_rebu, -factura.base_imponible_rebu
+        )
+        self.assertEqual(
+            rectificativa.iva_repercutido, -factura.iva_repercutido
+        )
+        self.assertLess(rectificativa.detalles_rebu.first().margen_bruto, 0)
+
+    def test_no_se_puede_rectificar_una_rectificativa(self):
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R1', 'Error', self.admin
+        )
+
+        with self.assertRaises(ValueError):
+            crear_factura_rectificativa(rectificativa, 'R1', 'Otra', self.admin)
+
     def test_la_pantalla_de_rectificativa_r4_funciona(self):
         """Caso real: «Nueva Factura Rectificativa» con R4 sobre la factura."""
         from apps.sales.models import DetalleRebu, FacturaVenta
@@ -764,6 +798,33 @@ class DetalleRebuVariasFacturasTests(TestCase):
         self.assertEqual(
             DetalleRebu.objects.filter(vehiculo=self.vehiculo).count(), 2
         )
+
+
+    def test_el_pdf_de_la_rectificativa_muestra_el_signo_negativo(self):
+        from django.template.loader import render_to_string
+
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R4', 'Devolución', self.admin
+        )
+
+        html = render_to_string('sales/factura_rectificativa.html', {
+            'factura': rectificativa,
+            'venta': venta,
+            'vehiculo': self.vehiculo,
+            'empresa': {
+                'nombre': 'R Car Rogil', 'cif': 'B26729731',
+                'direccion': 'Calle Brasil 9', 'cp': '28806',
+                'poblacion': 'Alcalá de Henares', 'provincia': 'Madrid',
+                'telefono': '+34 722 81 7617', 'email': 'a@a.com',
+            },
+        })
+
+        self.assertIn('-11.500,00', html)
+        self.assertIn('Total rectificado', html)
 
     def test_el_mismo_vehiculo_se_puede_vender_otra_vez_tras_anular(self):
         from apps.sales.models import DetalleRebu, FacturaVenta
