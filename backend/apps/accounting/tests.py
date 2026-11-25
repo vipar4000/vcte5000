@@ -516,3 +516,111 @@ class IvaBasesYGastoConIvaTests(BaseReportesTestCase):
         t1 = respuesta.context['resumen_trimestres'][0]
         self.assertEqual(t1['numero'], 1)
         self.assertEqual(t1['cuota'], 840)
+
+
+class ExistenciasCapitalizacionOTTests(TestCase):
+    """La valoración de existencias no se descuadra por la mano de obra.
+
+    Regresión de la prueba del 24/11: diferencia de 33,63 € porque una OT con
+    coste tenía su asiento de capitalización sin postear (o sin crear).
+    """
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+            PlanContableDefault,
+        )
+        from apps.workshop.models import OrdenTrabajo
+        from apps.vehicles.models import Vehiculo
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.operario = User.objects.create_user(
+            username='mecanico1', email='mecanico1@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+            salario_base_mensual=Decimal('1500.00'),
+            porcentaje_ss_patronal=Decimal('31.50'),
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='ADQUIRIDO',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('1000.00'), tasas_sala=Decimal('0'),
+            logistica_grua=Decimal('0'), created_by=self.admin,
+        )
+
+        # Asiento de compra del vehículo: 310 por 1.000
+        asiento = AsientoContable.objects.create(
+            numero='000901', fecha=date(2026, 10, 1),
+            concepto='Compra vehículo', estado='POSTEADO',
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='310'),
+            debe=Decimal('1000.00'), haber=Decimal('0'),
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='572'),
+            debe=Decimal('0'), haber=Decimal('1000.00'),
+        )
+
+        # OT completada con mano de obra, SIN asiento de capitalización
+        self.ot = OrdenTrabajo.objects.create(
+            vehiculo=self.vehiculo,
+            operario=self.operario,
+            titulo='Cambio de parachoques',
+            descripcion='Reparación',
+            estado='COMPLETADA',
+            horas_reales=Decimal('1.50'),
+            created_by=self.admin,
+        )
+
+    def test_la_ot_sin_contabilizar_no_falsea_la_diferencia(self):
+        from apps.accounting import reports
+
+        data = reports.obtener_valor_existencias()
+
+        self.assertGreater(self.ot.coste_total, 0)
+        self.assertEqual(data['pendiente_capitalizar'], self.ot.coste_total)
+        # El vehículo se valora a su coste capitalizado (sin la OT pendiente)
+        self.assertEqual(data['valor_vehiculos'], 1000)
+        self.assertEqual(data['total_valor'], 1000)
+        self.assertEqual(data['diferencia'], 0)
+
+    def test_el_comando_posteala_y_desaparece_la_diferencia(self):
+        from django.core.management import call_command
+
+        from apps.accounting import reports
+        from apps.accounting.models import AsientoContable
+
+        call_command('reparar_capitalizacion_ot', verbosity=0)
+
+        asiento = AsientoContable.objects.get(
+            tipo_documento='OrdenTrabajo', documento_id=self.ot.pk
+        )
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.assertTrue(asiento.esta_cuadrado)
+
+        data = reports.obtener_valor_existencias()
+        self.assertEqual(data['pendiente_capitalizar'], 0)
+        self.assertEqual(data['valor_vehiculos'], 1000 + self.ot.coste_total)
+        self.assertEqual(data['diferencia'], 0)
+
+    def test_el_dry_run_no_toca_nada(self):
+        from django.core.management import call_command
+
+        from apps.accounting.models import AsientoContable
+
+        call_command('reparar_capitalizacion_ot', '--dry-run', verbosity=0)
+
+        self.assertFalse(AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo'
+        ).exists())

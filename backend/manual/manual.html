@@ -4098,7 +4098,22 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
     <tr><td>Valor total del stock</td><td>Suma de stock x precio de todos los materiales</td></tr>
     <tr><td>Saldo contable</td><td>Saldo de las cuentas 300-330 segun los asientos posteados</td></tr>
     <tr><td>Diferencia</td><td>Valor del stock menos saldo contable</td></tr>
+    <tr><td>Coste de taller</td><td>En cada vehículo: mano de obra y materiales de OT <strong>ya contabilizados</strong></td></tr>
+    <tr><td>Sin contabilizar</td><td>Coste de OT cuyo asiento de capitalización falta o no está posteado</td></tr>
 </table>
+
+<div class="info-box">
+    <strong>Cómo se valora cada vehículo:</strong> coste de adquisición (subasta + tasas + grúa)
+    <strong>más</strong> el coste de las OT <strong>con asiento posteado</strong>. Así el valor del
+    stock coincide con el saldo de las cuentas 300-330 sin descuadres por la mano de obra.
+</div>
+
+<div class="warning-box">
+    <strong>Si aparece «sin contabilizar»:</strong> hay OT con coste cuyo asiento de capitalización
+    quedó en borrador o no se creó. El informe lo avisa y muestra el importe pendiente.
+    Se corrige en Render Shell con:<br>
+    <code>python manage.py reparar_capitalizacion_ot</code> (añada <code>--dry-run</code> para verlo antes).
+</div>
 
 <h3>15.7.2 Interpretacion de la Diferencia</h3>
 <ul>

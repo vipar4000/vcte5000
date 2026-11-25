@@ -94,6 +94,7 @@ def ejecutar(c, admin):
         'cuenta_contable': cuenta_572.pk,
         'activa': 'on',
         'deposito_inicial': '50000.00',
+        'fecha_deposito': '2026-06-30',
         'notas_deposito': '',
     })
     check('Banco creado (redirect a detalle)', resp.status_code == 302)

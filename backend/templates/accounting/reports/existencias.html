@@ -53,6 +53,7 @@
                     <th class="px-4 py-2 text-left">Matrícula</th>
                     <th class="px-4 py-2 text-left">Vehículo</th>
                     <th class="px-4 py-2 text-left">Estado</th>
+                    <th class="px-4 py-2 text-right">Coste de taller</th>
                     <th class="px-4 py-2 text-right">Valor (coste total)</th>
                 </tr>
             </thead>
@@ -62,13 +63,21 @@
                     <td class="px-4 py-2 font-mono">{{ v.matricula }}</td>
                     <td class="px-4 py-2">{{ v.marca_modelo }}</td>
                     <td class="px-4 py-2 text-gray-500">{{ v.estado }}</td>
+                    <td class="px-4 py-2 text-right font-mono">
+                        {% if v.coste_taller %}€{{ v.coste_taller|floatformat:2 }}{% else %}—{% endif %}
+                        {% if v.pendiente %}
+                        <span class="text-xs text-yellow-700 block">
+                            +{{ v.pendiente|floatformat:2 }} sin contabilizar
+                        </span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-2 text-right font-mono font-bold">€{{ v.valor|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr class="bg-gray-50 font-bold border-t-2 border-gray-300">
-                    <td colspan="3" class="px-4 py-2 text-right">Valor vehículos en stock</td>
+                    <td colspan="4" class="px-4 py-2 text-right">Valor vehículos en stock</td>
                     <td class="px-4 py-2 text-right font-mono">€{{ data.valor_vehiculos|floatformat:2 }}</td>
                 </tr>
             </tfoot>
@@ -90,6 +99,22 @@
             <p class="text-xl font-bold {% if data.diferencia >= 0 %}text-yellow-800{% else %}text-red-800{% endif %} font-mono">€{{ data.diferencia|floatformat:2 }}</p>
         </div>
     </div>
+
+    {% if data.pendiente_capitalizar %}
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+        <p class="text-sm text-blue-800">
+            <strong>La diferencia es coste de taller pendiente de contabilizar:</strong>
+            hay OT con coste (mano de obra y materiales) cuyo asiento de capitalización
+            no está posteado, por €{{ data.pendiente_capitalizar|floatformat:2 }}.
+            Al postearlas, el saldo contable igualará el valor del stock.
+        </p>
+        <p class="text-sm text-blue-800 mt-1">
+            Se corrige con
+            <code class="bg-white px-1 rounded">python manage.py reparar_capitalizacion_ot</code>
+            (en Render Shell).
+        </p>
+    </div>
+    {% endif %}
 
     {% if data.diferencia %}
     <div class="{% if data.diferencia >= 0 %}bg-yellow-50 border-l-4 border-yellow-400{% else %}bg-red-50 border-l-4 border-red-400{% endif %} p-4 mb-6">

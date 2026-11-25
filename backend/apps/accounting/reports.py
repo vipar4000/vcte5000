@@ -493,16 +493,24 @@ def obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta):
 
 
 def obtener_valor_existencias():
-    """Existencias valoradas: stock x precio unitario por material + vehículos en stock."""
-    from apps.workshop.models import Material
+    """Existencias valoradas y su conciliación con el saldo contable.
+
+    El valor de los vehículos usa el **coste capitalizado de verdad**
+    (adquisición + OTs con asiento posteado). Si una OT tiene coste pero su
+    asiento no está posteado, ese importe no está en la contabilidad: se
+    devuelve aparte en `pendiente_capitalizar` para explicar la diferencia en
+    lugar de falsearla.
+    """
+    from apps.accounting.models import AsientoContable
+    from apps.workshop.models import Material, OrdenTrabajo
     from apps.vehicles.models import Vehiculo
 
     materiales = Material.objects.all().order_by('nombre')
-    total_valor = Decimal('0')
+    total_materiales = Decimal('0')
     items = []
     for m in materiales:
         valor = m.stock_actual * m.precio_unitario
-        total_valor += valor
+        total_materiales += valor
         items.append({
             'nombre': m.nombre,
             'unidad': m.unidad,
@@ -511,16 +519,43 @@ def obtener_valor_existencias():
             'valor': valor,
         })
 
-    # Vehículos en stock (no vendidos) valorados a coste_total (310 Mercaderías)
-    vehiculos_stock = Vehiculo.objects.exclude(estado='VENDIDO').order_by('matricula')
+    # OTs cuya capitalización sí está en el libro (asiento POSTEADO)
+    ots_capitalizadas = set(
+        AsientoContable.objects.filter(
+            tipo_documento='OrdenTrabajo',
+            estado='POSTEADO',
+        ).values_list('documento_id', flat=True)
+    )
+
+    # Vehículos en stock (no vendidos)
+    vehiculos_stock = list(
+        Vehiculo.objects.exclude(estado='VENDIDO').order_by('matricula')
+    )
+    ots_por_vehiculo = {}
+    for ot in OrdenTrabajo.objects.filter(vehiculo__in=vehiculos_stock):
+        ots_por_vehiculo.setdefault(ot.vehiculo_id, []).append(ot)
+
     vehiculos_items = []
+    total_vehiculos = Decimal('0')
+    pendiente_capitalizar = Decimal('0')
     for v in vehiculos_stock:
-        valor = v.coste_total
-        total_valor += valor
+        capitalizado = Decimal('0')
+        pendiente = Decimal('0')
+        for ot in ots_por_vehiculo.get(v.pk, []):
+            if ot.pk in ots_capitalizadas:
+                capitalizado += ot.coste_total
+            else:
+                pendiente += ot.coste_total
+
+        valor = v.coste_inicial + capitalizado
+        total_vehiculos += valor
+        pendiente_capitalizar += pendiente
         vehiculos_items.append({
             'matricula': v.matricula,
             'marca_modelo': f'{v.marca} {v.modelo}',
             'estado': v.get_estado_display(),
+            'coste_taller': capitalizado,
+            'pendiente': pendiente,
             'valor': valor,
         })
 
@@ -528,14 +563,26 @@ def obtener_valor_existencias():
     debe_310, haber_310 = obtener_saldo_cuenta('310', fecha_hasta=date.today())
     debe_320, haber_320 = obtener_saldo_cuenta('320', fecha_hasta=date.today())
     debe_330, haber_330 = obtener_saldo_cuenta('330', fecha_hasta=date.today())
-    saldo_contable = (debe_300 - haber_300) + (debe_310 - haber_310) + (debe_320 - haber_320) + (debe_330 - haber_330)
+    saldo_contable = (
+        (debe_300 - haber_300) + (debe_310 - haber_310)
+        + (debe_320 - haber_320) + (debe_330 - haber_330)
+    )
+
+    total_valor = total_materiales + total_vehiculos
+    diferencia = total_valor - saldo_contable
 
     return {
         'materiales': items,
         'vehiculos': vehiculos_items,
-        'valor_vehiculos': sum(v['valor'] for v in vehiculos_items),
-        'total_materiales': sum(item['valor'] for item in items),
+        'total_materiales': total_materiales,
+        'valor_vehiculos': total_vehiculos,
+        'pendiente_capitalizar': pendiente_capitalizar,
         'total_valor': total_valor,
         'saldo_contable': saldo_contable,
-        'diferencia': total_valor - saldo_contable,
+        'diferencia': diferencia,
+        # True si la diferencia se explica por OTs sin asiento posteado
+        'diferencia_es_capitalizacion': (
+            pendiente_capitalizar > 0
+            and abs(diferencia - pendiente_capitalizar) < Decimal('0.05')
+        ),
     }
