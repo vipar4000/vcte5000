@@ -776,6 +776,77 @@ class DetalleRebuVariasFacturasTests(TestCase):
         with self.assertRaises(ValueError):
             crear_factura_rectificativa(rectificativa, 'R1', 'Otra', self.admin)
 
+
+    def test_no_se_emiten_rectificativas_duplicadas(self):
+        """Una factura ordinaria solo admite una rectificativa total."""
+        from apps.sales.models import FacturaVenta
+        from apps.sales.services import crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+
+        primera = self.client.post(
+            reverse('sales:factura_rectificativa', args=[factura.pk]),
+            {'tipo_rectificacion': 'R1', 'motivo': 'Error'},
+            follow=True,
+        )
+        self.assertEqual(primera.status_code, 200)
+
+        segunda = self.client.post(
+            reverse('sales:factura_rectificativa', args=[factura.pk]),
+            {'tipo_rectificacion': 'R4', 'motivo': 'Otra'},
+            follow=True,
+        )
+
+        self.assertEqual(segunda.status_code, 200)
+        self.assertEqual(
+            FacturaVenta.objects.filter(factura_rectificada=factura).count(), 1
+        )
+        self.assertContains(segunda, 'ya tiene la')
+
+    def test_anular_venta_reutiliza_la_rectificativa_existente(self):
+        from apps.sales.models import FacturaVenta
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R1', 'Error de precio', self.admin
+        )
+
+        respuesta = self.client.post(
+            reverse('sales:anular', args=[venta.pk]), {'motivo': 'Anulación'}
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        venta.refresh_from_db()
+        self.assertTrue(venta.anulada)
+        self.assertEqual(
+            FacturaVenta.objects.filter(factura_rectificada=factura).count(), 1
+        )
+        self.assertEqual(
+            FacturaVenta.objects.filter(factura_rectificada=factura).first().pk,
+            rectificativa.pk,
+        )
+
+    def test_la_ficha_oculta_rectificativa_y_enlaza_la_emitida(self):
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R1', 'Error', self.admin
+        )
+
+        html = self.client.get(
+            reverse('sales:factura_detail', args=[factura.pk])
+        ).content.decode()
+
+        self.assertIn(rectificativa.codigo_factura, html)
+        self.assertNotIn(
+            reverse('sales:factura_rectificativa', args=[factura.pk]), html
+        )
+
     def test_la_pantalla_de_rectificativa_r4_funciona(self):
         """Caso real: «Nueva Factura Rectificativa» con R4 sobre la factura."""
         from apps.sales.models import DetalleRebu, FacturaVenta

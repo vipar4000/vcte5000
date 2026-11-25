@@ -394,6 +394,21 @@ class FacturaVenta(models.Model):
             return self.factura_rectificada.venta.vehiculo
         return None
 
+    @property
+    def rectificativa_vigente(self):
+        """Rectificativa total ya emitida para esta factura (o None)."""
+        if self.tipo_factura in ('R1', 'R4'):
+            return None
+        return self.rectificativas.order_by('pk').first()
+
+    @property
+    def puede_rectificarse(self):
+        """True si es una factura ordinaria sin rectificativa emitida."""
+        return (
+            self.tipo_factura not in ('R1', 'R4')
+            and self.rectificativa_vigente is None
+        )
+
     class Meta:
         verbose_name = 'factura de venta'
         verbose_name_plural = 'facturas de venta'

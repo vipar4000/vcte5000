@@ -257,7 +257,7 @@ def venta_anular(request, pk):
 
         try:
             with transaction.atomic():
-                if factura:
+                if factura and factura.rectificativa_vigente is None:
                     from .services import (
                         crear_factura_rectificativa,
                         generar_pdf_factura_rectificativa,
@@ -277,11 +277,20 @@ def venta_anular(request, pk):
             )
             return redirect('sales:detail', pk=pk)
 
+        if factura and factura.rectificativa_vigente is None:
+            detalle_factura = '; se ha emitido la factura rectificativa.'
+        elif factura:
+            detalle_factura = (
+                '; se reutiliza la rectificativa '
+                f'{factura.rectificativa_vigente.codigo_factura} ya emitida.'
+            )
+        else:
+            detalle_factura = '.'
         messages.success(
             request,
             f'Venta V-{pk} anulada. El asiento queda anulado con contrapartida, '
             f'el cobro compensado en banco y el vehículo disponible'
-            + ('; se ha emitido la factura rectificativa.' if factura else '.'),
+            + detalle_factura,
         )
         return redirect('sales:detail', pk=pk)
 
@@ -587,6 +596,22 @@ def factura_generar_pdf(request, pk):
 def factura_rectificativa(request, pk):
     """Crear factura rectificativa (R1 o R4) para una factura."""
     factura_original = get_object_or_404(FacturaVenta, pk=pk)
+
+    existente = factura_original.rectificativa_vigente
+    if existente:
+        messages.info(
+            request,
+            f'La factura {factura_original.codigo_factura} ya tiene la '
+            f'rectificativa {existente.codigo_factura}. No se emite otra.',
+        )
+        return redirect('sales:factura_detail', pk=existente.pk)
+
+    if factura_original.tipo_factura in ('R1', 'R4'):
+        messages.error(
+            request,
+            'Esta factura ya es una rectificativa: rectifique la original.',
+        )
+        return redirect('sales:factura_detail', pk=factura_original.pk)
     
     if request.method == 'POST':
         tipo = request.POST.get('tipo_rectificacion', 'R1')

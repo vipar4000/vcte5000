@@ -144,10 +144,17 @@
                            class="text-eurocar-light hover:underline text-sm">
                             📥 Ver Factura
                         </a>
-                        <a href="{% url 'sales:factura_rectificativa' venta.factura.pk %}" 
+                        {% if venta.factura.puede_rectificarse %}
+                        <a href="{% url 'sales:factura_rectificativa' venta.factura.pk %}"
                            class="inline-block bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition text-sm ml-2">
                             🔄 Rectificativa
                         </a>
+                        {% elif venta.factura.rectificativa_vigente %}
+                        <a href="{% url 'sales:factura_detail' venta.factura.rectificativa_vigente.pk %}"
+                           class="inline-block bg-orange-50 border border-orange-300 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 transition text-sm ml-2">
+                            🔄 {{ venta.factura.rectificativa_vigente.codigo_factura }}
+                        </a>
+                        {% endif %}
                         {% else %}
                         <a href="{% url 'sales:factura_generar' venta.pk %}" 
                            class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm">

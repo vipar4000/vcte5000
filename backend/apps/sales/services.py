@@ -261,6 +261,14 @@ def crear_factura_rectificativa(factura_original, tipo, motivo, usuario):
             'No se puede rectificar una factura rectificativa. '
             'Rectifique la factura original.'
         )
+
+    existente = factura_original.rectificativas.order_by('pk').first()
+    if existente:
+        raise ValueError(
+            f'La factura {factura_original.codigo_factura} ya tiene la '
+            f'rectificativa {existente.codigo_factura}. No se emite otra: '
+            f'consulte la existente.'
+        )
     
     year = timezone.now().year
     ultima = FacturaVenta.objects.filter(
