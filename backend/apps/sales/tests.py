@@ -336,7 +336,7 @@ class VentaConReservaTests(TestCase):
             iva_repercutido=venta.cuota_iva,
         )
 
-    def test_eliminar_una_venta_sin_factura_deshace_todo(self):
+    def test_anular_una_venta_sin_factura_deshace_todo(self):
         from apps.accounting.models import AsientoContable
 
         reserva = self._crear_reserva()
@@ -344,10 +344,18 @@ class VentaConReservaTests(TestCase):
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
         asiento = venta.asiento_contable
 
-        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+        respuesta = self.client.post(
+            reverse('sales:anular', args=[venta.pk]),
+            {'motivo': 'El cliente no formalizó la financiación'},
+        )
 
         self.assertEqual(respuesta.status_code, 302)
-        self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
+
+        # La venta NO se borra: queda anulada en el histórico
+        venta.refresh_from_db()
+        self.assertTrue(venta.anulada)
+        self.assertIsNotNone(venta.fecha_anulacion)
+        self.assertIn('financiación', venta.motivo_anulacion)
 
         # Asiento anulado con contrapartida, no borrado
         asiento.refresh_from_db()
@@ -357,7 +365,6 @@ class VentaConReservaTests(TestCase):
         )
 
         # El cobro no se borra: se compensa con un EGRESO del mismo importe.
-        # La señal de la reserva permanece intacta.
         self.assertEqual(
             sorted(
                 m.importe
@@ -376,48 +383,77 @@ class VentaConReservaTests(TestCase):
         self.assertEqual(reserva.estado, 'ACTIVA')
         self.assertIsNone(reserva.venta_id)
 
-    def test_eliminar_una_venta_con_factura_avisa_sin_error_500(self):
+    def test_anular_una_venta_con_factura_genera_rectificativa(self):
         self._vender()
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
         factura = self._crear_factura(venta)
 
-        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+        respuesta = self.client.post(
+            reverse('sales:anular', args=[venta.pk]), {'motivo': 'Error de precio'}
+        )
 
         self.assertEqual(respuesta.status_code, 302)
-        self.assertTrue(VentaVehiculo.objects.filter(pk=venta.pk).exists())
-        self.assertTrue(FacturaVenta.objects.filter(pk=factura.pk).exists())
 
-    def test_eliminar_una_venta_con_factura_confirmando_la_borra(self):
+        venta.refresh_from_db()
+        self.assertTrue(venta.anulada)
+
+        # La factura original se conserva (normativa de facturación)
+        self.assertTrue(FacturaVenta.objects.filter(pk=factura.pk).exists())
+        rectificativa = FacturaVenta.objects.filter(
+            tipo_factura='R1', factura_rectificada=factura
+        ).first()
+        self.assertIsNotNone(rectificativa)
+        self.assertTrue(rectificativa.codigo_factura.startswith('R-'))
+
+    def test_eliminar_una_venta_con_movimientos_esta_bloqueado(self):
         self._vender()
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
-        self._crear_factura(venta)
 
         respuesta = self.client.post(
-            reverse('sales:delete', args=[venta.pk]),
-            {'eliminar_factura': 'on'},
+            reverse('sales:delete', args=[venta.pk]), follow=True
+        )
+
+        self.assertTrue(VentaVehiculo.objects.filter(pk=venta.pk).exists())
+        self.assertContains(respuesta, 'Anular venta')
+
+    def test_eliminar_un_borrador_sin_movimientos_si_permite(self):
+        """Eliminar queda para ventas sin asiento, cobro ni factura."""
+        venta = VentaVehiculo.objects.create(
+            vehiculo=self.vehiculo,
+            tipo_cliente='PARTICULAR',
+            cliente_nombre='Borrador',
+            cliente_dni='12345678A',
+            cliente_direccion='Calle 1',
+            cliente_poblacion='Madrid',
+            cliente_provincia='Madrid',
+            cliente_cp='28001',
+            cliente_telefono='600000000',
+            fecha_venta='2026-11-20',
+            metodo_pago='TRANSFERENCIA',
+            precio_venta=Decimal('11500.00'),
+            coste_total=Decimal('8000.00'),
+            base_imponible=Decimal('8000.00'),
+            cuota_iva=Decimal('2000.00'),
+            created_by=self.admin,
+        )
+
+        respuesta = self.client.post(
+            reverse('sales:delete', args=[venta.pk])
         )
 
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(VentaVehiculo.objects.filter(pk=venta.pk).exists())
-        self.assertEqual(FacturaVenta.objects.count(), 0)
 
-    def test_la_casilla_de_la_factura_va_dentro_del_formulario(self):
-        """Regresión: si la casilla queda fuera del <form>, el navegador no la envía."""
+    def test_la_ficha_ofrece_anular_venta(self):
         self._vender()
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
-        self._crear_factura(venta)
 
         html = self.client.get(
-            reverse('sales:delete', args=[venta.pk])
+            reverse('sales:detail', args=[venta.pk])
         ).content.decode()
 
-        apertura = html.index('<form method="post"')
-        casilla = html.index('name="eliminar_factura"')
-        cierre = html.index('</form>')
-        self.assertTrue(
-            apertura < casilla < cierre,
-            'La casilla debe estar dentro del formulario para enviarse',
-        )
+        self.assertIn(reverse('sales:anular', args=[venta.pk]), html)
+        self.assertIn('Anular venta', html)
 
     def test_la_reserva_guarda_los_datos_fiscales_del_comprador(self):
         reserva = self._crear_reserva()
@@ -617,7 +653,9 @@ class ImagenesAlVenderYAnularTests(TestCase):
         self.assertTrue(self._existen_todos_los_archivos())
 
         venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
-        respuesta = self.client.post(reverse('sales:delete', args=[venta.pk]))
+        respuesta = self.client.post(
+            reverse('sales:anular', args=[venta.pk]), {'motivo': 'Prueba'}
+        )
         self.assertEqual(respuesta.status_code, 302)
 
         # Al anular: el coche vuelve a la venta con sus 5 fotos intactas

@@ -78,6 +78,11 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3">
                             <span class="font-mono font-medium">V-{{ venta.pk }}</span>
+                            {% if venta.anulada %}
+                            <span class="ml-2 px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs font-semibold">
+                                ANULADA
+                            </span>
+                            {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             <div class="font-medium">{{ venta.vehiculo.marca }} {{ venta.vehiculo.modelo }}</div>

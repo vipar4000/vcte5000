@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}R Car Rogil ERP - Anular venta V-{{ venta.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'sales:detail' venta.pk %}" class="text-eurocar-blue hover:underline text-sm">
+            ← Volver a la venta
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800 mt-2">Anular venta V-{{ venta.pk }}</h1>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 space-y-4">
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm text-blue-800">
+            <p><strong>La venta no se borra.</strong> Se conserva en el histórico y:</p>
+            <ul class="list-disc ml-5 mt-1 space-y-1">
+                <li>El asiento se <strong>anula con contrapartida</strong> (Ley Antifraude).</li>
+                <li>El cobro se <strong>compensa en banco</strong> con el movimiento contrario.</li>
+                <li>El vehículo vuelve a estar disponible y la reserva, activa.</li>
+                {% if factura %}
+                <li>Se emite una <strong>factura rectificativa</strong> de
+                    {{ factura.codigo_factura }} (numeración R-AAAA-NNNN).</li>
+                {% else %}
+                <li>No tiene factura emitida: no hace falta rectificativa.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Vehículo</p>
+                <p class="font-medium">{{ venta.vehiculo }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Cliente</p>
+                <p class="font-medium">{{ venta.cliente_nombre }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Precio de venta</p>
+                <p class="font-medium">{{ venta.precio_venta|floatformat:2 }} €</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Fecha de venta</p>
+                <p class="font-medium">{{ venta.fecha_venta|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="motivo">
+                Motivo de la anulación
+            </label>
+            <textarea id="motivo" name="motivo" rows="3"
+                      class="w-full px-3 py-2 border rounded-lg"
+                      placeholder="Ej.: el cliente no ha formalizado la financiación"></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+                Aparecerá en la ficha de la venta y en la factura rectificativa.
+            </p>
+
+            <div class="flex justify-end gap-4 mt-6">
+                <a href="{% url 'sales:detail' venta.pk %}"
+                   class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">
+                    ↩️ Anular venta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

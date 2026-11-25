@@ -1020,12 +1020,20 @@ Base imponible = 20 x 8,50 = <strong>170,00 EUR</strong> &middot; Cuota IVA = 17
 </div>
 
 <div class="warning-box">
-    <strong>Eliminar una venta:</strong> si se equivocó, en la ficha de la venta puede pulsar
-    <strong>Eliminar</strong>. El sistema <strong>anula el asiento con contrapartida</strong> (no lo borra),
-    quita el cobro de esa venta en Banco (la señal de la reserva se mantiene), devuelve la reserva a
-    <em>Activa</em> y el vehículo a la venta. Si la venta ya tiene <strong>factura REBU</strong>, la pantalla
-    pide confirmar también su borrado: en producción lo correcto es emitir una
-    <strong>factura rectificativa</strong>.
+    <strong>Anular una venta (recomendado):</strong> en la ficha de la venta, pulse
+    <strong>&#8617;&#65039; Anular venta</strong> e indique el motivo. La venta <strong>no se borra</strong>:
+    queda marcada como <em>ANULADA</em> en el listado y se conserva el histórico. El sistema
+    <strong>anula el asiento con contrapartida</strong>, <strong>compensa el cobro</strong> con un EGRESO
+    en Banco (los movimientos no se borran), devuelve la reserva a <em>Activa</em> y el vehículo a la venta.
+    Si la venta tenía <strong>factura</strong>, se emite automáticamente la
+    <strong>factura rectificativa</strong> (numeración <code>R-AAAA-NNNN</code>) y la original se conserva.
+</div>
+
+<div class="info-box">
+    <strong>Eliminar (solo borradores):</strong> el botón <strong>Eliminar</strong> queda reservado a ventas
+    sin asiento, sin cobro y sin factura (por ejemplo, un alta de prueba). Si la venta ya tiene movimientos,
+    el sistema lo impide con un aviso y remite a <strong>Anular venta</strong>. Así se mantiene el
+    histórico correlativo de facturas emitidas que exige Hacienda.
 </div>
 
 <h2>5.1 Registrar una Venta</h2>

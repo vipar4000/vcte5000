@@ -224,6 +224,66 @@ def venta_create(request):
 
 
 @login_required
+def venta_anular(request, pk):
+    """Anula una venta sin borrarla: contra-asiento, abono y rectificativa.
+
+    Ley Antifraude y normativa de facturación: la venta y su factura se
+    conservan; si había factura emitida se genera una rectificativa (R1).
+    """
+    venta = get_object_or_404(
+        VentaVehiculo.objects.select_related('vehiculo'), pk=pk
+    )
+
+    if not request.user.is_admin:
+        messages.error(request, 'No tiene permisos para anular ventas.')
+        return redirect('sales:list')
+
+    if venta.anulada:
+        messages.info(request, 'Esta venta ya está anulada.')
+        return redirect('sales:detail', pk=pk)
+
+    factura = FacturaVenta.objects.filter(venta=venta).first()
+
+    if request.method == 'POST':
+        motivo = (request.POST.get('motivo') or '').strip()
+
+        try:
+            with transaction.atomic():
+                if factura:
+                    from .services import (
+                        crear_factura_rectificativa,
+                        generar_pdf_factura_rectificativa,
+                    )
+
+                    rectificativa = crear_factura_rectificativa(
+                        factura, 'R1',
+                        motivo or 'Anulación de la venta',
+                        request.user,
+                    )
+                    generar_pdf_factura_rectificativa(rectificativa)
+
+                _anular_venta(venta, request.user, motivo)
+        except Exception as error:
+            messages.error(
+                request, f'No se pudo anular la venta: {error}'
+            )
+            return redirect('sales:detail', pk=pk)
+
+        messages.success(
+            request,
+            f'Venta V-{pk} anulada. El asiento queda anulado con contrapartida, '
+            f'el cobro compensado en banco y el vehículo disponible'
+            + ('; se ha emitido la factura rectificativa.' if factura else '.'),
+        )
+        return redirect('sales:detail', pk=pk)
+
+    return render(request, 'sales/anular.html', {
+        'venta': venta,
+        'factura': factura,
+    })
+
+
+@login_required
 def venta_delete(request, pk):
     """Eliminar una venta deshaciendo su contabilidad y su cobro en banco.
 
@@ -243,7 +303,24 @@ def venta_delete(request, pk):
         messages.error(request, 'No tiene permisos para eliminar registros.')
         return redirect('sales:list')
 
+    from apps.bank.models import BancoMovimiento
+
     factura = FacturaVenta.objects.filter(venta=venta).first()
+
+    # «Eliminar» queda solo para borradores sin movimientos. Con asiento,
+    # cobro, factura o plazos hay que usar «Anular venta» (histórico y
+    # rectificativa).
+    movimientos = BancoMovimiento.objects.filter(
+        vehiculo_asociado=venta.vehiculo, concepto__startswith='Cobro venta'
+    ).exists()
+    if venta.asiento_contable_id or factura or movimientos or venta.cobros.exists():
+        messages.error(
+            request,
+            'Esta venta tiene asiento contable, cobro o factura: no se puede '
+            'eliminar. Use «Anular venta» para conservar el histórico y '
+            'generar la rectificativa.',
+        )
+        return redirect('sales:detail', pk=pk)
 
     if request.method == 'POST':
         if factura and not request.POST.get('eliminar_factura'):
@@ -286,17 +363,22 @@ def venta_delete(request, pk):
     return render(request, 'sales/delete.html', context)
 
 
-def _deshacer_venta(venta, user):
-    """Anula el asiento, deshace el cobro y libera el vehículo y la reserva."""
+def _revertir_venta(venta, user):
+    """Anula el asiento con contrapartida y compensa el cobro en banco.
+
+    Devuelve el asiento de anulación. No borra la venta: eso lo decide el
+    llamador (anular vs eliminar borrador).
+    """
     from datetime import date
 
     from apps.accounting.models import AsientoContable, MovimientoContable
     from apps.accounting.views import generar_numero_asiento
     from apps.bank.models import BancoMovimiento, Reserva
+    from apps.bank.services import crear_movimiento_banco
 
     vehiculo = venta.vehiculo
+    reversion = None
 
-    # 1) Anular el asiento con contrapartida (nunca se borra)
     asiento = venta.asiento_contable
     if asiento:
         reversion = AsientoContable.objects.create(
@@ -316,14 +398,14 @@ def _deshacer_venta(venta, user):
                 haber=movimiento.debe,
                 descripcion=f'Reversión: {movimiento.descripcion}',
             )
+        if reversion.esta_cuadrado:
+            reversion.estado = 'POSTEADO'
+            reversion.save(update_fields=['estado'])
         asiento.estado = 'ANULADO'
         asiento.save(update_fields=['estado'])
 
-        # 2) Compensar el cobro de esta venta en el banco. Los movimientos de
-        # banco no se borran nunca (H7): se registra el contrario.
-        from apps.bank.services import crear_movimiento_banco
-
-        # Se unifican por id para no compensar dos veces el mismo movimiento.
+        # Compensar el cobro. Los movimientos de banco no se borran (H7):
+        # se registra el contrario, unificado por id para no duplicar.
         movimientos_venta = {
             m.pk: m
             for m in BancoMovimiento.objects.filter(asiento_asociado=asiento)
@@ -346,17 +428,39 @@ def _deshacer_venta(venta, user):
                 notas='Compensación por anulación de venta',
             )
 
-    # 3) La reserva vuelve a estar activa (el dinero de la señal sigue en banco)
+    # La reserva vuelve a estar activa (el dinero de la señal sigue en banco)
     Reserva.objects.filter(venta=venta, estado='CONVERTIDA').update(
         estado='ACTIVA', venta=None
     )
 
-    # 4) El vehículo vuelve a estar disponible
+    # El vehículo vuelve a estar disponible
     vehiculo.estado = 'EN_VENTA' if vehiculo.precio_venta else 'ACONDICIONADO'
     vehiculo.save(update_fields=['estado'])
 
-    # 5) Fuera la venta (garantía y cobros fraccionados caen en cascada)
+    return reversion
+
+
+def _anular_venta(venta, user, motivo=''):
+    """Anula la venta conservándola en el histórico (abono/rectificativa)."""
+    from datetime import date
+
+    _revertir_venta(venta, user)
+
+    venta.anulada = True
+    venta.fecha_anulacion = date.today()
+    venta.motivo_anulacion = motivo or 'Anulación de la venta'
+    venta.anulada_por = user
+    venta.save(update_fields=[
+        'anulada', 'fecha_anulacion', 'motivo_anulacion', 'anulada_por',
+    ])
+    return venta
+
+
+def _deshacer_venta(venta, user):
+    """Borra un borrador de venta tras revertir su contabilidad y su cobro."""
+    _revertir_venta(venta, user)
     venta.delete()
+
 
 
 @login_required

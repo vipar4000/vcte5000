@@ -304,8 +304,9 @@ def generar_pdf_factura_rectificativa(factura):
     Returns:
         Archivo PDF generado
     """
-    venta = factura.venta
-    vehiculo = venta.vehiculo
+    original = factura.factura_rectificada or factura
+    venta = original.venta
+    vehiculo = venta.vehiculo if venta else None
     
     context = {
         'factura': factura,

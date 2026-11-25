@@ -16,14 +16,29 @@
             </p>
         </div>
         <div class="flex gap-2">
+            {% if is_admin and not venta.anulada %}
+            <a href="{% url 'sales:anular' venta.pk %}"
+               class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">
+                ↩️ Anular venta
+            </a>
+            {% endif %}
             {% if is_admin %}
-            <a href="{% url 'sales:delete' venta.pk %}" 
-               class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+            <a href="{% url 'sales:delete' venta.pk %}"
+               class="border border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 transition">
                 🗑️ Eliminar
             </a>
             {% endif %}
         </div>
     </div>
+
+    {% if venta.anulada %}
+    <div class="bg-gray-100 border border-gray-300 rounded-lg p-4 text-sm text-gray-800">
+        <strong>Venta anulada</strong> el {{ venta.fecha_anulacion|date:"d/m/Y" }}
+        {% if venta.anulada_por %}por {{ venta.anulada_por.nombre_completo }}{% endif %}.
+        {% if venta.motivo_anulacion %}Motivo: {{ venta.motivo_anulacion }}.{% endif %}
+        Se conserva en el histórico con su asiento anulado y su rectificativa.
+    </div>
+    {% endif %}
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Información principal -->

@@ -122,6 +122,22 @@ class VentaVehiculo(models.Model):
         verbose_name='total cobrado',
         help_text='Actualizado automáticamente al recibir plazos',
     )
+    # Anulación (abono/rectificativa): la venta no se borra, queda marcada.
+    anulada = models.BooleanField(default=False, verbose_name='anulada')
+    fecha_anulacion = models.DateField(
+        null=True, blank=True, verbose_name='fecha de anulación'
+    )
+    motivo_anulacion = models.CharField(
+        max_length=255, blank=True, verbose_name='motivo de anulación'
+    )
+    anulada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='ventas_anuladas',
+        verbose_name='anulada por',
+    )
+
     pagada = models.BooleanField(
         default=False, verbose_name='pagada',
         help_text='True cuando total_cobrado >= precio_venta',
@@ -309,7 +325,10 @@ class FacturaVenta(models.Model):
     
     venta = models.OneToOneField(
         VentaVehiculo, on_delete=models.PROTECT,
-        related_name='factura', verbose_name='venta'
+        related_name='factura', verbose_name='venta',
+        null=True, blank=True,
+        help_text='Vacío en las facturas rectificativas (se vinculan a la '
+                  'factura original, no a una venta nueva).',
     )
     
     # Referencia a factura rectificada
@@ -354,6 +373,15 @@ class FacturaVenta(models.Model):
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)
     
+    @property
+    def vehiculo(self):
+        """Vehículo de la operación (propio o el de la factura rectificada)."""
+        if self.venta_id:
+            return self.venta.vehiculo
+        if self.factura_rectificada_id:
+            return self.factura_rectificada.venta.vehiculo
+        return None
+
     class Meta:
         verbose_name = 'factura de venta'
         verbose_name_plural = 'facturas de venta'

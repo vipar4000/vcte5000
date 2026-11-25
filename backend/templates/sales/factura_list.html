@@ -60,7 +60,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm">{{ factura.cliente_nombre }}</td>
-                    <td class="px-4 py-3 text-sm">{{ factura.venta.vehiculo }}</td>
+                    <td class="px-4 py-3 text-sm">{{ factura.vehiculo }}</td>
                     <td class="px-4 py-3 text-sm">{{ factura.fecha_operacion|date:"d/m/Y" }}</td>
                     <td class="px-4 py-3 text-sm text-right font-medium">€{{ factura.precio_venta_total|floatformat:2 }}</td>
                     <td class="px-4 py-3 text-center">
