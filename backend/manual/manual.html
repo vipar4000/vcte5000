@@ -17,8 +17,8 @@
         <div class="cover-desc">Gestion integral de taller, ventas, contabilidad y postventa</div>
     </div>
     <div class="cover-footer">
-        <div class="cover-version">Manual de Usuario v3.2</div>
-        <div class="cover-date">Agosto 2026 &mdash; Madrid, Espana</div>
+        <div class="cover-version">Manual de Usuario v3.3</div>
+        <div class="cover-date">Noviembre 2026 &mdash; Madrid, Espana</div>
     </div>
     <div class="cover-band-bottom"></div>
 </div>
@@ -27,6 +27,7 @@
 <div class="toc">
     <h2>Indice de Contenidos</h2>
     <ul>
+        <li><a href="#novedades-33"><span class="chapter-num">0.</span> Novedades de la version 3.3</a></li>
         <li><a href="#capitulo-1"><span class="chapter-num">1.</span> Introduccion y Primeros Pasos</a></li>
         <li><a href="#capitulo-2"><span class="chapter-num">2.</span> Dashboard Principal</a></li>
         <li><a href="#capitulo-3"><span class="chapter-num">3.</span> Gestion de Vehiculos</a>
@@ -38,7 +39,11 @@
                 <li><a href="#admin-django">3.5 Administrador Django</a></li>
             </ul>
         </li>
-        <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a></li>
+        <li><a href="#capitulo-4"><span class="chapter-num">4.</span> Taller e Inventario</a>
+            <ul>
+                <li><a href="#capitulo-4-5"><span class="chapter-num">4.5</span> Borrados protegidos y anulacion de compras</a></li>
+            </ul>
+        </li>
         <li><a href="#capitulo-5"><span class="chapter-num">5.</span> Ventas y Documentacion</a></li>
         <li><a href="#capitulo-6"><span class="chapter-num">6.</span> Control de Asistencia y Nominas (Payroll RGPD)</a>
         <ul>
@@ -95,6 +100,7 @@
                 <li><a href="#capitulo-14-1"><span class="chapter-num">14.1</span> Tipos de Factura</a></li>
                 <li><a href="#capitulo-14-2"><span class="chapter-num">14.2</span> Generar Factura de Venta</a></li>
                 <li><a href="#capitulo-14-3"><span class="chapter-num">14.3</span> Factura Rectificativa</a></li>
+                <li><a href="#capitulo-14-3-3"><span class="chapter-num">14.3.3</span> Reglas de la rectificativa</a></li>
                 <li><a href="#capitulo-14-4"><span class="chapter-num">14.4</span> VeriFactu - Cadena Criptografica</a></li>
                 <li><a href="#capitulo-14-5"><span class="chapter-num">14.5</span> Proteccion de Integridad (Trigger)</a></li>
             </ul>
@@ -279,6 +285,171 @@
 </div>
 
 <!-- ==================== CAPITULO 1 ==================== -->
+<h1 id="novedades-33">0. Novedades de la version 3.3</h1>
+
+<p>Esta version incorpora los cambios acordados tras la revision contable y la prueba de
+extremo a extremo. Todos ellos ya estan en produccion y cubiertos por pruebas automaticas.</p>
+
+<h2>0.1 Ventas y facturacion</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td><strong>Anular venta</strong> (nuevo boton)</td>
+        <td>La venta no se borra: queda ANULADA en el historico. Anula el asiento con contrapartida,
+            compensa el cobro en banco, reactiva la reserva, devuelve el coche a En Venta y emite la
+            rectificativa si habia factura.</td>
+        <td>5, 14.3</td>
+    </tr>
+    <tr>
+        <td><strong>Eliminar</strong> solo para borradores</td>
+        <td>Si la venta tiene asiento, cobro, factura o plazos, el sistema no la borra: avisa y remite a
+            «Anular venta».</td>
+        <td>5</td>
+    </tr>
+    <tr>
+        <td>Rectificativa <strong>en negativo</strong></td>
+        <td>Importes de abono (-11.500,00 EUR) y desglose de base, IVA y total rectificado.</td>
+        <td>14.3</td>
+    </tr>
+    <tr>
+        <td><strong>Una sola rectificativa</strong> por factura</td>
+        <td>El boton desaparece cuando ya existe y se sustituye por el enlace a la emitida. Anular una venta
+            ya rectificada reutiliza esa rectificativa (no emite otra).</td>
+        <td>14.3</td>
+    </tr>
+    <tr>
+        <td><strong>Reventa del mismo coche</strong></td>
+        <td>Tras anular una venta se puede volver a vender el vehiculo: el historico de ventas y el detalle
+            REBU se guardan por operacion, sin errores de clave duplicada.</td>
+        <td>14.3, 22.7</td>
+    </tr>
+</table>
+
+<h2>0.2 Reservas y entrega a cuenta</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td>Datos fiscales del comprador</td>
+        <td>La reserva pide tipo de cliente, nombre o razon social, DNI/NIE/CIF, direccion, poblacion,
+            provincia, CP, telefono, email y metodo de pago.</td>
+        <td>10.1</td>
+    </tr>
+    <tr>
+        <td><strong>Factura de entrega a cuenta</strong></td>
+        <td>Numeracion correlativa (A-AAAA-NNNN), datos de emisor y comprador, concepto con matricula y
+            bastidor, importe, metodo de pago y nota REBU sin desglosar IVA.</td>
+        <td>10.4</td>
+    </tr>
+    <tr>
+        <td>Contabilidad del anticipo</td>
+        <td>El importe integro va a 438 (DEBE 572 / HABER 438), sin IVA propio; se cancela en el asiento de
+            la venta.</td>
+        <td>10.2</td>
+    </tr>
+</table>
+
+<h2>0.3 Borrados, anulaciones y banco</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td>Borrados protegidos</td>
+        <td>No se borran vehiculos, gastos, OT ni asientos con operaciones asociadas: mensaje claro en vez
+            de error.</td>
+        <td>4.5</td>
+    </tr>
+    <tr>
+        <td><strong>Anular compra / Abono</strong></td>
+        <td>Devuelve el stock, genera el contra-asiento y compensa el banco. La factura queda marcada como
+            anulada en el historico.</td>
+        <td>4.5.1</td>
+    </tr>
+    <tr>
+        <td>Movimientos de banco</td>
+        <td>Nunca se borran: se compensan con el movimiento contrario (normativa contable).</td>
+        <td>4.5</td>
+    </tr>
+    <tr>
+        <td>Alta de cuenta con deposito</td>
+        <td>Cuenta, deposito y asiento se guardan juntos o nada (antes daba error en PostgreSQL y dejaba
+            la cuenta a medias).</td>
+        <td>9.1, 9.4</td>
+    </tr>
+</table>
+
+<h2>0.4 Contabilidad e informes</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td>IVA / Modelo 303</td>
+        <td>Las bases incluyen servicios (62x) y solo operaciones con IVA; si el trimestre esta vacio avisa y
+            enlaza al que tiene actividad. Tabla resumen de los cuatro trimestres.</td>
+        <td>15.3</td>
+    </tr>
+    <tr>
+        <td>Valoracion de existencias</td>
+        <td>El vehiculo se valora con las OT contabilizadas; las pendientes se marcan «sin contabilizar» y la
+            diferencia con el saldo 300-330 ya no sale por la mano de obra.</td>
+        <td>15.7</td>
+    </tr>
+</table>
+
+<h2>0.5 Taller y personal</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td>Alta de OT</td>
+        <td>Misma pantalla desde Taller y desde la ficha del coche (con el vehiculo ya seleccionado). Si esta
+            Adquirido pasa a En Taller; los vendidos no aparecen.</td>
+        <td>4.1</td>
+    </tr>
+    <tr>
+        <td><strong>Recibo de nomina imprimible</strong></td>
+        <td>Boton «Imprimir Recibo»: hoja A4 solo con el recibo (empresa, trabajador, puesto, devengos,
+            deducciones, liquido y firmas).</td>
+        <td>6.5.6</td>
+    </tr>
+    <tr>
+        <td>Puesto de trabajo</td>
+        <td>Campo opcional en Usuarios; si esta vacio, el recibo muestra el rol.</td>
+        <td>6.5.6</td>
+    </tr>
+</table>
+
+<h2>0.6 Web publica y almacenamiento</h2>
+<table>
+    <tr><th>Cambio</th><th>Que hace ahora</th><th>Ver</th></tr>
+    <tr>
+        <td>Coches vendidos</td>
+        <td>Siguen visibles <strong>30 dias</strong> con el cintillo VENDIDO y el boton de cita sustituido por
+            «Consultar disponibilidad de similares». Despues se ocultan solos.</td>
+        <td>22.7</td>
+    </tr>
+    <tr>
+        <td>Kilometraje</td>
+        <td>Se muestra con separador de miles: <strong>95.000 km</strong>.</td>
+        <td>22.5</td>
+    </tr>
+    <tr>
+        <td>Almacenamiento R2</td>
+        <td>Guia paso a paso para que fotos y PDFs no se pierdan en cada despliegue
+            (<code>GUIA_R2.md</code>).</td>
+        <td>12</td>
+    </tr>
+</table>
+
+<h2>0.7 Comandos nuevos</h2>
+<table>
+    <tr><th>Comando</th><th>Para que sirve</th></tr>
+    <tr><td><code>comprobar_imagenes_vehiculos</code></td><td>Avisa de fotos cuyo archivo se perdio; con
+        <code>--borrar-huerfanas</code> limpia las referencias rotas.</td></tr>
+    <tr><td><code>reparar_capitalizacion_ot</code></td><td>Crea o postea la capitalizacion de las OT
+        pendientes (mano de obra en existencias).</td></tr>
+    <tr><td><code>reparar_cobro_venta --venta N</code></td><td>Crea el ingreso bancario que falte en una venta
+        antigua.</td></tr>
+    <tr><td><code>limpiar_datos_prueba --confirmar</code></td><td>Vacia los datos de prueba conservando usuarios,
+        plan contable y tareas.</td></tr>
+</table>
+
 <h1 id="capitulo-1">1. Introduccion y Primeros Pasos</h1>
 
 <h2>1.1 Arquitectura del Sistema</h2>
@@ -1546,7 +1717,6 @@ vencimiento  reparacion
     <code>python manage.py migrate</code>: la inicializacion es idempotente y no
     duplica las existentes.
 </div>
-</ol>
 
 <h2 id="capitulo-8-2">8.2 Asientos Contables</h2>
 
@@ -2016,7 +2186,7 @@ Asiento contable generado:
 
 Verificacion: DEBE (544,50) = HABER (544,50) -> CUADRADO</code></pre>
 
-<h2>4.5 Borrados protegidos y anulacion de compras</h2>
+<h2 id="capitulo-4-5">4.5 Borrados protegidos y anulacion de compras</h2>
 
 <p>Para no descuadrar banco, contabilidad ni stock, el ERP <strong>no permite borrar</strong>
 registros que ya tienen operaciones asociadas. En su lugar muestra un aviso claro y explica
@@ -2036,7 +2206,7 @@ que hay que anular primero esas operaciones.</p>
         <td>Se compensa con otro movimiento (normativa contable)</td></tr>
 </table>
 
-<h3>4.5.1 Anular una compra de recambios (abono)</h3>
+<h3 id="capitulo-4-5-1">4.5.1 Anular una compra de recambios (abono)</h3>
 <ol class="steps">
     <li>Vaya a <strong>Taller &gt; Compras</strong> y abra la factura.</li>
     <li>Pulse <strong>&#8617;&#65039; Anular compra / Abono</strong> y confirme.</li>
@@ -3011,6 +3181,14 @@ Respuesta:
 <!-- ==================== CAPITULO 12 (antiguo 10) ==================== -->
 <h1 id="capitulo-12">12. Despliegue y Produccion</h1>
 
+<div class="warning-box">
+    <strong>Almacenamiento de fotos y PDFs (R2):</strong> el disco de Render es efimero: en cada despliegue se
+    pierden las fotos y los PDFs subidos. La solucion es conectar un bucket de Cloudflare R2. El paso a paso
+    (bucket publico, token y las seis variables <code>AWS_*</code> en Render) esta en
+    <code>GUIA_R2.md</code>, en la raiz del repositorio.
+</div>
+
+
 <p>El sistema se despliega en <strong>Render</strong> usando el runtime nativo de Python (no Docker). El sitio publico Vue, el ERP Django y la API se sirven desde un unico Web Service; los archivos de media (imagenes de vehiculos, PDFs de facturas) se guardan en <strong>Cloudflare R2</strong> porque el disco de Render es efimero.</p>
 
 <h2>12.1 Plataforma de Despliegue (Render)</h2>
@@ -3732,35 +3910,66 @@ de la Ley del IVA.
 
 <h2 id="capitulo-14-3">14.3 Factura Rectificativa</h2>
 
-<p>Las facturas rectificativas se utilizan para corregir errores o registrar devoluciones de vehiculos.</p>
+<p>La rectificativa corrige o deja sin efecto una factura ya emitida. <strong>La factura original no se
+borra ni se modifica</strong>: se conserva con su numeracion y se referencia desde la rectificativa
+(normativa de facturacion y Ley Antifraude).</p>
 
-<h3>12.3.1 Cuando usar una factura rectificativa</h3>
+<h3 id="capitulo-14-3-1">14.3.1 Tipos y cuando usarlos</h3>
 <table>
-    <tr><th>Tipo</th><th>Caso de uso</th><th>Ejemplo</th></tr>
-    <tr><td><code>R1</code></td><td>Error en la factura original</td><td>Se facturo 12.000 EUR pero debia ser 11.500 EUR</td></tr>
-    <tr><td><code>R4</code></td><td>Devolucion del vehiculo</td><td>El cliente devuelve el vehiculo dentro de la garantia</td></tr>
+    <tr><th>Tipo</th><th>Caso de uso</th><th>Efecto</th></tr>
+    <tr><td><code>R1</code></td><td>Error en la factura original</td><td>Abono del importe rectificado</td></tr>
+    <tr><td><code>R4</code></td><td>Devolucion del vehiculo</td><td>Abono del importe rectificado</td></tr>
 </table>
 
-<h3>12.3.2 Generar Factura Rectificativa</h3>
+<div class="info-box">
+    <strong>Importes en negativo (convencion de abono):</strong> el PDF muestra
+    <code>-11.500,00 EUR</code> y desglosa base imponible (margen REBU), cuota de IVA y total rectificado,
+    todos en negativo. Asi se distingue a simple vista de una factura de cargo.
+</div>
+
+<h3 id="capitulo-14-3-2">14.3.2 Generar la rectificativa</h3>
 <ol class="steps">
-    <li>Navegue a <strong>Ventas</strong> y abra la venta original</li>
-    <li>Haga clic en <strong>"Factura Rectificativa"</strong></li>
-    <li>Seleccione el tipo (R1 o R4)</li>
-    <li>Ingrese el motivo de la rectificacion</li>
-    <li>El sistema crea la factura rectificativa vinculada a la original</li>
-    <li>El hash de la factura rectificativa incluye el hash de la factura original</li>
+    <li>Abra la <strong>ficha de la factura</strong> (Ventas &gt; Facturas) o la ficha de la venta.</li>
+    <li>Pulse <strong>Rectificativa</strong>.</li>
+    <li>Elija el tipo (<code>R1</code> o <code>R4</code>) e indique el motivo.</li>
+    <li>El sistema crea la factura <code>R-AAAA-NNNN</code> vinculada a la original y genera su PDF.</li>
+    <li>Abre automaticamente la rectificativa emitida.</li>
 </ol>
 
+<h3 id="capitulo-14-3-3">14.3.3 Reglas de la rectificativa</h3>
+<table>
+    <tr><th>Regla</th><th>Comportamiento</th></tr>
+    <tr>
+        <td><strong>Una sola rectificativa total por factura</strong></td>
+        <td>Cuando ya existe, el boton <strong>Rectificativa</strong> desaparece y en su lugar aparece
+            <strong>Ver rectificativa R-AAAA-NNNN</strong>. Si se intenta de nuevo, el sistema avisa y abre
+            la existente; no se emite otra.</td>
+    </tr>
+    <tr>
+        <td>No se rectifica una rectificativa</td>
+        <td>Si la factura ya es <code>R1</code>/<code>R4</code>, el aviso remite a rectificar la factura
+            original.</td>
+    </tr>
+    <tr>
+        <td>Anular una venta ya rectificada</td>
+        <td><strong>&#8617;&#65039; Anular venta</strong> <strong>reutiliza</strong> la rectificativa existente
+            en lugar de emitir una duplicada (el mensaje indica su codigo).</td>
+    </tr>
+    <tr>
+        <td>Reventa del vehiculo</td>
+        <td>La rectificativa se vincula a la factura original, no a una venta nueva: el coche puede volver a
+            venderse y tendra su propia factura y su propio detalle REBU.</td>
+    </tr>
+</table>
+
 <div class="warning-box">
-    <strong>Ejemplo numerico - Rectificacion por error:</strong><br><br>
-    <strong>Factura original:</strong> FACT-2026-0001 - 12.000 EUR<br>
-    <strong>Error:</strong> El precio real era 11.500 EUR<br><br>
-    <strong>Factura rectificativa R1:</strong><br>
-    - Precio corregido: 11.500 EUR<br>
-    - Diferencia: 12.000 - 11.500 = -500 EUR<br>
-    - Base Imponible rectificada: 500 / 1,21 = 413,22 EUR<br>
-    - IVA rectificado: 413,22 x 21% = 86,78 EUR<br><br>
-    El cliente recibe un abono de 500 EUR
+    <strong>Ejemplo numerico - Devolucion total:</strong><br><br>
+    <strong>Factura original:</strong> FACT-2026-0001 por 11.500,00 EUR<br>
+    <strong>Rectificativa R4:</strong> R-2026-0001<br>
+    - Base imponible (margen REBU): <strong>-2.768,60 EUR</strong><br>
+    - Cuota IVA repercutido: <strong>-581,41 EUR</strong><br>
+    - Total rectificado: <strong>-11.500,00 EUR</strong><br><br>
+    La factura original sigue en el historico con sus importes positivos.
 </div>
 
 <h2 id="capitulo-14-4">14.4 VeriFactu - Cadena Criptografica</h2>
@@ -6658,7 +6867,7 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
     </tr>
     <tr>
         <td><code>test</code></td>
-        <td>Ejecuta los 63 tests unitarios en una BD de prueba aislada (~70 segundos, 1 omitido)</td>
+        <td>Ejecuta los 236 tests unitarios en una BD de prueba aislada (~6 minutos, 1 omitido)</td>
         <td>Verificacion de cambios en backend</td>
     </tr>
     <tr>
@@ -6690,6 +6899,30 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
         <td><code>collectstatic</code></td>
         <td>Compila los archivos estaticos en <code>staticfiles/</code></td>
         <td>Despliegues (Render lo ejecuta en el build automaticamente)</td>
+    </tr>
+    <tr>
+        <td><code>comprobar_imagenes_vehiculos</code></td>
+        <td>Lista las fotos cuyo archivo ya no esta en el almacenamiento. Con
+            <code>--borrar-huerfanas</code> limpia esas referencias rotas</td>
+        <td>Tras un despliegue en staging (disco efimero) o si la web muestra imagenes rotas</td>
+    </tr>
+    <tr>
+        <td><code>reparar_capitalizacion_ot</code></td>
+        <td>Crea o postea el asiento de capitalizacion de las OT pendientes. Avisa si no cuadra.
+            Admite <code>--dry-run</code></td>
+        <td>Cuando la valoracion de existencias marca coste de taller «sin contabilizar»</td>
+    </tr>
+    <tr>
+        <td><code>reparar_cobro_venta --venta &lt;pk&gt;</code></td>
+        <td>Crea el ingreso bancario que falte en una venta antigua (no duplica si ya existe).
+            Tambien <code>--matricula</code> y <code>--todas</code></td>
+        <td>Ventas con el bloque «Cobro en banco» en rojo</td>
+    </tr>
+    <tr>
+        <td><code>limpiar_datos_prueba --confirmar</code></td>
+        <td>Vacia los datos de prueba conservando usuarios, plan contable y tareas programadas.
+            Sin <code>--confirmar</code> solo simula</td>
+        <td>Dejar staging lista para una prueba nueva</td>
     </tr>
 </table>
 
@@ -6733,7 +6966,7 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
     <tr><th>Comando</th><th>Que hace</th><th>Cuando usarlo</th></tr>
     <tr>
         <td><code>cd backend && python manage.py test</code></td>
-        <td>63 tests unitarios en BD aislada (~70 segundos, 1 omitido)</td>
+        <td>236 tests unitarios en BD aislada (~6 minutos, 1 omitido)</td>
         <td>Tras cambios en modelos, vistas o informes</td>
     </tr>
     <tr>
@@ -6924,6 +7157,9 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
 
 <h2 id="capitulo-22-5">22.5 Comprobar que se ven en la web</h2>
 
+<p>En las tarjetas y en la ficha el kilometraje se muestra con separador de
+miles: <strong>95.000 km</strong>.</p>
+
 <ol>
     <li>Abra la web publica (<code>/</code>) y vaya al <strong>Catalogo</strong>.</li>
     <li>Busque el coche: debe aparecer con la foto principal en la tarjeta y el resto al deslizar.</li>
@@ -6960,10 +7196,38 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
 
 <h2 id="capitulo-22-7">22.7 Que pasa cuando el coche se vende</h2>
 
-<p>Al cambiar el estado a <strong>Vendido</strong> (o a cualquier otro que no sea En Venta), el coche desaparece de la web publica, pero <strong>sus fotos se conservan</strong>. Si vuelve a ponerlo <strong>En Venta</strong>, reaparecen tal y como estaban, sin tener que subirlas otra vez.</p>
+<p>Al marcar un coche como <strong>Vendido</strong>, sus fotos <strong>se conservan</strong> en el ERP. Si la
+venta se anula y el coche vuelve a <strong>En Venta</strong>, reaparecen tal y como estaban, sin tener que
+subirlas otra vez.</p>
+
+<h3 id="capitulo-22-7-1">22.7.1 El coche vendido sigue 30 dias en la web</h3>
+<table>
+    <tr><th>Momento</th><th>Que se ve en el catalogo publico</th></tr>
+    <tr>
+        <td>Del dia de la venta a los 30 dias</td>
+        <td>El coche sigue publicado con un cintillo rojo <strong>VENDIDO</strong> sobre la foto, el precio
+            atenuado y el aviso «Este coche ya se vendio - Consulta similares». En su ficha, el boton
+            <strong>Pedir cita</strong> se sustituye por <strong>Consultar disponibilidad de similares</strong>.</td>
+    </tr>
+    <tr>
+        <td>A partir del dia 31</td>
+        <td>Desaparece solo del catalogo (su ficha pasa a «no encontrado»). No hay que hacer nada.</td>
+    </tr>
+    <tr>
+        <td>Si se anula la venta</td>
+        <td>Vuelve a mostrarse como disponible, sin cintillo ni restricciones.</td>
+    </tr>
+</table>
+
+<div class="info-box">
+    <strong>Prueba social:</strong> mantener el coche vendido 30 dias da confianza a los visitantes y atrae a
+    quien busca un modelo similar. Las fotos y el historico quedan siempre en el ERP, aunque el anuncio ya no
+    se vea.
+</div>
 
 <div class="warning-box">
-    <strong>Antes esto borraba las fotos.</strong> Ya no: desde esta version el cambio de estado solo oculta el anuncio. Para eliminar fotos de verdad hay que marcar "Eliminar" en cada fila, o borrar el vehiculo.
+    <strong>Antes esto borraba las fotos.</strong> Ya no: el cambio de estado solo oculta el anuncio. Para
+    eliminar fotos de verdad hay que marcar «Eliminar» en cada fila y guardar.
 </div>
 
 <h2 id="capitulo-22-8">22.8 Subida masiva desde la consola (opcional)</h2>

@@ -39,7 +39,7 @@
 <h1>Prueba de extremo a extremo del ERP</h1>
 
 <p class="meta">
-  Documento de pruebas para el equipo de Madrid · Versión 1.0 ·
+  Documento de pruebas para el equipo de Madrid · Versión 2.1 · Noviembre 2026 ·
   Sistema: ERP R Car Rogil (Django) · Duración estimada: 3–4 horas
 </p>
 
@@ -1091,6 +1091,39 @@ y vendido en <strong>11.500 €</strong>. Si usa otro vehículo, cambie solo eso
   <tr><td>Un trabajador mensual con 1.500 €</td><td>genera <strong>1.500,00</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
 </table>
 
+<!-- ===================== B7 ===================== -->
+<div class="step">B7 — Borrados protegidos y abono de compras</div>
+
+<p><strong>Dónde:</strong> 🚗 Vehículos, 💸 Gastos, 🔧 Taller y 🏦 Banco. Regla general: nada que tenga
+asiento, cobro, pago o materiales se borra; se anula o se compensa.</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Acción</th><th>Resultado esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Eliminar un gasto que ya tiene asiento</td><td>mensaje rojo «No se puede eliminar un gasto con asiento contable»; el gasto sigue en la lista</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Eliminar un vehículo con una OT</td><td>mensaje «…con órdenes de trabajo»; el vehículo sigue</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Anular el asiento de un depósito</td><td>mensaje «…vinculado al movimiento de banco… registre el movimiento de compensación»; el asiento sigue POSTEADO</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Abrir una factura de compra y pulsar <strong>↩️ Anular compra / Abono</strong></td><td>stock devuelto, asiento de compra ANULADO con contrapartida, movimiento contrario en Banco y factura marcada «Compra anulada»</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Pulsar de nuevo «Anular compra»</td><td>aviso «ya estaba anulada»; no se duplica nada</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Anular una venta (<strong>↩️ Anular venta</strong>)</td><td>venta ANULADA en el histórico, asiento anulado con contrapartida, INGRESO + EGRESO de compensación en Banco, coche de vuelta a En Venta</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Intentar <strong>Eliminar</strong> esa venta</td><td>aviso «Esta venta tiene asiento contable, cobro o factura… use «Anular venta»»</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
+<!-- ===================== B8 ===================== -->
+<div class="step">B8 — Catálogo público: vendido 30 días y kilometraje</div>
+
+<p><strong>Dónde:</strong> https://staging.rogil.co (web pública).</p>
+
+<h3>Qué debe ver</h3>
+<table>
+  <tr><th>Comprobación</th><th>Resultado esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
+  <tr><td>Tarjeta de un coche en venta: kilometraje</td><td><strong>95.000 km</strong> (separador de miles)</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Vender un coche y abrir el catálogo</td><td>el coche <strong>sigue visible</strong> con cintillo rojo <strong>VENDIDO</strong> sobre la foto</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Ficha del coche vendido</td><td>botón de cita sustituido por <strong>«Consultar disponibilidad de similares»</strong></td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Anular la venta y recargar</td><td>vuelve a mostrarse como disponible, sin cintillo</td><td class="check">☐</td><td class="check">☐</td></tr>
+  <tr><td>Sus fotos</td><td>siguen intactas durante todo el proceso</td><td class="check">☐</td><td class="check">☐</td></tr>
+</table>
+
 <h3>Comprobación final del anexo</h3>
 <table>
   <tr><th>Comprobación</th><th>Valor esperado</th><th class="check">OK</th><th class="check">FALLA</th></tr>
@@ -1227,7 +1260,7 @@ recambios se anulan con abono. Los movimientos de banco <strong>no se borran nun
   <tr><td>Copia de seguridad restaurada</td><td>Sí ☐ &nbsp;&nbsp; No ☐</td></tr>
   <tr><td>Pruebas automáticas del capítulo 20 (<code>test_pipeline_capitulo20.py</code>)</td><td class="fill">93 / 93 OK</td></tr>
   <tr><td>Pruebas automáticas del Anexo B (<code>prueba_anexo_b.py</code>)</td><td class="fill">46 / 46 OK</td></tr>
-  <tr><td>Suite de pruebas del sistema (<code>manage.py test</code>)</td><td class="fill">226 OK, 1 omitida</td></tr>
+  <tr><td>Suite de pruebas del sistema (<code>manage.py test</code>)</td><td class="fill">236 OK, 1 omitida</td></tr>
 </table>
 
 <h3>Fallos encontrados</h3>
