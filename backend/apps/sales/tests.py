@@ -664,3 +664,127 @@ class ImagenesAlVenderYAnularTests(TestCase):
         self.assertEqual(ImagenVehiculo.objects.filter(vehiculo=self.vehiculo).count(), 3)
         self.assertTrue(self.vehiculo.imagen_principal)
         self.assertTrue(self._existen_todos_los_archivos())
+
+
+class DetalleRebuVariasFacturasTests(TestCase):
+    """Un vehículo puede tener varios DetalleRebu (rectificativa o reventa).
+
+    Regresión: `sales_detallerebu_vehiculo_id_key` al crear una rectificativa.
+    """
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import CuentaContable, PlanContableDefault
+        from apps.bank.models import BancoCuenta
+        from apps.vehicles.models import Vehiculo
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf 1.6 TDI', anio=2020,
+            combustible='DIESEL', kilometraje=95000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), precio_venta=Decimal('11500.00'),
+            created_by=self.admin,
+        )
+
+    def _vender(self):
+        self.client.post(reverse('sales:create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'TRANSFERENCIA',
+            'precio_venta': '11500.00',
+        })
+        return VentaVehiculo.objects.filter(
+            vehiculo=self.vehiculo, anulada=False
+        ).get()
+
+    def test_la_rectificativa_no_duplica_el_detalle_rebu(self):
+        from apps.sales.models import DetalleRebu
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+        self.assertEqual(DetalleRebu.objects.filter(vehiculo=self.vehiculo).count(), 1)
+
+        rectificativa = crear_factura_rectificativa(
+            factura, 'R4', 'Devolución', self.admin
+        )
+
+        self.assertEqual(rectificativa.factura_rectificada_id, factura.pk)
+        self.assertEqual(
+            DetalleRebu.objects.filter(vehiculo=self.vehiculo).count(), 2
+        )
+        self.assertEqual(
+            rectificativa.detalles_rebu.first().vehiculo_id, self.vehiculo.pk
+        )
+
+
+    def test_la_pantalla_de_rectificativa_r4_funciona(self):
+        """Caso real: «Nueva Factura Rectificativa» con R4 sobre la factura."""
+        from apps.sales.models import DetalleRebu, FacturaVenta
+        from apps.sales.services import crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+
+        respuesta = self.client.post(
+            reverse('sales:factura_rectificativa', args=[factura.pk]),
+            {'tipo_rectificacion': 'R4', 'motivo': 'Devolución del vehículo'},
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        rectificativa = FacturaVenta.objects.filter(
+            tipo_factura='R4', factura_rectificada=factura
+        ).first()
+        self.assertIsNotNone(rectificativa)
+        self.assertEqual(
+            DetalleRebu.objects.filter(vehiculo=self.vehiculo).count(), 2
+        )
+
+    def test_el_mismo_vehiculo_se_puede_vender_otra_vez_tras_anular(self):
+        from apps.sales.models import DetalleRebu, FacturaVenta
+        from apps.sales.services import crear_factura_rectificativa, crear_factura_venta
+
+        venta = self._vender()
+        factura = crear_factura_venta(venta, self.admin)
+
+        # Anular la venta (genera rectificativa) y volver a venderlo
+        respuesta = self.client.post(
+            reverse('sales:anular', args=[venta.pk]), {'motivo': 'Devolución'}
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        self.vehiculo.refresh_from_db()
+        self.assertEqual(self.vehiculo.estado, 'EN_VENTA')
+
+        segunda = self._vender()
+        segunda_factura = crear_factura_venta(segunda, self.admin)
+
+        self.assertNotEqual(segunda_factura.pk, factura.pk)
+        self.assertEqual(
+            DetalleRebu.objects.filter(vehiculo=self.vehiculo).count(), 3
+        )
+        self.assertEqual(FacturaVenta.objects.filter(tipo_factura='R1').count(), 1)

@@ -261,6 +261,17 @@ class Vehiculo(models.Model):
         self.cuota_iva = self.tipo_iva or Decimal('0')
         super().save(*args, **kwargs)
     
+    @property
+    def venta(self):
+        """Última venta no anulada del vehículo (o None).
+
+        Sustituye a la antigua relación OneToOne: ahora un coche puede tener
+        varias ventas en su histórico y esta propiedad devuelve la vigente.
+        """
+        return (
+            self.ventas.filter(anulada=False).order_by('-pk').first()
+        )
+
     @classmethod
     def visibles_en_web(cls):
         """Vehículos que el catálogo público debe mostrar.

@@ -102,6 +102,14 @@ def venta_create(request):
     if request.method == 'POST':
         form = VentaVehiculoForm(request.POST)
         if form.is_valid():
+            vehiculo = form.cleaned_data.get('vehiculo')
+            if vehiculo and vehiculo.ventas.filter(anulada=False).exists():
+                form.add_error(
+                    'vehiculo',
+                    'Este vehículo ya tiene una venta activa. Anule esa venta '
+                    'antes de registrar otra (la anulada queda en el histórico).',
+                )
+        if form.is_valid():
             try:
                 # Todo o nada: venta, asiento y cobro en banco. Antes, si el
                 # asiento o el movimiento fallaban, la venta quedaba guardada

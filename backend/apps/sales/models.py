@@ -22,10 +22,13 @@ class VentaVehiculo(models.Model):
         ('EMPRESA', 'Empresa/Autónomo (B2B)'),
     ]
     
-    vehiculo = models.OneToOneField(
+    # Un coche puede venderse varias veces a lo largo de su vida (por ejemplo,
+    # si se anula una venta y se vuelve a vender). La unicidad no es por
+    # vehículo: puede haber ventas anteriores anuladas en el histórico.
+    vehiculo = models.ForeignKey(
         'vehicles.Vehiculo', 
         on_delete=models.PROTECT,
-        related_name='venta',
+        related_name='ventas',
         verbose_name='vehículo'
     )
     
@@ -147,6 +150,15 @@ class VentaVehiculo(models.Model):
         verbose_name = 'venta de vehículo'
         verbose_name_plural = 'ventas de vehículos'
         ordering = ['-fecha_venta']
+        constraints = [
+            # Solo puede haber una venta vigente por vehículo; las anuladas
+            # quedan en el histórico y no bloquean una venta nueva.
+            models.UniqueConstraint(
+                fields=['vehiculo'],
+                condition=models.Q(anulada=False),
+                name='venta_activa_unica_por_vehiculo',
+            ),
+        ]
     
     def __str__(self):
         return f"Venta {self.vehiculo} a {self.cliente_nombre}"
@@ -442,9 +454,12 @@ class DetalleRebu(models.Model):
         FacturaVenta, on_delete=models.CASCADE,
         related_name='detalles_rebu', verbose_name='factura'
     )
-    vehiculo = models.OneToOneField(
+    # Un vehículo puede tener varios detalles REBU a lo largo de su vida:
+    # uno por cada factura (venta, rectificativa o una venta posterior si se
+    # anuló la anterior). La unicidad es por factura, no por vehículo.
+    vehiculo = models.ForeignKey(
         'vehicles.Vehiculo', on_delete=models.PROTECT,
-        related_name='detalle_rebu', verbose_name='vehículo'
+        related_name='detalles_rebu', verbose_name='vehículo'
     )
     
     precio_adquisicion = models.DecimalField(
@@ -478,6 +493,17 @@ class DetalleRebu(models.Model):
         if self.margen_bruto > 0:
             return (self.base_imponible_oculta * Decimal('0.21')).quantize(Decimal('0.01'))
         return Decimal('0.00')
+
+    class Meta:
+        verbose_name = 'detalle REBU'
+        verbose_name_plural = 'detalles REBU'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['factura', 'vehiculo'],
+                name='detallerebu_unico_por_factura',
+            ),
+        ]
+
 
 
 class CostoAcondicionamiento(models.Model):
