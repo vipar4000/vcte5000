@@ -335,9 +335,16 @@ def calcular_libro_iva(fecha_desde, fecha_hasta):
         asiento__estado='POSTEADO',
     ).values_list('asiento_id', flat=True)
 
+    # Base de las compras: todo lo que entra por 2xx (inmovilizado), 3xx
+    # (existencias) o 6xx (gastos) en el mismo asiento que lleva 472. Antes
+    # solo se miraban 60 y 62, así que se perdían las bases de activos fijos
+    # (214), repuestos (300) y tasas, y el 390 mostraba una base menor que la
+    # cuota.
     compras = MovimientoContable.objects.filter(
         Q(asiento_id__in=asientos_compras),
-        Q(cuenta__codigo__startswith='60') | Q(cuenta__codigo__startswith='62'),
+        Q(cuenta__codigo__startswith='2')
+        | Q(cuenta__codigo__startswith='3')
+        | Q(cuenta__codigo__startswith='6'),
     ).aggregate(
         debe=Coalesce(Sum('debe'), Decimal('0')),
         haber=Coalesce(Sum('haber'), Decimal('0')),

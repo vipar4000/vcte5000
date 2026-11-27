@@ -676,3 +676,88 @@ class AsientoConBancoNoSeAnulaTests(TestCase):
         self.asiento.refresh_from_db()
         self.assertEqual(self.asiento.estado, 'POSTEADO')
         self.assertContains(respuesta, 'movimientos de banco no se borran')
+
+
+class BaseIVASoportadoTests(TestCase):
+    """La base del IVA soportado incluye activos, existencias y gastos."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+
+    def _asiento(self, lineas, fecha='2026-11-20'):
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha=fecha,
+            concepto='Prueba IVA', estado='POSTEADO',
+            tipo_documento='Prueba', documento_id=0,
+            created_by=self.admin,
+        )
+        for codigo, debe, haber in lineas:
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=CuentaContable.objects.get(codigo=codigo),
+                debe=debe, haber=haber,
+            )
+        return asiento
+
+    def test_la_base_suma_inmovilizado_existencias_y_gastos(self):
+        from decimal import Decimal
+
+        from apps.accounting.reports import calcular_libro_iva
+
+        # Inmovilizado 214 + IVA
+        self._asiento([
+            ('214', Decimal('4000.00'), Decimal('0')),
+            ('472', Decimal('840.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('4840.00')),
+        ])
+        # Repuestos 300 + IVA
+        self._asiento([
+            ('300', Decimal('1000.00'), Decimal('0')),
+            ('472', Decimal('210.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('1210.00')),
+        ])
+        # Gasto 621 + IVA
+        self._asiento([
+            ('621', Decimal('2000.00'), Decimal('0')),
+            ('472', Decimal('420.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('2420.00')),
+        ])
+
+        libro = calcular_libro_iva('2026-10-01', '2026-12-31')
+
+        self.assertEqual(libro['iva_soportado']['total'], Decimal('1470.00'))
+        self.assertEqual(
+            libro['iva_soportado']['base_imponible'], Decimal('7000.00'),
+        )
+
+    def test_una_rectificativa_resta_base_y_cuota(self):
+        from decimal import Decimal
+
+        from apps.accounting.reports import calcular_libro_iva
+
+        self._asiento([
+            ('214', Decimal('4000.00'), Decimal('0')),
+            ('472', Decimal('840.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('4840.00')),
+        ])
+        # Rectificativa (R4): devolución del activo
+        self._asiento([
+            ('214', Decimal('0'), Decimal('4000.00')),
+            ('472', Decimal('0'), Decimal('840.00')),
+            ('572', Decimal('4000.00'), Decimal('0')),
+        ])
+
+        libro = calcular_libro_iva('2026-10-01', '2026-12-31')
+
+        self.assertEqual(libro['iva_soportado']['total'], Decimal('0'))
+        self.assertEqual(libro['iva_soportado']['base_imponible'], Decimal('0'))
