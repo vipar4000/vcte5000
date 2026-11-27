@@ -974,3 +974,74 @@ class RegularizacionGlobalExistenciasTests(TestCase):
         self.assertFalse(AsientoContable.objects.filter(
             tipo_documento='RegularizacionInventario'
         ).exists())
+
+
+class GuardarYRegistrarOtroTests(TestCase):
+    """«Guardar y registrar otro» guarda y vuelve al formulario limpio."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta
+
+        banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        from apps.bank.models import BancoMovimiento
+
+        BancoMovimiento.objects.create(
+            banco_cuenta=banco, fecha='2026-11-01', concepto='Depósito',
+            tipo='INGRESO', importe=Decimal('50000.00'),
+        )
+        self.client.force_login(self.admin)
+
+    def _datos(self, matricula='1234ABC'):
+        return {
+            'matricula': matricula,
+            'bastidor': 'WVWZZZ3CZWE123456',
+            'marca': 'Volkswagen', 'modelo': 'Golf', 'anio': 2020,
+            'combustible': 'DIESEL', 'kilometraje': 90000,
+            'tipo_dano': 'ACCIDENTAL', 'etiqueta_ambiental': 'C',
+            'estado': 'ADQUIRIDO', 'fecha_adquisicion': '2026-11-20',
+            'precio_subasta': '8150.00', 'tasas_sala': '0',
+            'logistica_grua': '0', 'tipo_iva': '0',
+            'proveedor': 'Subasta', 'forma_pago': '',
+        }
+
+    def test_guardar_y_otro_vuelve_al_formulario_de_alta(self):
+        from apps.vehicles.models import Vehiculo
+
+        respuesta = self.client.post(
+            reverse('vehicles:create'),
+            {**self._datos(), 'guardar_y_otro': '1'},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(respuesta.url, reverse('vehicles:create'))
+        self.assertEqual(Vehiculo.objects.filter(matricula='1234ABC').count(), 1)
+
+    def test_el_boton_solo_aparece_al_crear(self):
+        respuesta = self.client.get(reverse('vehicles:create'))
+        self.assertContains(respuesta, 'Guardar y registrar otro')
+
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.vehicles.models import Vehiculo
+
+        vehiculo = Vehiculo.objects.create(
+            matricula='5678DEF', bastidor='VSSZZZ5FZKW123456',
+            marca='SEAT', modelo='León', anio=2020, combustible='DIESEL',
+            kilometraje=80000, tipo_dano='ACCIDENTAL', etiqueta_ambiental='C',
+            estado='ADQUIRIDO', fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('8000.00'), created_by=self.admin,
+        )
+        respuesta = self.client.get(reverse('vehicles:update', args=[vehiculo.pk]))
+        self.assertNotContains(respuesta, 'Guardar y registrar otro')

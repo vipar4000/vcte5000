@@ -194,6 +194,13 @@ def vehiculo_create(request):
                 'El estado, el precio de venta, la descripción y las fotos se '
                 'editan en la pestaña 📢 Publicar.',
             )
+            if request.POST.get('guardar_y_otro'):
+                messages.success(
+                    request,
+                    f'{vehiculo.matricula} registrado. Formulario listo para el '
+                    f'siguiente vehículo.',
+                )
+                return redirect('vehicles:create')
             return redirect('vehicles:detail', pk=vehiculo.pk)
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
