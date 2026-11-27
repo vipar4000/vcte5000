@@ -1475,8 +1475,8 @@ Devengos:
 Deducciones:
   Retencion IRPF 6% (4751):          108,00 EUR
   SS Obrera 4,7% (476):               84,60 EUR
-  SS Patronal (476):                 567,00 EUR
-  Total Deducciones:                 759,60 EUR
+  Total Deducciones del trabajador:   192,60 EUR   (IRPF 108,00 + SS obrera 84,60)
+  (La SS Patronal, 567,00 EUR, es gasto de la empresa: no se resta del recibo)
 
 Liquido a Percibir (465):          1.607,40 EUR
 
@@ -2453,6 +2453,12 @@ Cuenta: Santander, fecha 01/07/2026.</code></pre>
     <li><strong>Conciliado:</strong> si/no/todos</li>
     <li><strong>Busqueda:</strong> texto libre en concepto</li>
 </ul>
+
+<div class="info-box">
+    <strong>Resultados de conciliación:</strong> la columna <strong>Confianza</strong> se muestra en
+    porcentaje (100% = coincidencia exacta) y el aviso superior cuenta <strong>todos</strong> los
+    movimientos conciliados (los del ERP y los creados desde el extracto).
+</div>
 
 <h2 id="capitulo-9-3">9.3 Conciliacion Bancaria</h2>
 
@@ -3924,6 +3930,13 @@ DEBE: 16.500,00 = HABER: 16.500,00 -> CUADRADO</code></pre>
 </table>
 
 <!-- ==================== CAPITULO 14 (antiguo 12) ==================== -->
+<div class="info-box">
+    <strong>Tarjetas del listado de ventas:</strong> «Total ventas», «Volumen de ventas» y
+    «Beneficio total» suman solo las ventas <strong>activas</strong>; las marcadas como ANULADA
+    aparecen en el listado pero no en los totales. La ficha de una venta muestra en «Cobro en banco»
+    únicamente los ingresos de esa venta y de la reserva que se convirtió en ella.
+</div>
+
 <h1 id="capitulo-14">14. Facturacion REBU</h1>
 
 <h2 id="capitulo-14-1">14.1 Tipos de Factura</h2>

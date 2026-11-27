@@ -36,13 +36,15 @@ def venta_list(request):
     if metodo_pago:
         ventas = ventas.filter(metodo_pago=metodo_pago)
     
-    # Estadísticas
+    # Estadísticas: solo las ventas activas (las ANULADAS no suman)
+    ventas_activas = VentaVehiculo.objects.filter(anulada=False)
     stats = {
-        'total': VentaVehiculo.objects.count(),
-        'total_ventas': VentaVehiculo.objects.aggregate(
+        'total': ventas_activas.count(),
+        'total_ventas': ventas_activas.aggregate(
             total=Sum('precio_venta')
         )['total'] or 0,
-        'beneficio_total': sum(v.beneficio for v in VentaVehiculo.objects.all()),
+        'beneficio_total': sum(v.beneficio for v in ventas_activas),
+        'anuladas': VentaVehiculo.objects.filter(anulada=True).count(),
     }
     
     context = {
@@ -61,13 +63,28 @@ def venta_detail(request, pk):
         pk=pk
     )
     
-    from apps.bank.models import BancoMovimiento
+    from django.db.models import Q
 
-    # Cobros en banco de este vehículo (la señal y el cobro de la venta)
+    from apps.bank.models import BancoMovimiento, Reserva
+
+    # Solo los cobros de ESTA venta (su asiento) y de la reserva que se
+    # convirtió en ella. Antes se filtraba por vehículo y sumaba también los
+    # ingresos de ventas anteriores ya anuladas.
+    asientos = []
+    if venta.asiento_contable_id:
+        asientos.append(venta.asiento_contable_id)
+    for reserva in Reserva.objects.filter(venta=venta):
+        if (reserva.banco_movimiento_id
+                and reserva.banco_movimiento.asiento_asociado_id):
+            asientos.append(reserva.banco_movimiento.asiento_asociado_id)
+
+    filtro = Q(asiento_asociado_id__in=asientos) if asientos else Q(pk__in=[])
     cobros = BancoMovimiento.objects.filter(
-        vehiculo_asociado=venta.vehiculo, tipo='INGRESO'
+        filtro, tipo='INGRESO'
     ).select_related('banco_cuenta').order_by('fecha')
-    cobro_venta = cobros.filter(concepto__startswith='Cobro venta').first()
+    cobro_venta = cobros.filter(
+        asiento_asociado_id=venta.asiento_contable_id
+    ).first()
     total_banco = sum((c.importe for c in cobros), Decimal('0'))
 
     context = {

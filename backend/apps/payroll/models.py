@@ -98,7 +98,12 @@ class NominaEstructura(models.Model):
 
     @property
     def total_deducciones(self):
-        return self.retencion_irpf + self.ss_obrera + self.ss_patronal
+        """Deducciones del trabajador: IRPF + SS obrera.
+
+        La SS patronal es un gasto de la empresa (642) y va aparte: sumarla
+        aquí inflaba el recibo (328,87 en vez de 92,62).
+        """
+        return self.retencion_irpf + self.ss_obrera
 
     def crear_asiento_contable(self):
         """Genera el asiento contable de nómina según PGC español."""

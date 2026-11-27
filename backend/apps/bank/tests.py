@@ -740,3 +740,83 @@ class RegularizarReservasTests(TestCase):
             debe += m.debe
             haber += m.haber
         self.assertEqual(debe - haber, Decimal('0'))
+
+
+class ConciliacionContadorTests(TestCase):
+    """El aviso cuenta todos los movimientos conciliados, no solo los del ERP."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta
+
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+
+    def test_conciliacion_batch_cuenta_todos_los_movimientos(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.bank.models import BancoMovimiento
+        from apps.bank.services import conciliacion_batch
+
+        movimientos = [
+            BancoMovimiento.objects.create(
+                banco_cuenta=self.banco, fecha=date(2026, 11, 20),
+                concepto=f'Mov {i}', tipo='INGRESO',
+                importe=Decimal('100.00'),
+            )
+            for i in range(11)
+        ]
+        ids = [m.pk for m in movimientos]
+
+        self.assertEqual(conciliacion_batch(ids), 11)
+        self.assertEqual(
+            BancoMovimiento.objects.filter(pk__in=ids, conciliado=True).count(),
+            11,
+        )
+
+    def test_el_aviso_suma_los_creados_desde_el_extracto(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.bank.models import BancoMovimiento
+
+        movimiento = BancoMovimiento.objects.create(
+            banco_cuenta=self.banco, fecha=date(2026, 11, 20),
+            concepto='Cobro venta', tipo='INGRESO', importe=Decimal('100.00'),
+        )
+        sesion = self.client.session
+        sesion['conciliacion_csv_rows'] = [
+            {'idx': 0, 'fecha': '2026-11-21', 'concepto': f'Banco {i}',
+             'tipo': 'INGRESO', 'importe': '50.00'}
+            for i in range(10)
+        ]
+        sesion['conciliacion_banco_cuenta_id'] = self.banco.pk
+        sesion.save()
+
+        respuesta = self.client.post(
+            reverse('bank:conciliacion_confirmar'),
+            {
+                'movimientos_conciliar': [str(movimiento.pk)],
+                **{
+                    f'conciliar_manual_{i}': f'CSV:{i}'
+                    for i in range(10)
+                },
+            },
+            follow=True,
+        )
+
+        mensajes = [str(m) for m in respuesta.context['messages']]
+        self.assertTrue(
+            any('11 movimientos conciliados' in m for m in mensajes), mensajes,
+        )

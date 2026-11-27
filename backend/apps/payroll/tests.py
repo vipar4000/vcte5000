@@ -353,3 +353,36 @@ class ReciboNominaTests(TestCase):
         )
 
         self.assertContains(respuesta, 'Operario de Taller')
+
+
+class TotalDeduccionesTests(TestCase):
+    """El total de deducciones es solo del trabajador (IRPF + SS obrera)."""
+
+    def test_no_incluye_la_ss_patronal(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+        from apps.accounts.models import User
+        from apps.payroll.models import NominaEstructura
+
+        PlanContableDefault.crear_plan_base()
+        admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        empleado = User.objects.create_user(
+            username='mecanico1', email='m@eurocar.local',
+            password='mecanico123!', rol='OPERARIO',
+        )
+        nomina = NominaEstructura.objects.create(
+            empleado=empleado, fecha_nomina=date(2026, 11, 27),
+            salario_bruto=Decimal('750.00'),
+            ss_obrera=Decimal('47.62'),
+            ss_patronal=Decimal('236.25'),
+            retencion_irpf=Decimal('45.00'),
+            created_by=admin,
+        )
+
+        self.assertEqual(nomina.total_deducciones, Decimal('92.62'))
+        self.assertEqual(nomina.liquido_percibir, Decimal('657.38'))

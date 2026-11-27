@@ -104,11 +104,11 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         {% if r.confidence > 0.8 %}
-                        <span class="text-green-600 font-bold">{{ r.confidence|floatformat:0 }}%</span>
+                        <span class="text-green-600 font-bold">{% widthratio r.confidence 1 100 %}%</span>
                         {% elif r.confidence > 0.5 %}
-                        <span class="text-yellow-600">{{ r.confidence|floatformat:0 }}%</span>
+                        <span class="text-yellow-600">{% widthratio r.confidence 1 100 %}%</span>
                         {% else %}
-                        <span class="text-red-600">{{ r.confidence|floatformat:0 }}%</span>
+                        <span class="text-red-600">{% widthratio r.confidence 1 100 %}%</span>
                         {% endif %}
                     </td>
                 </tr>

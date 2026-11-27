@@ -472,7 +472,7 @@ def conciliacion_confirmar(request):
                 if idx < len(session_rows):
                     row = session_rows[idx]
                     from .models import BancoMovimiento, BancoCuenta
-                    BancoMovimiento.objects.get_or_create(
+                    _, creado = BancoMovimiento.objects.get_or_create(
                         banco_cuenta_id=cuenta_id,
                         fecha=date_type.fromisoformat(row['fecha']),
                         concepto=row['concepto'],
@@ -483,16 +483,18 @@ def conciliacion_confirmar(request):
                             'notas': 'Conciliado desde extracto CSV (manual)',
                         },
                     )
-                    crear_count += 1
+                    if creado:
+                        crear_count += 1
         # Limpiar sesión
         request.session.pop('conciliacion_csv_rows', None)
         request.session.pop('conciliacion_banco_cuenta_id', None)
 
     if movimientos_ids:
         count = conciliacion_batch(movimientos_ids)
-        msg = f'{count} movimientos del ERP conciliados.'
+        total = count + crear_count
+        msg = f'{total} movimientos conciliados.'
         if crear_count:
-            msg += f' {crear_count} creados y conciliados desde extracto.'
+            msg += f' {count} del ERP y {crear_count} creados desde el extracto.'
         messages.success(request, msg)
     elif crear_count:
         messages.success(request, f'{crear_count} movimientos creados y conciliados desde extracto.')

@@ -44,6 +44,14 @@ VISTAS = [
     ('04', 'interior', 'Vista interior'),
 ]
 
+# Nombres para el paquete de documentos: 01_FRENTE, 02_LATERAL, 03_TRASERA...
+VISTAS_DOCUMENTOS = [
+    ('01', 'frente', 'Vista frontal', 'FRENTE'),
+    ('02', 'lateral', 'Vista lateral', 'LATERAL'),
+    ('03', 'trasero', 'Vista trasera', 'TRASERA'),
+    ('04', 'interior', 'Vista interior', 'INTERIOR'),
+]
+
 
 def _fuente(nombre, tam):
     rutas = [
@@ -164,10 +172,11 @@ def vista_interior(dibujo, color_volante=(45, 45, 45)):
                                  fill=(90, 94, 102))
 
 
-def generar(carpeta, matricula, color, modelo, contorno=None):
+def generar(carpeta, matricula, color, modelo, contorno=None, documentos=False):
     os.makedirs(carpeta, exist_ok=True)
     generadas = []
-    for numero, nombre, pie_vista in VISTAS:
+    vistas = VISTAS_DOCUMENTOS if documentos else VISTAS
+    for numero, nombre, pie_vista, *_ in vistas:
         imagen = Image.new('RGB', (ANCHO, ALTO), FONDO)
         dibujo = ImageDraw.Draw(imagen)
 
@@ -184,7 +193,10 @@ def generar(carpeta, matricula, color, modelo, contorno=None):
                     fill=GRIS_TEXTO)
         pie(dibujo, modelo)
 
-        nombre_archivo = f'{matricula}-{numero}-{nombre}.jpg'
+        if documentos:
+            nombre_archivo = f'{matricula}-{numero}_{nombre.upper()}.jpg'
+        else:
+            nombre_archivo = f'{matricula}-{numero}-{nombre}.jpg'
         ruta = os.path.join(carpeta, nombre_archivo)
         imagen.save(ruta, 'JPEG', quality=88, optimize=True)
         generadas.append(ruta)
@@ -194,13 +206,28 @@ def generar(carpeta, matricula, color, modelo, contorno=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--destino', default=DESTINO_POR_DEFECTO)
+    parser.add_argument(
+        '--documentos', action='store_true',
+        help='Nombres 01_FRENTE, 02_LATERAL, 03_TRASERA, 04_INTERIOR.',
+    )
+    parser.add_argument(
+        '--matriculas', default='',
+        help='Matrículas separadas por comas (por defecto, todas).',
+    )
     opciones = parser.parse_args()
 
     carpeta = os.path.abspath(opciones.destino)
+    filtro = {
+        m.strip().upper()
+        for m in opciones.matriculas.split(',') if m.strip()
+    }
     for vehiculo in VEHICULOS:
+        if filtro and vehiculo['matricula'] not in filtro:
+            continue
         rutas = generar(
             carpeta, vehiculo['matricula'], vehiculo['color'],
             vehiculo['modelo'], vehiculo.get('contorno'),
+            documentos=opciones.documentos,
         )
         for ruta in rutas:
             print('generada:', ruta)
