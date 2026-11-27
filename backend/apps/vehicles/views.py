@@ -28,6 +28,11 @@ def _regenerar_asiento_compra(vehiculo, user):
     from apps.accounting.models import AsientoContable, MovimientoContable
     from apps.accounting.views import generar_numero_asiento
 
+    # Un vehículo ya vendido no puede re-postear su compra: volvería a meter
+    # el coste en la 310 (la venta ya lo dio de baja).
+    if vehiculo.ventas.filter(anulada=False).exists():
+        return vehiculo.asiento_contable
+
     with transaction.atomic():
         viejo = vehiculo.asiento_contable
         if viejo:

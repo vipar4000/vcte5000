@@ -762,3 +762,139 @@ class RepararAsientosVehiculoTests(TestCase):
         self.assertTrue(AsientoContable.objects.filter(
             tipo_documento='AnulacionVehiculo'
         ).exists())
+
+
+class RegularizarInventarioTests(TestCase):
+    """La 310 se cuadra con el inventario real (vendidos a 0)."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'), tasas_sala=Decimal('400.00'),
+            logistica_grua=Decimal('250.00'), created_by=self.admin,
+        )
+
+    def _asiento(self, tipo, documento_id, importe, codigo='310', sentido='debe'):
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-10-01',
+            concepto=f'{tipo} prueba', estado='POSTEADO',
+            tipo_documento=tipo, documento_id=documento_id,
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo=codigo),
+            debe=importe if sentido == 'debe' else 0,
+            haber=importe if sentido == 'haber' else 0,
+        )
+        return asiento
+
+    def _saldo_310(self):
+        from apps.accounting.models import MovimientoContable
+
+        return sum((m.debe - m.haber for m in MovimientoContable.objects.filter(
+            cuenta__codigo__startswith='31', asiento__estado='POSTEADO'
+        )), __import__('decimal').Decimal('0'))
+
+    def test_vehiculo_en_stock_correcto_no_toca_nada(self):
+        from django.core.management import call_command
+
+        self._asiento('CompraVehiculo', self.vehiculo.pk, 8150)
+
+        call_command('regularizar_inventario_vehiculos', '--corregir', verbosity=0)
+
+        self.assertEqual(self._saldo_310(), 8150)
+
+    def test_vehiculo_vendido_con_coste_atascado_se_regulariza(self):
+        from decimal import Decimal
+
+        from django.core.management import call_command
+        from apps.accounting.models import AsientoContable
+        from apps.sales.models import VentaVehiculo
+
+        # Compra + venta + una compra duplicada posterior (el bug)
+        self._asiento('CompraVehiculo', self.vehiculo.pk, 8150)
+        venta = VentaVehiculo.objects.create(
+            vehiculo=self.vehiculo, tipo_cliente='PARTICULAR',
+            cliente_nombre='Carlos', cliente_dni='12345678A',
+            cliente_direccion='Calle 1', cliente_poblacion='Madrid',
+            cliente_provincia='Madrid', cliente_cp='28001',
+            cliente_telefono='600000000', fecha_venta='2026-11-20',
+            metodo_pago='TRANSFERENCIA', precio_venta=Decimal('11500.00'),
+            coste_total=Decimal('8150.00'), created_by=self.admin,
+        )
+        self._asiento('VentaVehiculo', venta.pk, 8150, sentido='haber')
+        self._asiento('CompraVehiculo', self.vehiculo.pk, 8150)  # duplicado
+
+        self.assertEqual(self._saldo_310(), Decimal('8150.00'))
+
+        call_command('regularizar_inventario_vehiculos', '--corregir', verbosity=0)
+
+        self.assertEqual(self._saldo_310(), Decimal('0'))
+        self.assertTrue(AsientoContable.objects.filter(
+            tipo_documento='RegularizacionInventario', estado='POSTEADO'
+        ).exists())
+
+    def test_venta_a_perdida_cuadra_con_610(self):
+        """Vender por debajo de coste no rompe el asiento (usa 610)."""
+        from decimal import Decimal
+
+        from django.test import Client
+        from django.urls import reverse
+
+        from apps.accounting.models import AsientoContable, CuentaContable
+        from apps.bank.models import BancoCuenta
+        from apps.sales.models import VentaVehiculo
+
+        BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(reverse('sales:create'), {
+            'vehiculo': self.vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Carlos Ruiz',
+            'cliente_dni': '12345678A',
+            'cliente_direccion': 'Calle Mayor 1',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28001',
+            'cliente_telefono': '612345678',
+            'cliente_email': 'carlos@example.com',
+            'fecha_venta': '2026-11-25',
+            'metodo_pago': 'TRANSFERENCIA',
+            'precio_venta': '6000.00',
+        })
+
+        self.assertEqual(respuesta.status_code, 302)
+        venta = VentaVehiculo.objects.get(vehiculo=self.vehiculo)
+        self.assertEqual(venta.base_imponible, Decimal('0'))
+
+        asiento = AsientoContable.objects.get(pk=venta.asiento_contable_id)
+        self.assertEqual(asiento.estado, 'POSTEADO')
+        self.assertTrue(asiento.esta_cuadrado)
+        perdida = asiento.movimientos.get(cuenta__codigo='610')
+        self.assertEqual(perdida.debe, Decimal('2150.00'))
+        self.assertEqual(
+            asiento.movimientos.get(cuenta__codigo='310').haber,
+            Decimal('8150.00'),
+        )

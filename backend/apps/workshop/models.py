@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
 import uuid
@@ -133,7 +134,7 @@ class OrdenTrabajo(models.Model):
             if activo:
                 reversion = AsientoContable.objects.create(
                     numero=generar_numero_asiento(),
-                    fecha=self.fecha_fin or self.updated_at.date(),
+                    fecha=self.fecha_fin or timezone.localdate(),
                     concepto=f'ANULACIÓN: {activo.concepto}',
                     estado='BORRADOR',
                     tipo_documento='AnulacionOrdenTrabajo',
@@ -182,7 +183,7 @@ class OrdenTrabajo(models.Model):
 
             asiento = AsientoContable.objects.create(
                 numero=generar_numero_asiento(),
-                fecha=self.fecha_fin or self.updated_at.date(),
+                fecha=self.fecha_fin or timezone.localdate(),
                 concepto=f"Capitalización reparación OT-{self.pk}: {self.titulo}",
                 estado='BORRADOR',
                 tipo_documento='OrdenTrabajo',
@@ -190,23 +191,28 @@ class OrdenTrabajo(models.Model):
                 created_by=self.created_by,
             )
 
+            # El reparto absorbe el redondeo: la mano de obra es lo que queda
+            # hasta el coste total, así el asiento siempre cuadra al céntimo.
+            materiales = self.coste_materiales
+            mano_obra = self.coste_total - materiales
+
             MovimientoContable.objects.create(
                 asiento=asiento, cuenta=cuenta_mercancias,
                 debe=self.coste_total, haber=Decimal('0'),
                 descripcion=f"Coste reparación {self.vehiculo}",
             )
 
-            if self.coste_materiales > 0:
+            if materiales > 0:
                 MovimientoContable.objects.create(
                     asiento=asiento, cuenta=cuenta_compras,
-                    debe=Decimal('0'), haber=self.coste_materiales,
+                    debe=Decimal('0'), haber=materiales,
                     descripcion=f"Materiales consumidos OT-{self.pk}",
                 )
 
-            if self.coste_mano_obra > 0:
+            if mano_obra > 0:
                 MovimientoContable.objects.create(
                     asiento=asiento, cuenta=cuenta_variacion,
-                    debe=Decimal('0'), haber=self.coste_mano_obra,
+                    debe=Decimal('0'), haber=mano_obra,
                     descripcion=f"Mano de obra OT-{self.pk}",
                 )
 

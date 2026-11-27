@@ -246,19 +246,32 @@ class VentaVehiculo(models.Model):
                     descripcion="Aplicación de la entrega a cuenta (reserva)",
                 )
 
-            MovimientoContable.objects.create(
-                asiento=asiento, cuenta=cuenta_ventas,
-                debe=Decimal('0'), haber=self.base_imponible,
-                descripcion="Ingresos por venta (margen REBU)",
-            )
-
-            MovimientoContable.objects.create(
-                asiento=asiento, cuenta=cuenta_iva,
-                debe=Decimal('0'), haber=self.cuota_iva,
-                descripcion="IVA REBU 21% sobre margen",
-            )
-
             coste_inventario = self.vehiculo.coste_total
+
+            # Venta a pérdida (o a coste): el margen REBU es 0 y no hay IVA.
+            # Para que el asiento cuadre, la diferencia (coste - precio) se
+            # lleva a 610 Variación de existencias.
+            perdida = (coste_inventario - pendiente - anticipo)
+            if self.base_imponible > 0:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_ventas,
+                    debe=Decimal('0'), haber=self.base_imponible,
+                    descripcion="Ingresos por venta (margen REBU)",
+                )
+            if self.cuota_iva > 0:
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_iva,
+                    debe=Decimal('0'), haber=self.cuota_iva,
+                    descripcion="IVA REBU 21% sobre margen",
+                )
+            if perdida > 0:
+                cuenta_variacion = CuentaContable.objects.get(codigo='610')
+                MovimientoContable.objects.create(
+                    asiento=asiento, cuenta=cuenta_variacion,
+                    debe=perdida, haber=Decimal('0'),
+                    descripcion="Pérdida en la venta (variación de existencias)",
+                )
+
             MovimientoContable.objects.create(
                 asiento=asiento, cuenta=cuenta_mercancias,
                 debe=Decimal('0'), haber=coste_inventario,

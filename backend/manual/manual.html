@@ -320,6 +320,18 @@ extremo a extremo. Todos ellos ya estan en produccion y cubiertos por pruebas au
         <td>14.3</td>
     </tr>
     <tr>
+        <td><strong>Venta a pérdida</strong></td>
+        <td>Si el precio es inferior al coste, el asiento cuadra con una pérdida en <strong>610</strong>
+            (variación de existencias) y sin IVA (margen REBU negativo).</td>
+        <td>14.3, 15.7</td>
+    </tr>
+    <tr>
+        <td><strong>Regularización de la 310</strong></td>
+        <td>Comando <code>regularizar_inventario_vehiculos</code> para cuadrar el inventario contable tras
+            anular/revender coches.</td>
+        <td>15.7</td>
+    </tr>
+    <tr>
         <td><strong>Reventa del mismo coche</strong></td>
         <td>Tras anular una venta se puede volver a vender el vehiculo: el historico de ventas y el detalle
             REBU se guardan por operacion, sin errores de clave duplicada.</td>
@@ -4461,6 +4473,13 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
 </div>
 
 <div class="warning-box">
+    <strong>Anular y revender un coche:</strong> al anular la venta el coste vuelve a la 310 (correcto) y la
+    nueva venta lo da de baja otra vez. Si tras varias anulaciones la 310 no cuadra, ejecute
+    <code>python manage.py regularizar_inventario_vehiculos --dry-run</code> y después <code>--corregir</code>:
+    deja cada coche vendido a 0 y cada coche en stock a su coste.
+</div>
+
+<div class="warning-box">
     <strong>Si la 310 tiene el coche dos veces</strong> (importes duplicados), ejecute primero
     <code>python manage.py reparar_asientos_vehiculos --dry-run</code> y luego
     <code>--corregir</code>; después <code>reparar_capitalizacion_ot</code>. El resultado correcto es
@@ -6993,6 +7012,13 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
         <td>Lista las fotos cuyo archivo ya no esta en el almacenamiento. Con
             <code>--borrar-huerfanas</code> limpia esas referencias rotas</td>
         <td>Tras un despliegue en staging (disco efimero) o si la web muestra imagenes rotas</td>
+    </tr>
+    <tr>
+        <td><code>regularizar_inventario_vehiculos</code></td>
+        <td>Compara la cuenta 310 con el inventario real (vehículo vendido = 0; en stock = coste
+            + OT capitalizadas) y, con <code>--corregir</code>, crea el asiento de regularización
+            contra 610 (variación de existencias)</td>
+        <td>Cuando Valoración de Existencias no cuadra con el saldo 300-330</td>
     </tr>
     <tr>
         <td><code>reparar_asientos_vehiculos</code></td>

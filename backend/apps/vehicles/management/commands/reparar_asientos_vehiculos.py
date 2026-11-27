@@ -49,6 +49,11 @@ class Command(BaseCommand):
 
         problemas = []
         for vehiculo in Vehiculo.objects.order_by('matricula'):
+            if vehiculo.ventas.filter(anulada=False).exists():
+                # Vendido: su compra ya está dada de baja por la venta; no se
+                # toca. Si la 310 sigue con coste, use
+                # regularizar_inventario_vehiculos.
+                continue
             asientos = list(
                 AsientoContable.objects.filter(
                     tipo_documento='CompraVehiculo',

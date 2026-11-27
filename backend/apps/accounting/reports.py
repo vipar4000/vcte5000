@@ -6,6 +6,7 @@ from django.db.models import Sum, Q, Value, DecimalField
 from django.db.models.functions import Coalesce
 from decimal import Decimal
 from datetime import date
+from django.utils import timezone
 
 
 def obtener_saldo_cuenta(codigo_inicio, fecha_desde=None, fecha_hasta=None):
@@ -559,10 +560,11 @@ def obtener_valor_existencias():
             'valor': valor,
         })
 
-    debe_300, haber_300 = obtener_saldo_cuenta('300', fecha_hasta=date.today())
-    debe_310, haber_310 = obtener_saldo_cuenta('310', fecha_hasta=date.today())
-    debe_320, haber_320 = obtener_saldo_cuenta('320', fecha_hasta=date.today())
-    debe_330, haber_330 = obtener_saldo_cuenta('330', fecha_hasta=date.today())
+    hoy = timezone.localdate()
+    debe_300, haber_300 = obtener_saldo_cuenta('300', fecha_hasta=hoy)
+    debe_310, haber_310 = obtener_saldo_cuenta('310', fecha_hasta=hoy)
+    debe_320, haber_320 = obtener_saldo_cuenta('320', fecha_hasta=hoy)
+    debe_330, haber_330 = obtener_saldo_cuenta('330', fecha_hasta=hoy)
     saldo_contable = (
         (debe_300 - haber_300) + (debe_310 - haber_310)
         + (debe_320 - haber_320) + (debe_330 - haber_330)
