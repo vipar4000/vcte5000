@@ -30,12 +30,20 @@ def garantia_list(request):
         )
     
     if estado == 'vigente':
-        garantias = garantias.filter(fecha_fin__gte=date.today())
+        garantias = garantias.filter(
+            anulada=False, fecha_fin__gte=date.today()
+        )
     elif estado == 'caducada':
-        garantias = garantias.filter(fecha_fin__lt=date.today())
+        garantias = garantias.filter(
+            anulada=False, fecha_fin__lt=date.today()
+        )
+    elif estado == 'anulada':
+        garantias = garantias.filter(anulada=True)
     
     # Estadísticas
-    total_vigentes = GarantiaVehiculo.objects.filter(fecha_fin__gte=date.today()).count()
+    total_vigentes = GarantiaVehiculo.objects.filter(
+        anulada=False, fecha_fin__gte=date.today()
+    ).count()
     total_reparaciones = HistorialReparacionGarantia.objects.count()
     coste_total_reparaciones = HistorialReparacionGarantia.objects.aggregate(
         total=Sum('total_costo_reparacion')

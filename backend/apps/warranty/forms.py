@@ -34,6 +34,7 @@ class FiltroGarantiasForm(forms.Form):
         choices=[
             ('', 'Todos'),
             ('vigente', 'Vigentes'),
+            ('anulada', 'Anuladas'),
             ('caducada', 'Caducadas'),
         ],
         required=False

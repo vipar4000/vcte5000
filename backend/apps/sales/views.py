@@ -413,6 +413,14 @@ def _revertir_venta(venta, user):
     vehiculo = venta.vehiculo
     reversion = None
 
+    # La garantía de la venta anulada deja de estar vigente (no se borra).
+    garantia = getattr(venta, 'garantia', None)
+    if garantia is not None:
+        garantia.anular(
+            motivo=f'Venta anulada: {venta.motivo_anulacion or ""}'.strip()
+                   .rstrip(':'),
+        )
+
     asiento = venta.asiento_contable
     if asiento:
         reversion = AsientoContable.objects.create(

@@ -41,6 +41,7 @@
                     <option value="">Todos</option>
                     <option value="vigente" {% if form.estado.value == 'vigente' %}selected{% endif %}>Vigentes</option>
                     <option value="caducada" {% if form.estado.value == 'caducada' %}selected{% endif %}>Caducadas</option>
+                <option value="anulada" {% if form.estado.value == 'anulada' %}selected{% endif %}>Anuladas</option>
                 </select>
             </div>
             <button type="submit" 
@@ -86,7 +87,9 @@
                         <td class="px-4 py-3 text-sm">{{ garantia.fecha_inicio|date:"d/m/Y" }}</td>
                         <td class="px-4 py-3 text-sm">{{ garantia.fecha_fin|date:"d/m/Y" }}</td>
                         <td class="px-4 py-3 text-center">
-                            {% if garantia.esta_vigente %}
+                            {% if garantia.anulada %}
+                <span class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">⛔ Anulada</span>
+                {% elif garantia.esta_vigente %}
                             <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                                 ✅ Vigente ({{ garantia.meses_restantes }} meses)
                             </span>
