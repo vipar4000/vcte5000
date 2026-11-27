@@ -4472,6 +4472,13 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
     stock coincide con el saldo de las cuentas 300-330 sin descuadres por la mano de obra.
 </div>
 
+<div class="info-box">
+    <strong>Devolución o penalización de una reserva:</strong> además del movimiento de banco se genera su
+    asiento: <strong>DEBE 438 / HABER 572</strong> si se devuelve la señal, y
+    <strong>DEBE 438 / HABER 759</strong> si se penaliza (el dinero queda en la empresa). Así el anticipo
+    de clientes vuelve a cero y la tesorería del Balance coincide con los movimientos reales.
+</div>
+
 <div class="warning-box">
     <strong>Anular y revender un coche:</strong> al anular la venta el coste vuelve a la 310 (correcto) y la
     nueva venta lo da de baja otra vez. Si tras varias anulaciones la 310 no cuadra, ejecute
@@ -4650,6 +4657,13 @@ B26729731;RCAR ROGIL;303;T3;2026;05;12000.00;2520.00;0.00;0.00;0.00;0.00;12000.0
     <li>El archivo CSV se descarga automaticamente</li>
     <li>Suba el CSV al portal de Hacienda (seccion "Pre-303")</li>
 </ol>
+
+<div class="info-box">
+    <strong>Nóminas en el Balance:</strong> el líquido pendiente de pago (465) y la Seguridad Social
+    (476) aparecen en el pasivo corriente. Sus asientos vienen del módulo de personal (640/642).
+    El Balance debe cumplir <strong>Activo = Pasivo + Patrimonio Neto</strong>; el propio informe lo
+    comprueba y avisa en verde o en rojo.
+</div>
 
 <h2 id="capitulo-16-3">16.3 SII - Suministro Inmediato de Informacion</h2>
 
@@ -7015,6 +7029,12 @@ print('Plan contable inicializado (56 cuentas)')"</code></pre>
         <td>Lista las fotos cuyo archivo ya no esta en el almacenamiento. Con
             <code>--borrar-huerfanas</code> limpia esas referencias rotas</td>
         <td>Tras un despliegue en staging (disco efimero) o si la web muestra imagenes rotas</td>
+    </tr>
+    <tr>
+        <td><code>regularizar_reservas</code></td>
+        <td>Crea los asientos de devolución (438/572) o penalización (438/759) que falten en reservas
+            antiguas y cuadra el saldo de la 438 con las reservas activas</td>
+        <td>Cuando el Balance muestra «Anticipos de clientes» distinto de lo esperado</td>
     </tr>
     <tr>
         <td><code>regularizar_inventario_vehiculos</code></td>

@@ -653,7 +653,7 @@ def reserva_create(request):
 
                 # Asiento del anticipo (con IVA). Se postea y se enlaza con el
                 # movimiento, igual que hace la venta: así la traza es completa.
-                asiento = _crear_asiento_reserva(reserva, request.user)
+                asiento = _crear_asiento_reserva(reserva, request.user, banco_cuenta=banco_cuenta)
                 if asiento.esta_cuadrado:
                     asiento.estado = 'POSTEADO'
                     asiento.save(update_fields=['estado'])
@@ -786,17 +786,25 @@ def reserva_cancelar(request, pk):
             reserva.estado = accion
             reserva.save(update_fields=['estado'])
 
-            # Crear movimiento de egreso (devolución) si es devuelta
+            from apps.bank.services import crear_asiento_devolucion_reserva
+
             if accion == 'DEVUELTA':
                 banco_cuenta = reserva.banco_movimiento.banco_cuenta
-                crear_movimiento_banco(
+                movimiento = crear_movimiento_banco(
                     banco_cuenta=banco_cuenta,
                     fecha=date.today(),
                     concepto=f"Devolución reserva {reserva.vehiculo} - {reserva.cliente_nombre}",
                     tipo='EGRESO',
                     importe=reserva.importe_reserva,
                 )
-            # Si es PENALIZADA, el dinero queda en la empresa (sin movimiento)
+                # Asiento DEBE 438 / HABER tesorería: sin él, la 438 se queda
+                # con el anticipo y la tesorería del balance no cuadra.
+                crear_asiento_devolucion_reserva(
+                    reserva, request.user, movimiento=movimiento,
+                )
+            else:
+                # PENALIZADA: el dinero queda en la empresa -> ingreso (759)
+                crear_asiento_devolucion_reserva(reserva, request.user)
     except ValidationError as error:
         messages.error(request, error.messages[0])
         return redirect('bank:reserva_detail', pk=pk)
@@ -837,12 +845,15 @@ def _crear_asiento_deposito(cuenta, importe, concepto, fecha, user):
     return asiento
 
 
-def _crear_asiento_reserva(reserva, user):
+def _crear_asiento_reserva(reserva, user, banco_cuenta=None):
     """Crea el asiento contable del anticipo por reserva."""
     from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
     from apps.accounting.views import generar_numero_asiento
 
-    cuenta_banco = CuentaContable.objects.get(codigo='572')
+    if banco_cuenta is not None:
+        cuenta_banco = banco_cuenta.cuenta_contable
+    else:
+        cuenta_banco = CuentaContable.objects.get(codigo='572')
     cuenta_anticipos = CuentaContable.objects.get(codigo='438')
 
     asiento = AsientoContable.objects.create(

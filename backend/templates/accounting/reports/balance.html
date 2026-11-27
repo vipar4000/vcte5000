@@ -95,6 +95,14 @@
                     <span class="text-sm">Retenciones IRPF</span>
                     <span class="font-mono text-sm">€{{ balance.pasivo.corriente.retenciones|floatformat:2 }}</span>
                 </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Remuneraciones pendientes de pago (465)</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.corriente.remuneraciones|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-sm">Seguridad Social acreedora (476)</span>
+                    <span class="font-mono text-sm">€{{ balance.pasivo.corriente.ss_acreedora|floatformat:2 }}</span>
+                </div>
                 <div class="flex justify-between py-2 font-bold text-sm">
                     <span>Total pasivo corriente</span>
                     <span class="font-mono">€{{ balance.pasivo.corriente.total|floatformat:2 }}</span>

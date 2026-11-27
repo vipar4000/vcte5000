@@ -190,8 +190,14 @@ def calcular_balance(fecha_corte):
     iva_repercutido = saldo_grupo_haber('471') + saldo_grupo_haber('477')
     iva_soportado = saldo_grupo('472')  # IVA soportado es deudor
     retenciones = saldo_grupo_haber('4751')
-    
-    pasivo_corriente = proveedores + acreedores + iva_repercutido - iva_soportado + retenciones
+    # Nóminas: líquido pendiente de pago (465) y Seguridad Social a pagar (476)
+    remuneraciones = saldo_grupo_haber('465')
+    ss_acreedora = saldo_grupo_haber('476')
+
+    pasivo_corriente = (
+        proveedores + acreedores + iva_repercutido - iva_soportado
+        + retenciones + remuneraciones + ss_acreedora
+    )
     pasivo_no_corriente = Decimal('0')
     total_pasivo = pasivo_corriente + pasivo_no_corriente
     
@@ -238,6 +244,8 @@ def calcular_balance(fecha_corte):
                 'iva_repercutido': iva_repercutido,
                 'iva_soportado': iva_soportado,
                 'retenciones': retenciones,
+                'remuneraciones': remuneraciones,
+                'ss_acreedora': ss_acreedora,
                 'total': pasivo_corriente,
             },
             'no_corriente': {

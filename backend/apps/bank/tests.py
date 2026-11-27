@@ -532,3 +532,211 @@ class TraspasoTesoreriaTests(TestCase):
         self.assertEqual(traspaso.count(), 2)
         for movimiento in traspaso:
             self.assertTrue(movimiento.soporte)
+
+
+class BalanceConReservaYNominaTests(TestCase):
+    """El Balance cuadra con nómina y con la devolución de una señal."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.client.force_login(self.admin)
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta
+
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+
+    def _asiento(self, lineas, tipo='Prueba'):
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-11-27',
+            concepto=tipo, estado='POSTEADO', tipo_documento=tipo,
+            documento_id=0, created_by=self.admin,
+        )
+        for codigo, debe, haber in lineas:
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=CuentaContable.objects.get(codigo=codigo),
+                debe=debe, haber=haber,
+            )
+        return asiento
+
+    def _balance(self):
+        from apps.accounting.reports import calcular_balance
+
+        return calcular_balance(__import__('datetime').date(2026, 11, 27))
+
+    def test_el_balance_cuadra_con_una_nomina(self):
+        from decimal import Decimal
+
+        # Nómina: 640 750 + 642 236,25 / 4751 45 + 476 236,25 + 465 705
+        self._asiento([
+            ('640', Decimal('750.00'), Decimal('0')),
+            ('642', Decimal('236.25'), Decimal('0')),
+            ('4751', Decimal('0'), Decimal('45.00')),
+            ('476', Decimal('0'), Decimal('236.25')),
+            ('465', Decimal('0'), Decimal('705.00')),
+        ], tipo='NominaEstructura')
+
+        balance = self._balance()
+        self.assertEqual(balance['pasivo']['corriente']['remuneraciones'],
+                         Decimal('705.00'))
+        self.assertEqual(balance['pasivo']['corriente']['ss_acreedora'],
+                         Decimal('236.25'))
+        self.assertEqual(
+            balance['activo']['total'], balance['total_pasivo_patrimonio'],
+        )
+
+    def test_devolver_una_senal_deja_la_438_a_cero_y_la_tesoreria_cuadra(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.reports import calcular_balance
+        from apps.bank.models import BancoMovimiento, Reserva
+        from apps.vehicles.models import Vehiculo
+
+        vehiculo = Vehiculo.objects.create(
+            matricula='5678DEF', bastidor='VSSZZZ5FZKW123456',
+            marca='SEAT', modelo='León', anio=2020, combustible='DIESEL',
+            kilometraje=80000, tipo_dano='ACCIDENTAL', etiqueta_ambiental='C',
+            estado='RESERVADO', fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('8000.00'), created_by=self.admin,
+        )
+        respuesta = self.client.post(reverse('bank:reserva_create'), {
+            'vehiculo': vehiculo.pk,
+            'tipo_cliente': 'PARTICULAR',
+            'cliente_nombre': 'Ana López',
+            'cliente_dni': '87654321B',
+            'cliente_direccion': 'Calle 2',
+            'cliente_poblacion': 'Madrid',
+            'cliente_provincia': 'Madrid',
+            'cliente_cp': '28002',
+            'cliente_telefono': '611111111',
+            'cliente_email': 'ana@example.com',
+            'fecha_reserva': '2026-11-25',
+            'importe_reserva': '10000.00',
+            'metodo_pago': 'TRANSFERENCIA',
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        reserva = Reserva.objects.get()
+
+        self.client.post(
+            reverse('bank:reserva_cancelar', args=[reserva.pk]),
+            {'accion': 'DEVUELTA'},
+        )
+
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'DEVUELTA')
+
+        balance = calcular_balance(date(2026, 11, 27))
+        self.assertEqual(balance['activo']['corriente']['anticipos_clientes'],
+                         Decimal('0'))
+
+        movimientos = sum(
+            (m.importe if m.tipo == 'INGRESO' else -m.importe
+             for m in BancoMovimiento.objects.all()),
+            Decimal('0'),
+        )
+        self.assertEqual(
+            balance['activo']['corriente']['tesoreria'], movimientos,
+        )
+        self.assertEqual(
+            balance['activo']['total'], balance['total_pasivo_patrimonio'],
+        )
+
+
+class RegularizarReservasTests(TestCase):
+    """Reservas devueltas sin asiento (datos antiguos): el comando lo crea."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        from apps.accounting.models import CuentaContable
+        from apps.bank.models import BancoCuenta
+
+        self.banco = BancoCuenta.objects.create(
+            nombre='Santander', iban='ES9121000418450200051332',
+            cuenta_contable=CuentaContable.objects.get(codigo='572'),
+        )
+
+    def test_crea_el_asiento_de_una_devolucion_antigua(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from django.core.management import call_command
+
+        from apps.accounting.models import AsientoContable, CuentaContable, MovimientoContable
+        from apps.accounting.views import generar_numero_asiento
+        from apps.bank.models import BancoMovimiento, Reserva
+        from apps.vehicles.models import Vehiculo
+
+        vehiculo = Vehiculo.objects.create(
+            matricula='9012GHI', bastidor='VF1RFB00X12345678',
+            marca='Renault', modelo='Mégane', anio=2019, combustible='DIESEL',
+            kilometraje=95000, tipo_dano='ACCIDENTAL', etiqueta_ambiental='C',
+            estado='ACONDICIONADO', fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('6700.00'), created_by=self.admin,
+        )
+        entrada = BancoMovimiento.objects.create(
+            banco_cuenta=self.banco, fecha='2026-11-25',
+            concepto='Reserva/Señal', tipo='INGRESO',
+            importe=Decimal('10000.00'), conciliado=True,
+        )
+        reserva = Reserva.objects.create(
+            vehiculo=vehiculo, tipo_cliente='PARTICULAR',
+            cliente_nombre='Ana', cliente_dni='87654321B',
+            fecha_reserva='2026-11-25',
+            importe_reserva=Decimal('10000.00'),
+            metodo_pago='TRANSFERENCIA', estado='DEVUELTA',
+            banco_movimiento=entrada, created_by=self.admin,
+        )
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-11-25',
+            concepto='Anticipo reserva', estado='POSTEADO',
+            tipo_documento='Reserva', documento_id=reserva.pk,
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='572'),
+            debe=Decimal('10000.00'), haber=Decimal('0'),
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='438'),
+            debe=Decimal('0'), haber=Decimal('10000.00'),
+        )
+        BancoMovimiento.objects.create(
+            banco_cuenta=self.banco, fecha='2026-11-26',
+            concepto='Devolución reserva', tipo='EGRESO',
+            importe=Decimal('10000.00'), conciliado=True,
+        )
+
+        call_command('regularizar_reservas', '--corregir', verbosity=0)
+
+        devolucion = AsientoContable.objects.get(
+            tipo_documento='DevolucionReserva', documento_id=reserva.pk
+        )
+        self.assertEqual(devolucion.estado, 'POSTEADO')
+
+        debe, haber = Decimal('0'), Decimal('0')
+        for m in MovimientoContable.objects.filter(
+            cuenta__codigo='438', asiento__estado='POSTEADO'
+        ):
+            debe += m.debe
+            haber += m.haber
+        self.assertEqual(debe - haber, Decimal('0'))

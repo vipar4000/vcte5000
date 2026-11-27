@@ -371,3 +371,82 @@ def crear_traspaso_tesoreria(origen, destino, fecha, importe, concepto='',
                 movimiento.save(update_fields=['soporte'])
 
     return asiento
+
+
+@transaction.atomic
+def crear_asiento_devolucion_reserva(reserva, user=None, movimiento=None):
+    """Asiento de la devolución (o penalización) de una reserva.
+
+    - Devuelta: DEBE 438 Anticipos / HABER 572 (o caja) por la señal.
+    - Penalizada: DEBE 438 Anticipos / HABER 759 Otros ingresos.
+
+    Sin este asiento la 438 se quedaba con el anticipo y la tesorería del
+    Balance no coincidía con los movimientos reales de banco.
+    """
+    from apps.accounting.models import (
+        AsientoContable, CuentaContable, MovimientoContable,
+    )
+    from apps.accounting.views import generar_numero_asiento
+
+    if user is None:
+        from apps.accounts.models import User
+
+        user = User.objects.filter(rol='ADMIN').first()
+
+    tipo = (
+        'PenalizacionReserva' if reserva.estado == 'PENALIZADA'
+        else 'DevolucionReserva'
+    )
+    existente = AsientoContable.objects.filter(
+        tipo_documento=tipo, documento_id=reserva.pk
+    ).exclude(estado='ANULADO').first()
+    if existente:
+        return existente
+
+    cuenta_anticipos = CuentaContable.objects.get(codigo='438')
+
+    if reserva.estado == 'PENALIZADA':
+        contrapartida = CuentaContable.objects.get(codigo='759')
+        detalle = 'Penalización de reserva (ingreso)'
+    else:
+        cuenta_banco = None
+        if movimiento is not None:
+            cuenta_banco = movimiento.banco_cuenta.cuenta_contable
+        if cuenta_banco is None:
+            cuenta_banco = obtener_cuenta_banco_default().cuenta_contable
+        contrapartida = cuenta_banco
+        detalle = f'Devolución de la señal a {reserva.cliente_nombre}'
+
+    asiento = AsientoContable.objects.create(
+        numero=generar_numero_asiento(),
+        fecha=(
+            movimiento.fecha if movimiento is not None else reserva.fecha_reserva
+        ),
+        concepto=(
+            f"{'Penalización' if reserva.estado == 'PENALIZADA' else 'Devolución'} "
+            f"reserva {reserva.vehiculo} - {reserva.cliente_nombre}"
+        ),
+        estado='BORRADOR',
+        tipo_documento=tipo,
+        documento_id=reserva.pk,
+        created_by=user,
+    )
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=cuenta_anticipos,
+        debe=reserva.importe_reserva, haber=Decimal('0'),
+        descripcion='Cancelación del anticipo del cliente',
+    )
+    MovimientoContable.objects.create(
+        asiento=asiento, cuenta=contrapartida,
+        debe=Decimal('0'), haber=reserva.importe_reserva,
+        descripcion=detalle,
+    )
+    if asiento.esta_cuadrado:
+        asiento.estado = 'POSTEADO'
+        asiento.save(update_fields=['estado'])
+
+    if movimiento is not None:
+        movimiento.asiento_asociado = asiento
+        movimiento.save(update_fields=['asiento_asociado'])
+
+    return asiento
