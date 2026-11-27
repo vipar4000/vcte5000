@@ -1045,3 +1045,35 @@ class GuardarYRegistrarOtroTests(TestCase):
         )
         respuesta = self.client.get(reverse('vehicles:update', args=[vehiculo.pk]))
         self.assertNotContains(respuesta, 'Guardar y registrar otro')
+
+
+    def test_guardar_y_otro_por_ajax_no_recarga_la_pagina(self):
+        from apps.vehicles.models import Vehiculo
+
+        respuesta = self.client.post(
+            reverse('vehicles:create'),
+            {**self._datos('9012GHI'), 'guardar_y_otro': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        datos = respuesta.json()
+        self.assertTrue(datos['ok'])
+        self.assertEqual(datos['matricula'], '9012GHI')
+        self.assertEqual(Vehiculo.objects.filter(matricula='9012GHI').count(), 1)
+
+    def test_si_faltan_datos_el_ajax_devuelve_los_errores(self):
+        from apps.vehicles.models import Vehiculo
+
+        datos = self._datos('1111AAA')
+        datos.pop('bastidor')
+        respuesta = self.client.post(
+            reverse('vehicles:create'),
+            {**datos, 'guardar_y_otro': '1'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertFalse(respuesta.json()['ok'])
+        self.assertIn('bastidor', respuesta.json()['errores'])
+        self.assertFalse(Vehiculo.objects.filter(matricula='1111AAA').exists())

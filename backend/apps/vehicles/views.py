@@ -195,6 +195,16 @@ def vehiculo_create(request):
                 'editan en la pestaña 📢 Publicar.',
             )
             if request.POST.get('guardar_y_otro'):
+                # Guardado en lote: el JS envía por fetch y se queda en la
+                # página; sin JS, se vuelve al formulario limpio.
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    from django.http import JsonResponse
+
+                    return JsonResponse({
+                        'ok': True,
+                        'matricula': vehiculo.matricula,
+                        'pk': vehiculo.pk,
+                    })
                 messages.success(
                     request,
                     f'{vehiculo.matricula} registrado. Formulario listo para el '
@@ -202,6 +212,13 @@ def vehiculo_create(request):
                 )
                 return redirect('vehicles:create')
             return redirect('vehicles:detail', pk=vehiculo.pk)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            from django.http import JsonResponse
+
+            return JsonResponse(
+                {'ok': False, 'errores': form.errors.get_json_data()},
+                status=400,
+            )
         messages.error(request, 'Por favor, corrija los errores del formulario.')
     else:
         form = VehiculoForm()
