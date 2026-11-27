@@ -761,3 +761,65 @@ class BaseIVASoportadoTests(TestCase):
 
         self.assertEqual(libro['iva_soportado']['total'], Decimal('0'))
         self.assertEqual(libro['iva_soportado']['base_imponible'], Decimal('0'))
+
+
+class BaseIVAVehiculoSubastaTests(TestCase):
+    """La base del IVA de un coche de subasta excluye la adjudicación REBU."""
+
+    def setUp(self):
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+
+    def test_la_adjudicacion_exenta_no_entra_en_la_base_del_390(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import AsientoContable, CuentaContable, MovimientoContable
+        from apps.accounting.reports import calcular_libro_iva
+        from apps.accounting.views import generar_numero_asiento
+        from apps.vehicles.models import Vehiculo
+
+        vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='ADQUIRIDO',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('7500.00'),      # exento REBU
+            tasas_sala=Decimal('400.00'),           # sujeto
+            logistica_grua=Decimal('250.00'),       # sujeto
+            tipo_iva=Decimal('136.50'),             # 21% de 650
+            created_by=self.admin,
+        )
+
+        # Asiento de compra tal como lo genera el ERP
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-10-01',
+            concepto='Compra vehículo', estado='POSTEADO',
+            tipo_documento='CompraVehiculo', documento_id=vehiculo.pk,
+            created_by=self.admin,
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='310'),
+            debe=vehiculo.coste_inicial, haber=Decimal('0'),
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='472'),
+            debe=vehiculo.cuota_iva, haber=Decimal('0'),
+        )
+        MovimientoContable.objects.create(
+            asiento=asiento, cuenta=CuentaContable.objects.get(codigo='572'),
+            debe=Decimal('0'), haber=Decimal('8286.50'),
+        )
+
+        libro = calcular_libro_iva('2026-10-01', '2026-12-31')
+
+        self.assertEqual(libro['iva_soportado']['total'], Decimal('136.50'))
+        self.assertEqual(
+            libro['iva_soportado']['base_imponible'], Decimal('650.00'),
+        )

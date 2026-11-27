@@ -16,7 +16,7 @@ def obtener_saldo_cuenta(codigo_inicio, fecha_desde=None, fecha_hasta=None):
     Para cuentas de ingreso (7xx): saldo = HABER - DEBE
     Para cuentas de activo/pasivo: saldo = DEBE - HABER
     """
-    from apps.accounting.models import MovimientoContable
+    from apps.accounting.models import AsientoContable, MovimientoContable
     
     filtros = Q(cuenta__codigo__startswith=codigo_inicio)
     
@@ -278,7 +278,7 @@ def calcular_libro_iva(fecha_desde, fecha_hasta):
     Liquidación trimestral:
     - IVA repercutido - IVA soportado = Cuota a liquidar
     """
-    from apps.accounting.models import MovimientoContable
+    from apps.accounting.models import AsientoContable, MovimientoContable
     
     # IVA Repercutido (471)
     iva_repercutido = MovimientoContable.objects.filter(
@@ -351,6 +351,45 @@ def calcular_libro_iva(fecha_desde, fecha_hasta):
     )
 
     base_imponible_compras = compras['debe'] - compras['haber']
+
+    # Compra de vehículo en subasta: la adjudicación REBU está EXENTA de IVA y
+    # en el mismo asiento entran juntos en 310 la adjudicación y las tasas o
+    # logística (que sí llevan IVA). Sumar todo el 310 inflaba la base del 390
+    # (29.270 en vez de 6.570). Para esos asientos la base con derecho a
+    # deducción es la parte sujeta: cuota de 472 / 21 %.
+    from apps.vehicles.models import Vehiculo
+
+    compras_vehiculo = MovimientoContable.objects.filter(
+        asiento_id__in=asientos_compras,
+        asiento__tipo_documento='CompraVehiculo',
+    )
+    asientos_vehiculo = set(
+        compras_vehiculo.values_list('asiento_id', flat=True)
+    )
+    if asientos_vehiculo:
+        # Se quita la base completa de esos asientos y se pone la parte sujeta
+        completo = MovimientoContable.objects.filter(
+            asiento_id__in=asientos_vehiculo,
+        ).filter(
+            Q(cuenta__codigo__startswith='2')
+            | Q(cuenta__codigo__startswith='3')
+            | Q(cuenta__codigo__startswith='6'),
+        ).aggregate(
+            debe=Coalesce(Sum('debe'), Decimal('0')),
+            haber=Coalesce(Sum('haber'), Decimal('0')),
+        )
+        base_imponible_compras -= completo['debe'] - completo['haber']
+
+        for asiento in AsientoContable.objects.filter(pk__in=asientos_vehiculo):
+            cuota = sum(
+                (m.debe - m.haber for m in asiento.movimientos.all()
+                 if m.cuenta.codigo == '472'),
+                Decimal('0'),
+            )
+            if cuota > 0:
+                base_imponible_compras += (
+                    cuota / Decimal('0.21')
+                ).quantize(Decimal('0.01'))
 
     # Cuota a liquidar
     cuota_liquidar = iva_repercido_total - iva_soportado_total
@@ -467,7 +506,7 @@ def obtener_asientos_diario(fecha_desde, fecha_hasta):
 
 def obtener_movimientos_cuenta(codigo_cuenta, fecha_desde, fecha_hasta):
     """Libro Mayor: movimientos de una cuenta con saldo corrido."""
-    from apps.accounting.models import MovimientoContable, CuentaContable
+    from apps.accounting.models import AsientoContable, MovimientoContable, CuentaContable
 
     try:
         cuenta = CuentaContable.objects.get(codigo=codigo_cuenta)

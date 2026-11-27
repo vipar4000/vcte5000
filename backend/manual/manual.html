@@ -4319,7 +4319,7 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
     <tr><td>IVA Repercutido</td><td>471</td><td>HABER - DEBE</td></tr>
     <tr><td>IVA Soportado</td><td>472</td><td>DEBE - HABER</td></tr>
     <tr><td>Base Imponible Ventas</td><td>grupo 70</td><td>HABER - DEBE de los asientos que llevan IVA repercutido (471)</td></tr>
-    <tr><td>Base Imponible Compras</td><td>grupos 60 y 62</td><td>DEBE - HABER de los asientos que llevan IVA soportado (472)</td></tr>
+    <tr><td>Base Imponible Compras</td><td>2xx, 3xx y 6xx</td><td>DEBE - HABER de los asientos que llevan IVA soportado (472): inmovilizado, existencias y gastos. En los coches de subasta solo la <strong>parte sujeta</strong> (cuota/21 %), porque la adjudicacion REBU esta exenta</td></tr>
     <tr><td><strong>Cuota a Liquidar</strong></td><td>-</td><td>IVA Repercutido - IVA Soportado</td></tr>
 </table>
 
@@ -4340,9 +4340,17 @@ la diferencia y las cuentas que no estan cuadradas.</code></pre>
 
 <div class="info-box">
     <strong>Bases imponibles:</strong> se calculan solo sobre las operaciones que llevan IVA
-    (asientos con movimiento en 471 o 472), sumando el grupo 70 en ventas y los grupos 60 y 62
-    en compras y gastos. Asi un servicio de limpieza (629) suma su base y no aparece con
-    «base 0 y cuota 567».
+    (asientos con movimiento en 471 o 472), sumando el grupo 70 en ventas y las cuentas
+    <strong>2xx</strong> (inmovilizado), <strong>3xx</strong> (existencias) y <strong>6xx</strong>
+    (gastos) en compras. Asi un servicio de limpieza (629) suma su base y no aparece con
+    «base 0 y cuota 567», y un activo fijo (214) tambien cuenta.
+</div>
+
+<div class="warning-box">
+    <strong>Coches de subasta (REBU):</strong> en el asiento de compra entran juntos en la 310 la
+    adjudicacion (exenta de IVA) y las tasas o logistica (sujetas). Para la base del 303/390 solo
+    cuenta la <strong>parte sujeta</strong> (cuota de 472 / 21 %); si se sumara todo el 310, la base
+    del 390 saldria muy por encima de la cuota.
 </div>
 
 <div class="info-box">
