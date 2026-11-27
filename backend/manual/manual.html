@@ -4476,7 +4476,10 @@ Si Anterior = 0 y Actual > 0 -> Variacion = 100%</code></pre>
     <strong>Anular y revender un coche:</strong> al anular la venta el coste vuelve a la 310 (correcto) y la
     nueva venta lo da de baja otra vez. Si tras varias anulaciones la 310 no cuadra, ejecute
     <code>python manage.py regularizar_inventario_vehiculos --dry-run</code> y después <code>--corregir</code>:
-    deja cada coche vendido a 0 y cada coche en stock a su coste.
+    deja cada coche vendido a 0 y cada coche en stock a su coste. Con
+    <code>--diagnostico</code> muestra qué asientos suman en 300-330 (agrupados por tipo); si hay
+    <strong>contrapartidas de anulación posteadas por error</strong> (devuelven el coste a la 310),
+    las anula; si aún queda diferencia, crea un asiento de regularización contra 610.
 </div>
 
 <div class="warning-box">

@@ -528,10 +528,17 @@ def obtener_valor_existencias():
         ).values_list('documento_id', flat=True)
     )
 
-    # Vehículos en stock (no vendidos)
-    vehiculos_stock = list(
-        Vehiculo.objects.exclude(estado='VENDIDO').order_by('matricula')
+    # Vehículos en stock: ni vendidos por estado ni con una venta activa
+    from apps.sales.models import VentaVehiculo
+
+    vendidos = set(
+        VentaVehiculo.objects.filter(anulada=False)
+        .values_list('vehiculo_id', flat=True)
     )
+    vehiculos_stock = [
+        v for v in Vehiculo.objects.order_by('matricula')
+        if v.pk not in vendidos and v.estado != 'VENDIDO'
+    ]
     ots_por_vehiculo = {}
     for ot in OrdenTrabajo.objects.filter(vehiculo__in=vehiculos_stock):
         ots_por_vehiculo.setdefault(ot.vehiculo_id, []).append(ot)

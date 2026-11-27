@@ -415,9 +415,9 @@ def _revertir_venta(venta, user):
                 haber=movimiento.debe,
                 descripcion=f'Reversión: {movimiento.descripcion}',
             )
-        if reversion.esta_cuadrado:
-            reversion.estado = 'POSTEADO'
-            reversion.save(update_fields=['estado'])
+        # Documental: el original queda ANULADO (deja de contar en los saldos)
+        # y la contrapartida se guarda en BORRADOR como traza. Postearla
+        # devolvería el coste a la 310 y descuadraría las existencias.
         asiento.estado = 'ANULADO'
         asiento.save(update_fields=['estado'])
 

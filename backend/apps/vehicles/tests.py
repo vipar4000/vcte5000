@@ -898,3 +898,79 @@ class RegularizarInventarioTests(TestCase):
             asiento.movimientos.get(cuenta__codigo='310').haber,
             Decimal('8150.00'),
         )
+
+
+class RegularizacionGlobalExistenciasTests(TestCase):
+    """Contrapartidas de anulación posteadas: se anulan y el informe cuadra."""
+
+    def setUp(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.accounting.models import PlanContableDefault
+
+        PlanContableDefault.crear_plan_base()
+        self.admin = User.objects.create_superuser(
+            username='admin', email='admin@eurocar.local',
+            password='admin123!', rol='ADMIN',
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            matricula='1234ABC', bastidor='WVWZZZ3CZWE123456',
+            marca='Volkswagen', modelo='Golf', anio=2020,
+            combustible='DIESEL', kilometraje=90000, tipo_dano='ACCIDENTAL',
+            etiqueta_ambiental='C', estado='EN_VENTA',
+            fecha_adquisicion=date(2026, 10, 1),
+            precio_subasta=Decimal('8150.00'), created_by=self.admin,
+        )
+
+    def _asiento(self, tipo, documento_id, lineas):
+        from apps.accounting.models import (
+            AsientoContable, CuentaContable, MovimientoContable,
+        )
+        from apps.accounting.views import generar_numero_asiento
+
+        asiento = AsientoContable.objects.create(
+            numero=generar_numero_asiento(), fecha='2026-11-20',
+            concepto=f'{tipo} prueba', estado='POSTEADO',
+            tipo_documento=tipo, documento_id=documento_id,
+            created_by=self.admin,
+        )
+        for codigo, debe, haber in lineas:
+            MovimientoContable.objects.create(
+                asiento=asiento, cuenta=CuentaContable.objects.get(codigo=codigo),
+                debe=debe, haber=haber,
+            )
+        return asiento
+
+    def test_una_contrapartida_de_anulacion_postada_se_detecta_y_anula(self):
+        from decimal import Decimal
+
+        from django.core.management import call_command
+
+        from apps.accounting.models import AsientoContable
+        from apps.accounting.reports import obtener_valor_existencias
+
+        # Compra del coche: 310 por 8.150
+        self._asiento('CompraVehiculo', self.vehiculo.pk, [
+            ('310', Decimal('8150.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('8150.00')),
+        ])
+        # Anulación posteada por error: devuelve 8.150 a la 310
+        contrapartida = self._asiento('AnulacionVenta', 1, [
+            ('310', Decimal('8150.00'), Decimal('0')),
+            ('572', Decimal('0'), Decimal('8150.00')),
+        ])
+
+        antes = obtener_valor_existencias()
+        self.assertEqual(antes['diferencia'], Decimal('-8150.00'))
+
+        call_command('regularizar_inventario_vehiculos', '--corregir', verbosity=0)
+
+        contrapartida.refresh_from_db()
+        self.assertEqual(contrapartida.estado, 'ANULADO')
+        despues = obtener_valor_existencias()
+        self.assertEqual(despues['saldo_contable'], Decimal('8150.00'))
+        self.assertEqual(despues['diferencia'], Decimal('0'))
+        self.assertFalse(AsientoContable.objects.filter(
+            tipo_documento='RegularizacionInventario'
+        ).exists())
